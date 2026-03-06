@@ -1,0 +1,186 @@
+.uncial-editor-shell,
+.uncial-renderer {
+	border: 1px solid #d6d6d6;
+	border-radius: 10px;
+	background: #fff;
+}
+
+.uncial-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-bottom: 1px solid #ececec;
+	background: #f9f9f9;
+}
+
+.uncial-toolbar button,
+.uncial-toolbar select,
+.uncial-toolbar input {
+	font: inherit;
+	padding: 0.35rem 0.55rem;
+	border: 1px solid #cfcfcf;
+	border-radius: 8px;
+	background: #fff;
+	cursor: pointer;
+}
+
+.uncial-toolbar button.is-active {
+	background: #111;
+	color: #fff;
+	border-color: #111;
+}
+
+.uncial-attrs-popover {
+	margin: 0;
+	padding: 0.7rem;
+	border: 1px solid #d2d2d2;
+	border-radius: 10px;
+	background: #fff;
+	box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+	inline-size: min(360px, 92vw);
+	position: fixed;
+	top: anchor(bottom);
+	left: anchor(left);
+}
+
+.uncial-attrs-popover::backdrop {
+	background: transparent;
+}
+
+.uncial-attrs-title {
+	margin: 0 0 0.6rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.uncial-attrs-field {
+	display: grid;
+	gap: 0.25rem;
+	margin-bottom: 0.5rem;
+}
+
+.uncial-attrs-field span {
+	font-size: 0.8rem;
+	color: #555;
+}
+
+.uncial-attrs-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.uncial-content {
+	padding: 1rem;
+	line-height: 1.6;
+	font-size: 16px;
+	color: #111;
+}
+
+.uncial-content p {
+	margin: 0 0 0.75rem;
+}
+
+.uncial-content h1,
+.uncial-content h2,
+.uncial-content h3 {
+	line-height: 1.25;
+	margin: 1rem 0 0.6rem;
+}
+
+.uncial-content ul,
+.uncial-content ol {
+	margin: 0 0 0.8rem 1.2rem;
+}
+
+.uncial-content blockquote {
+	margin: 1rem 0;
+	padding: 0.5rem 0.9rem;
+	border-left: 4px solid #d8d8d8;
+	color: #444;
+}
+
+.uncial-content a {
+	color: #005fcc;
+	text-decoration: underline;
+}
+
+.uncial-content .uncial-block {
+	margin: 0.75rem 0;
+	padding: 0.65rem 0.8rem;
+	border: 1px dashed #b9b9b9;
+	border-radius: 8px;
+	background: #fcfcfc;
+	font-size: 0.92rem;
+}
+
+.uncial-content .uncial-card {
+	margin: 0.8rem 0;
+	padding: 0.95rem 1rem;
+	border: 1px solid #e2d8ca;
+	border-radius: 12px;
+	background: linear-gradient(180deg, #fffdfa 0%, #fff5e7 100%);
+	box-shadow: 0 12px 24px -24px rgb(64 41 12 / 75%);
+}
+
+.uncial-content .uncial-card h3 {
+	margin: 0;
+	font-size: 1.1rem;
+}
+
+.uncial-content .uncial-card .uncial-card-subtitle {
+	margin: 0.25rem 0 0.5rem;
+	color: #695033;
+	font-size: 0.92rem;
+}
+
+.uncial-content .uncial-card .uncial-card-body {
+	margin: 0;
+	color: #392817;
+	line-height: 1.4;
+}
+
+.uncial-content .uncial-card-group-block {
+	margin: 0.8rem 0;
+	padding: 0.95rem;
+	border: 1px solid #d8deeb;
+	border-radius: 14px;
+	background: linear-gradient(180deg, #fcfdff 0%, #f6f9ff 100%);
+}
+
+.uncial-content .uncial-card-group-title {
+	margin: 0 0 0.7rem;
+	font-size: 1.02rem;
+}
+
+.uncial-content .uncial-card-group-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+}
+
+.uncial-content .uncial-card-group-item {
+	flex: 1 1 210px;
+	min-width: 0;
+	padding: 0.65rem 0.7rem;
+	border-radius: 12px;
+	background: #fff;
+	border: 1px solid #dde6f8;
+}
+
+.uncial-content .uncial-card-group-item h4 {
+	margin: 0;
+	font-size: 0.92rem;
+}
+
+.uncial-content .uncial-card-group-item p {
+	margin: 0.35rem 0 0;
+	color: #4f5f7a;
+	font-size: 0.86rem;
+	line-height: 1.35;
+}
+
+.uncial-content:focus-visible {
+	outline: 2px solid #005fcc;
+	outline-offset: -2px;
+}
