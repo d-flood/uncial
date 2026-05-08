@@ -6,7 +6,7 @@ import type {
 	CreateSchemaOptions
 } from './types.js';
 
-const DEFAULT_MARKS = ['bold', 'italic', 'link'] as const;
+const DEFAULT_MARKS = ['bold', 'italic', 'strike', 'code', 'link'] as const;
 
 export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	const byId = new Map<string, BlockDefinition>();

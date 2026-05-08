@@ -1,8 +1,10 @@
 import type {
 	AttributeConfig,
+	AttributeOption,
 	AttributeSpec,
 	BlockAttributes,
 	BlockConfig,
+	BlockContentDefinition,
 	BlockComponents,
 	BlockDefinition,
 	NormalizedAttributes
@@ -12,14 +14,23 @@ function isAttributeSpec<T>(value: AttributeConfig<T>): value is AttributeSpec<T
 	return typeof value === 'object' && value !== null && 'default' in value;
 }
 
+function isAttributeOption<T>(value: unknown): value is AttributeOption<T> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value) && 'value' in value;
+}
+
+function optionValues<T>(options: ReadonlyArray<T | AttributeOption<T>>): T[] {
+	return options.map((option) => (isAttributeOption<T>(option) ? option.value : (option as T)));
+}
+
 function normalizeAttribute<T>(value: AttributeConfig<T>): AttributeSpec<T> {
-	if (isAttributeSpec(value)) {
-		return value;
+	const spec: AttributeSpec<T> = isAttributeSpec(value) ? { ...value } : { default: value };
+
+	if (spec.options && spec.options.length > 0 && !spec.validate) {
+		const allowed = optionValues(spec.options);
+		spec.validate = (candidate: unknown): candidate is T => allowed.includes(candidate as T);
 	}
 
-	return {
-		default: value
-	};
+	return spec;
 }
 
 function normalizeAttributes<Attrs extends BlockAttributes>(
@@ -50,6 +61,12 @@ function validateConfig<Attrs extends BlockAttributes>(config: BlockConfig<Attrs
 			throw new Error(`Attribute "${name}" in block "${config.id}" must define a default value`);
 		}
 	}
+
+	if (config.content && config.behaviors?.inline) {
+		throw new Error(
+			`Block "${config.id}" cannot be inline when content.kind is "${config.content.kind}"`
+		);
+	}
 }
 
 function normalizeComponents<Attrs extends BlockAttributes>(
@@ -66,6 +83,18 @@ function normalizeComponents<Attrs extends BlockAttributes>(
 	}
 
 	return { editor, render };
+}
+
+function normalizeContent(
+	content: false | BlockContentDefinition | undefined
+): BlockContentDefinition | undefined {
+	if (!content) {
+		return undefined;
+	}
+
+	return {
+		kind: content.kind
+	};
 }
 
 export function defineBlock<Attrs extends BlockAttributes>(
@@ -85,6 +114,7 @@ export function defineBlock<Attrs extends BlockAttributes>(
 			draggable: config.behaviors?.draggable ?? true,
 			selectable: config.behaviors?.selectable ?? true
 		},
+		content: normalizeContent(config.content),
 		html: config.html
 	});
 }

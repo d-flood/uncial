@@ -1,51 +1,71 @@
 <script lang="ts">
+	import { createRawSnippet, mount, unmount } from 'svelte';
 	import type { BlockRegistry, ContentSchema } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import RichContent from './RichContent.svelte';
 
-	export let node: PMNode;
-	export let registry: BlockRegistry;
-	export let schema: ContentSchema | undefined = undefined;
-
-	$: block = registry.get(node.type);
-	$: blockAttrs = (node.attrs ?? {}) as Record<string, unknown>;
-
-	function escapeHtml(value: string): string {
-		return value
-			.replaceAll('&', '&amp;')
-			.replaceAll('<', '&lt;')
-			.replaceAll('>', '&gt;')
-			.replaceAll('"', '&quot;')
-			.replaceAll("'", '&#39;');
+	interface Props {
+		node: PMNode;
+		registry: BlockRegistry;
+		schema?: ContentSchema;
 	}
 
-	function renderText(text: string, marks: PMMark[] = []): string {
-		let result = escapeHtml(text);
-		const activeMarks = schema
-			? marks.filter((mark) => schema.allowedMarks.has(mark.type))
-			: marks;
+	let { node, registry, schema = undefined }: Props = $props();
 
-		for (const mark of activeMarks) {
-			if (mark.type === 'bold') {
-				result = `<strong>${result}</strong>`;
-				continue;
-			}
-			if (mark.type === 'italic') {
-				result = `<em>${result}</em>`;
-				continue;
-			}
-			if (mark.type === 'link') {
-				const href = escapeHtml(String(mark.attrs?.href ?? ''));
-				result = `<a href="${href}">${result}</a>`;
-			}
+	const block = $derived(registry.get(node.type));
+	const blockAttrs = $derived((node.attrs ?? {}) as Record<string, unknown>);
+	const blockContent = $derived((node.content ?? []) as PMNode[]);
+	const blockChildren = $derived.by(() => {
+		if (!block?.content) {
+			return undefined;
 		}
 
-		return result;
+		return createRawSnippet(() => ({
+			render: () => '<div class="uncial-render-children"></div>',
+			setup: (element) => {
+				const mounted = mount(RichContent, {
+					target: element,
+					props: {
+						nodes: blockContent,
+						registry,
+						schema
+					}
+				});
+
+				return () => {
+					void unmount(mounted);
+				};
+			}
+		}));
+	});
+
+	function getActiveMarks(marks: PMMark[] = []): PMMark[] {
+		return schema ? marks.filter((mark) => schema.allowedMarks.has(mark.type)) : marks;
 	}
 </script>
 
+{#snippet renderMarkedText(text: string, marks: PMMark[])}
+	{#if marks.length === 0}
+		{text}
+	{:else}
+		{@const [mark, ...rest] = marks}
+		{#if mark.type === 'bold'}
+			<strong>{@render renderMarkedText(text, rest)}</strong>
+		{:else if mark.type === 'italic'}
+			<em>{@render renderMarkedText(text, rest)}</em>
+		{:else if mark.type === 'strike'}
+			<s>{@render renderMarkedText(text, rest)}</s>
+		{:else if mark.type === 'code'}
+			<code>{@render renderMarkedText(text, rest)}</code>
+		{:else}
+			{@render renderMarkedText(text, rest)}
+		{/if}
+	{/if}
+{/snippet}
+
 {#if block && (!schema || schema.allowedBlocks.has(block.id))}
-	<svelte:component this={block.components.render} {...blockAttrs} />
+	{@const RenderComponent = block.components.render}
+	<RenderComponent {...blockAttrs} content={blockContent} children={blockChildren} />
 {:else if node.type === 'paragraph'}
 	<p>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />
@@ -81,11 +101,12 @@
 	<blockquote>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />
 	</blockquote>
+{:else if node.type === 'codeBlock'}
+	<pre><code><RichContent nodes={node.content ?? []} {registry} {schema} /></code></pre>
 {:else if node.type === 'horizontalRule'}
 	<hr />
 {:else if node.type === 'hardBreak'}
 	<br />
 {:else if node.type === 'text'}
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-	{@html renderText(node.text ?? '', node.marks ?? [])}
+	{@render renderMarkedText(node.text ?? '', getActiveMarks(node.marks ?? []))}
 {/if}

@@ -3,7 +3,6 @@
 	import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
 	import { resolveRegistry } from '../core/registry.js';
 	import { getBlockDefaultAttrs } from '../shared/tiptap.js';
-	import '../styles/uncial.css';
 
 	export let editor: Editor | null = null;
 	export let blocks: BlockRegistry | BlockDefinition[] = [];
@@ -38,3 +37,27 @@
 		<button type="button" on:click={() => insertBlock(block.id)}>{block.label}</button>
 	{/each}
 </div>
+
+<style>
+	.uncial-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding: 0.75rem;
+		border-bottom: 1px solid #ececec;
+		background: #f9f9f9;
+	}
+
+	.uncial-toolbar button,
+	.uncial-toolbar input {
+		font: inherit;
+		padding: 0.35rem 0.55rem;
+		border: 1px solid #cfcfcf;
+		border-radius: 8px;
+		background: #fff;
+	}
+
+	.uncial-toolbar button {
+		cursor: pointer;
+	}
+</style>

@@ -1,199 +1,398 @@
 <script lang="ts">
-	import { Editor as TiptapEditor, type JSONContent } from '@tiptap/core';
-	import { onDestroy, onMount } from 'svelte';
-	import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
+	import type { AnyExtension, Editor as TiptapEditor, JSONContent } from '@tiptap/core';
+	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import { resolveRegistry } from '../core/registry.js';
-	import { createEditorExtensions, emptyDocument } from '../shared/tiptap.js';
+	import type {
+		BlockDefinition,
+		BlockRegistry,
+		ContentSchema,
+		ValidationIssue
+	} from '../core/types.js';
+	import { emptyDocument } from '../shared/content.js';
 	import {
 		createBlockAttributesController,
 		type BlockAttributesController,
 		type BlockAttributesState
 	} from './attributesController.js';
-	import '../styles/uncial.css';
+	import { bindEditor, type BindEditorOptions } from './bindEditor.js';
+	import Toolbar from './Toolbar.svelte';
+	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
-	export let blocks: BlockRegistry | BlockDefinition[] = [];
-	export let schema: ContentSchema | undefined = undefined;
-	export let json: JSONContent = emptyDocument();
-	export let attributesController: BlockAttributesController | null = null;
+	interface Props {
+		blocks?: BlockRegistry | BlockDefinition[];
+		schema?: ContentSchema;
+		json?: JSONContent;
+		extensions?: AnyExtension[];
+		toolbarFeatures?: ToolbarFeatureSelection;
+		toolbarExtensions?: ToolbarFeature[];
+		attributesController?: BlockAttributesController | null;
+		onIssue?: (issue: ValidationIssue) => void;
+	}
 
-	let root: HTMLDivElement;
+	let {
+		blocks = [],
+		schema = undefined,
+		json = $bindable(emptyDocument()),
+		extensions = [],
+		toolbarFeatures = undefined,
+		toolbarExtensions = [],
+		attributesController = null,
+		onIssue
+	}: Props = $props();
+
 	let editorHost: HTMLDivElement;
-	let editor: TiptapEditor | null = null;
-	let lastSerialized = '';
-	let attrsPopoverId = `uncial-attrs-${Math.random().toString(36).slice(2)}`;
-	let attrsPopoverEl: HTMLElement | null = null;
-	let controllerUnsubscribe = () => {};
-	let controllerState: BlockAttributesState = {
+	let editor = $state<TiptapEditor | null>(null);
+	let interactedNodeView = $state<HTMLElement | null>(null);
+	let controllerState = $state<BlockAttributesState>({
 		open: false,
 		mode: null,
 		selectedBlockId: '',
 		draftAttrs: {},
+		validationErrors: {},
 		activeBlock: null,
-		allowedBlockIds: []
-	};
+		allowedBlockIds: [],
+		containerChildren: [],
+		link: {
+			open: false,
+			attrs: {}
+		}
+	});
+	let attrsTriggerEl = $state<HTMLElement | null>(null);
 	const internalController = createBlockAttributesController();
 
-	$: registry = resolveRegistry(blocks);
-	$: controller = attributesController ?? internalController;
-	$: activeBlocks = registry.blocks.filter((block: BlockDefinition) =>
-		controllerState.allowedBlockIds.length
-			? controllerState.allowedBlockIds.includes(block.id)
-			: !schema || schema.allowedBlocks.has(block.id)
+	const registry = $derived(resolveRegistry(blocks));
+	const controller = $derived(attributesController ?? internalController);
+	const editorBinding = $derived<BindEditorOptions>({
+		blocks,
+		schema,
+		json,
+		extensions,
+		attributesController: controller,
+		onIssue,
+		onChange: (nextDocument) => {
+			json = nextDocument;
+		},
+		onEditor: (nextEditor) => {
+			editor = nextEditor;
+		}
+	});
+	const activeBlocks = $derived.by(() =>
+		registry.blocks.filter((block) =>
+			controllerState.allowedBlockIds.length
+				? controllerState.allowedBlockIds.includes(block.id)
+				: !schema || schema.allowedBlocks.has(block.id)
+		)
 	);
-	$: {
-		controllerUnsubscribe();
-		controllerUnsubscribe = controller.subscribe((state) => {
-			controllerState = state;
-		});
-	}
-	$: if (editor) {
-		controller.attach(editor, registry, schema);
-	}
-	$: if (!controllerState.selectedBlockId && attrsPopoverEl?.matches(':popover-open')) {
-		attrsPopoverEl.hidePopover();
-	}
-	$: if (controllerState.open && !attrsPopoverEl?.matches(':popover-open')) {
-		attrsPopoverEl?.showPopover();
-	}
-	$: if (!controllerState.open && attrsPopoverEl?.matches(':popover-open')) {
-		attrsPopoverEl.hidePopover();
-	}
-	$: if (editor && json) {
-		const next = JSON.stringify(json);
-		if (next !== lastSerialized) {
-			editor.commands.setContent(json, { emitUpdate: false });
-			lastSerialized = next;
+
+	function insertBlock(blockId: string): void {
+		const ok = controller.insertBlock(blockId);
+		// Close the dropdown after an insert attempt.
+		attrsTriggerEl?.closest('details')?.removeAttribute('open');
+		if (!ok) return;
+
+		requestAnimationFrame(() => {
 			controller.syncFromSelection();
-		}
-	}
-
-	function hideAndCloseAttributes(): void {
-		if (attrsPopoverEl?.matches(':popover-open')) {
-			attrsPopoverEl.hidePopover();
-		}
-		controller.closeAttributes();
-	}
-
-	onMount(() => {
-		editor = new TiptapEditor({
-			element: editorHost,
-			extensions: createEditorExtensions(registry, schema),
-			content: json,
-			onUpdate: ({ editor: tiptap }) => {
-				json = tiptap.getJSON();
-				lastSerialized = JSON.stringify(json);
-				controller.syncFromSelection();
-			},
-			onSelectionUpdate: () => {
-				controller.syncFromSelection();
+			if (controller.getActiveBlock()?.id === blockId) {
+				controller.openAttributes(blockId);
 			}
 		});
+	}
 
-		lastSerialized = JSON.stringify(editor.getJSON());
-		controller.attach(editor, registry, schema);
+	function syncActiveBlockIndicator(): void {
+		if (!editorHost) return;
+
+		const activeNodes = editorHost.querySelectorAll<HTMLElement>(
+			'.uncial-nodeview.uncial-active-block'
+		);
+		activeNodes.forEach((node) => {
+			node.classList.remove('uncial-active-block');
+		});
+
+		const activePos = controllerState.activeBlock?.pos;
+		if (activePos === undefined) {
+			const domActiveNode = interactedNodeView ?? resolveSelectionNodeView();
+			domActiveNode?.classList.add('uncial-active-block');
+			return;
+		}
+
+		const activeNode = editorHost.querySelector<HTMLElement>(
+			`.uncial-nodeview[data-uncial-block-pos="${activePos}"]`
+		);
+		if (activeNode) {
+			activeNode.classList.add('uncial-active-block');
+			return;
+		}
+
+		const domActiveNode = interactedNodeView ?? resolveSelectionNodeView();
+		domActiveNode?.classList.add('uncial-active-block');
+	}
+
+	function resolveSelectionNodeView(): HTMLElement | null {
+		const selection = window.getSelection();
+		const anchorNode = selection?.anchorNode;
+		if (!anchorNode) return null;
+
+		const target =
+			anchorNode instanceof Element
+				? anchorNode
+				: (anchorNode.parentElement ?? anchorNode.parentNode);
+		if (!(target instanceof Element)) return null;
+
+		return target.closest<HTMLElement>('.uncial-nodeview');
+	}
+
+	$effect(() => {
+		const unsubscribe = controller.subscribe((state) => {
+			controllerState = state;
+		});
+
+		return unsubscribe;
 	});
 
-	onDestroy(() => {
-		controllerUnsubscribe();
-		controller.detach();
-		editor?.destroy();
-		editor = null;
+	$effect(() => {
+		void controllerState.activeBlock;
+		requestAnimationFrame(() => {
+			syncActiveBlockIndicator();
+		});
 	});
 
-	function toggleBold(): void {
-		editor?.chain().focus().toggleBold().run();
-	}
+	$effect(() => {
+		if (!editorHost) return;
 
-	function toggleItalic(): void {
-		editor?.chain().focus().toggleItalic().run();
-	}
+		const syncFromDomSelection = () => {
+			requestAnimationFrame(() => {
+				syncActiveBlockIndicator();
+			});
+		};
 
-	function setLink(): void {
-		if (!editor) return;
-		const href = window.prompt('Link URL');
-		if (!href) return;
-		editor.chain().focus().setLink({ href }).run();
-	}
+		const trackInteractedNodeView = (event: Event) => {
+			const target = event.target;
+			if (!(target instanceof Element)) return;
+			interactedNodeView = target.closest<HTMLElement>('.uncial-nodeview');
+			syncFromDomSelection();
+		};
 
-	function unsetLink(): void {
-		editor?.chain().focus().unsetLink().run();
-	}
+		editorHost.addEventListener('mousedown', trackInteractedNodeView, true);
+		editorHost.addEventListener('mouseup', syncFromDomSelection);
+		editorHost.addEventListener('keyup', syncFromDomSelection);
+		editorHost.addEventListener('focusin', trackInteractedNodeView, true);
+
+		return () => {
+			editorHost.removeEventListener('mousedown', trackInteractedNodeView, true);
+			editorHost.removeEventListener('mouseup', syncFromDomSelection);
+			editorHost.removeEventListener('keyup', syncFromDomSelection);
+			editorHost.removeEventListener('focusin', trackInteractedNodeView, true);
+		};
+	});
+
 </script>
 
-<div class="uncial-editor-shell" bind:this={root}>
-	<div class="uncial-toolbar">
-		<button type="button" class:is-active={editor?.isActive('bold')} on:click={toggleBold}
-			>Bold</button
-		>
-		<button type="button" class:is-active={editor?.isActive('italic')} on:click={toggleItalic}
-			>Italic</button
-		>
-		<button type="button" class:is-active={editor?.isActive('link')} on:click={setLink}>Link</button
-		>
-		<button type="button" on:click={unsetLink}>Unlink</button>
+<div class="uncial-editor-shell rounded-box bg-base-100 shadow-sm">
+	<div
+		class="uncial-toolbar flex flex-wrap items-center gap-2 border-b border-base-300 bg-base-200/60 px-3 py-2"
+	>
+		<Toolbar
+			{editor}
+			{schema}
+			{toolbarFeatures}
+			{toolbarExtensions}
+			onEditLink={() => controller.openLinkAttributes()}
+		/>
 		{#if activeBlocks.length > 0}
-			<select
-				value={controllerState.selectedBlockId}
-				on:change={(event) => {
-					const target = event.currentTarget as HTMLSelectElement;
-					controller.selectBlock(target.value);
-				}}
-			>
-				<option value="">Insert block...</option>
-				{#each activeBlocks as block (block.id)}
-					<option value={block.id}>{block.label}</option>
-				{/each}
-			</select>
-			<button
-				type="button"
-				class="uncial-attrs-trigger"
-				disabled={!controllerState.selectedBlockId}
-				style="anchor-name: --uncial-attrs-anchor;"
-				popovertarget={attrsPopoverId}
-				on:click={() => controller.openAttributes()}>Block Attributes</button
-			>
-			<div
-				bind:this={attrsPopoverEl}
-				id={attrsPopoverId}
-				class="uncial-attrs-popover"
-				popover="auto"
-				style="position-anchor: --uncial-attrs-anchor;"
-				on:toggle={(event) => {
-					const target = event.currentTarget as HTMLElement;
-					if (!target.matches(':popover-open')) {
-						controller.closeAttributes();
-					}
-				}}
-			>
-				<p class="uncial-attrs-title">
-					{controllerState.mode === 'edit' ? 'Edit' : 'Configure'}
-					{controllerState.selectedBlockId}
-				</p>
-				{#each Object.entries(controllerState.draftAttrs) as [name, value] (name)}
-					<label class="uncial-attrs-field">
-						<span>{name}</span>
-						<input
-							type="text"
-							placeholder={name}
-							{value}
-							on:input={(event) => {
-								const target = event.currentTarget as HTMLInputElement;
-								controller.setDraftAttr(name, target.value);
-							}}
-						/>
-					</label>
-				{/each}
-				<div class="uncial-attrs-actions">
-					<button
-						type="button"
-						on:click={() => {
-							const ok = controller.commit();
-							if (ok) hideAndCloseAttributes();
-						}}>{controllerState.mode === 'edit' ? 'Update Block' : 'Insert Block'}</button
+			<div class="ml-auto flex items-center gap-2">
+				<details class="dropdown dropdown-end">
+					<summary
+						bind:this={attrsTriggerEl}
+						aria-label="Insert block"
+						class="btn btn-sm btn-primary gap-1.5"
 					>
-				</div>
+						<PlusIcon size={14} weight="bold" />
+						<span>Insert block</span>
+						<CaretDownIcon size={12} weight="bold" />
+					</summary>
+					<ul
+						class="menu dropdown-content z-20 mt-2 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl"
+					>
+						{#each activeBlocks as block (block.id)}
+							<li>
+								<button type="button" onclick={() => insertBlock(block.id)}>
+									{block.label}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				</details>
 			</div>
 		{/if}
 	</div>
-	<div class="uncial-content" bind:this={editorHost}></div>
+	<div class="uncial-editor-body">
+		<div
+			class="uncial-content uncial-rich-content uncial-gutter-enabled min-h-112 p-5 leading-7 sm:p-8"
+			bind:this={editorHost}
+			use:bindEditor={editorBinding}
+		></div>
+	</div>
 </div>
+
+<style>
+	.uncial-content:focus-visible {
+		outline: 2px solid #2563eb;
+		outline-offset: -2px;
+	}
+
+	.uncial-content :global(.ProseMirror:focus) {
+		outline: none;
+		box-shadow: none;
+	}
+
+	/* --- Gutter layout --- */
+	.uncial-editor-body {
+		position: relative;
+	}
+
+	.uncial-content.uncial-gutter-enabled {
+		padding-left: 5.5rem;
+	}
+
+	@media (max-width: 639px) {
+		.uncial-content.uncial-gutter-enabled {
+			padding-left: 4.5rem;
+		}
+	}
+
+	/* --- Block node views --- */
+	.uncial-content :global(.uncial-nodeview) {
+		position: relative;
+		border-radius: 12px;
+		transition:
+			box-shadow 140ms ease,
+			transform 140ms ease;
+	}
+
+	/* --- Gutter strip per block --- */
+	.uncial-content :global(.uncial-nodeview-frame),
+	.uncial-content :global(.uncial-nodeview-host),
+	.uncial-content :global(.uncial-nodeview-body) {
+		display: block;
+		line-height: normal;
+	}
+
+	.uncial-content :global(.uncial-nodeview-gutter) {
+		position: absolute;
+		left: -4.75rem;
+		top: 0;
+		bottom: 0;
+		width: 4rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		user-select: none;
+		pointer-events: auto;
+	}
+
+	.uncial-content :global(.uncial-gutter-drag) {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 0.375rem;
+		border: none;
+		background: var(--color-base-200, #f0f0f0);
+		color: var(--color-base-content, #333);
+		opacity: 0.5;
+		transition:
+			opacity 140ms ease,
+			background 140ms ease;
+		padding: 0;
+	}
+
+	.uncial-content :global(.uncial-nodeview-gutter:hover .uncial-gutter-drag) {
+		opacity: 1;
+		background: var(--color-base-300, #e0e0e0);
+	}
+
+	.uncial-content :global(.uncial-gutter-drag:active) {
+		cursor: grabbing;
+	}
+
+	.uncial-content :global(.uncial-gutter-label) {
+		border: none;
+		background: transparent;
+		padding: 0;
+		font-size: 0.6rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--color-base-content, #333);
+		opacity: 0.4;
+		line-height: 1;
+		text-align: center;
+		word-break: break-word;
+		max-width: 3.5rem;
+		transition: opacity 140ms ease;
+	}
+
+	.uncial-content :global(.uncial-nodeview-gutter:hover .uncial-gutter-label) {
+		opacity: 0.8;
+	}
+
+	/* --- Hover highlight: outline the block when gutter is hovered --- */
+	.uncial-content :global(.uncial-nodeview:has(.uncial-nodeview-gutter:hover)) {
+		outline: 2px dashed rgb(37 99 235 / 35%);
+		outline-offset: 4px;
+	}
+
+	/* --- Row block editor layout --- */
+	.uncial-content :global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-content),
+	.uncial-content
+		:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-host),
+	.uncial-content
+		:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-frame),
+	.uncial-content
+		:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-body) {
+		display: contents;
+	}
+
+	.uncial-content
+		:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview) {
+		flex: 1 1 16rem;
+		min-width: 0;
+	}
+
+	/* --- Nested block gutter: label visible on hover, no drag handle --- */
+	.uncial-content :global(.uncial-nodeview .uncial-nodeview .uncial-nodeview-gutter) {
+		left: 0;
+		top: -0.125rem;
+		bottom: auto;
+		width: auto;
+		flex-direction: row;
+		padding: 0.125rem 0.375rem;
+		border-right: none;
+		opacity: 0;
+		z-index: 10;
+		transition: opacity 140ms ease;
+		background: var(--color-base-200, #f0f0f0);
+		border-radius: 0.25rem 0.25rem 0 0;
+	}
+
+	.uncial-content :global(.uncial-nodeview .uncial-nodeview:hover .uncial-nodeview-gutter) {
+		opacity: 1;
+	}
+
+	/* Hide drag handle in nested blocks — reordering via sidebar */
+	.uncial-content :global(.uncial-nodeview .uncial-nodeview .uncial-gutter-drag) {
+		display: none;
+	}
+
+	/* --- Selected / active block --- */
+	.uncial-content :global(.uncial-nodeview.ProseMirror-selectednode),
+	.uncial-content :global(.uncial-nodeview.uncial-active-block) {
+		outline: 2px solid rgb(37 99 235 / 55%);
+		outline-offset: 4px;
+		box-shadow: 0 0 0 6px rgb(37 99 235 / 10%);
+	}
+</style>

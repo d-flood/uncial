@@ -1,249 +1,381 @@
 <script lang="ts">
+	import PencilSimpleIcon from 'phosphor-svelte/lib/PencilSimpleIcon';
+	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
+	import BracketsCurlyIcon from 'phosphor-svelte/lib/BracketsCurlyIcon';
 	import {
+		BlockAttributesPanel,
 		Editor,
 		Renderer,
 		createBlockAttributesController,
 		createBlockRegistry,
 		createSchema,
-		defineBlock
+		defineBlock,
+		hasRichTextContent,
+		richTextDocument
 	} from '../lib/index.js';
-	import CardGroupView from './demo/CardGroupView.svelte';
+	import Callout from './demo/Callout.svelte';
 	import Card from './demo/Card.svelte';
+	import RowView from './demo/RowView.svelte';
+
+	function isNonEmptyString(value: unknown): value is string {
+		return typeof value === 'string' && value.trim().length > 0;
+	}
+
+	type DemoNode = {
+		type: string;
+		attrs?: Record<string, unknown>;
+		text?: string;
+		content?: DemoNode[];
+	};
+
+	type DemoDocument = {
+		type: 'doc';
+		version: number;
+		content: DemoNode[];
+	};
+
+	type JsonToken = {
+		text: string;
+		kind: 'key' | 'string' | 'number' | 'boolean' | 'null' | 'punctuation';
+	};
+
+	function highlightJson(json: string): JsonToken[] {
+		const tokenPattern =
+			/("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[{}[\],:]/g;
+		const tokens: JsonToken[] = [];
+		let cursor = 0;
+
+		for (const match of json.matchAll(tokenPattern)) {
+			const text = match[0];
+			const index = match.index ?? 0;
+
+			if (index > cursor) {
+				tokens.push({ text: json.slice(cursor, index), kind: 'punctuation' });
+			}
+
+			tokens.push({
+				text,
+				kind: match[1]
+					? 'key'
+					: match[2]
+						? 'string'
+						: text === 'true' || text === 'false'
+							? 'boolean'
+							: text === 'null'
+								? 'null'
+								: /^-?\d/.test(text)
+									? 'number'
+									: 'punctuation'
+			});
+
+			cursor = index + text.length;
+		}
+
+		if (cursor < json.length) {
+			tokens.push({ text: json.slice(cursor), kind: 'punctuation' });
+		}
+
+		return tokens;
+	}
 
 	const card = defineBlock({
 		id: 'card',
 		label: 'Card',
+		description: 'Typed attributes with normalization and validation.',
 		attributes: {
-			title: 'Launch Checklist',
+			title: {
+				default: 'Launch Checklist',
+				required: true,
+				validate: isNonEmptyString
+			},
 			subtitle: 'Ship-ready status',
-			body: 'Editor and renderer are using the same extension set and style tokens.'
+			body: {
+				default: richTextDocument(
+					'Editor and renderer are using the same extension set and style tokens.'
+				),
+				input: 'richtext',
+				richText: {
+					features: ['bold', 'italic', 'bulletList', 'orderedList']
+				},
+				validate: hasRichTextContent
+			},
+			featured: false,
+			priority: {
+				default: 3,
+				validate: (value: unknown): value is number =>
+					typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 5
+			},
+			owner: {
+				default: 'platform',
+				validate: isNonEmptyString
+			},
+			rollout: {
+				default: 'staged',
+				validate: isNonEmptyString
+			},
+			tags: {
+				default: 'typed attrs\nversioned docs',
+				input: 'textarea'
+			}
 		},
 		component: Card
 	});
 
-	const cardGroup = defineBlock({
-		id: 'cardGroup',
-		label: 'Card Group',
+	const callout = defineBlock({
+		id: 'callout',
+		label: 'Callout',
+		description: 'Tone-tinted notice with a validated variant and rich text body.',
 		attributes: {
-			title: 'Release Readiness',
-			cards:
-				'Editor polish|Formatting and keyboard flow are stable.\nRenderer parity|Both views share the same card visuals.\nQA pass|Unit coverage and smoke checks completed.'
+			tone: {
+				default: 'info',
+				options: [
+					{ value: 'info', label: 'Info' },
+					{ value: 'success', label: 'Success' },
+					{ value: 'warning', label: 'Warning' },
+					{ value: 'danger', label: 'Danger' }
+				]
+			},
+			title: {
+				default: 'Heads up',
+				required: true,
+				validate: isNonEmptyString
+			},
+			body: {
+				default: richTextDocument(
+					'Callouts share the same rich text stack as the rest of the document — bold, italic and links all work.'
+				),
+				input: 'richtext',
+				richText: {
+					features: ['bold', 'italic', 'link']
+				},
+				validate: hasRichTextContent
+			},
+			showIcon: true
 		},
-		component: CardGroupView
+		component: Callout
 	});
 
-	const blocks = createBlockRegistry([card, cardGroup]);
-	const schema = createSchema(blocks);
-	const attributesController = createBlockAttributesController();
+	const row = defineBlock({
+		id: 'row',
+		label: 'Row',
+		description: 'Lay out any other blocks side by side.',
+		attributes: {},
+		component: RowView,
+		content: { kind: 'flow' }
+	});
 
-	let document = {
+	const blocks = createBlockRegistry([card, callout, row]);
+	const schema = createSchema(blocks);
+
+	const initialDocument: DemoDocument = {
 		type: 'doc',
+		version: 0,
 		content: [
 			{
 				type: 'paragraph',
 				content: [
 					{
 						type: 'text',
-						text: 'This demo shows a real card block plus bold/italic/link marks.'
+						text: 'Edit this document and use the toolbar to insert or configure blocks.'
 					}
 				]
 			},
 			{
-				type: 'card',
+				type: 'paragraph',
+				content: [
+					{
+						type: 'text',
+						text: 'Plain rich text now lives directly in the document beside custom container blocks.'
+					}
+				]
+			},
+			{
+				type: 'row',
+				attrs: {},
+				content: [
+					{
+						type: 'card',
+						attrs: {
+							title: 'Launch Checklist',
+							subtitle: 'Ready for review',
+							body: richTextDocument(
+								'Use block attributes to update this card directly in the editor sidebar.'
+							),
+							featured: true,
+							priority: 2,
+							owner: 'platform',
+							rollout: 'staged',
+							tags: 'editor\nblocks'
+						}
+					},
+					{
+						type: 'card',
+						attrs: {
+							title: 'Docs refresh',
+							subtitle: 'In progress',
+							body: richTextDocument(
+								'Screens, API notes and the block cookbook are getting a pass this week.'
+							),
+							featured: false,
+							priority: 3,
+							owner: 'writing',
+							rollout: 'preview',
+							tags: 'docs\nguide'
+						}
+					}
+				]
+			},
+			{
+				type: 'callout',
 				attrs: {
-					title: 'Card from JSON',
-					subtitle: 'Inserted by initial document state',
-					body: 'Use the toolbar popup to edit attributes before insertion.'
+					tone: 'success',
+					title: 'Schema-backed authoring',
+					body: richTextDocument(
+						'Every edit is validated against the current schema version before it lands in the document.'
+					),
+					showIcon: true
 				}
 			},
 			{
-				type: 'cardGroup',
+				type: 'callout',
 				attrs: {
-					title: 'Card Group Block',
-					cards:
-						'Design pass|Updated type, color, and spacing tokens for the demo.\nResponsive layout|Cards wrap based on available horizontal space.\nAuthoring workflow|Insert and edit from the same attributes popover.'
+					tone: 'warning',
+					title: 'Try the tone attribute',
+					body: richTextDocument(
+						'Select this block and pick a different tone from the sidebar — the dropdown is generated from the attribute spec.'
+					),
+					showIcon: true
 				}
 			}
 		]
 	};
+
+	const attributesController = createBlockAttributesController();
+	let document = $state(initialDocument);
+	let activeTab = $state<'editor' | 'rendered' | 'json'>('editor');
+	let formattedJson = $derived(JSON.stringify(document, null, 2));
+	let highlightedJson = $derived(highlightJson(formattedJson));
 </script>
 
-<main class="demo-shell">
-	<header class="hero">
-		<p class="eyebrow">Uncial • Client-Only Demo</p>
-		<h1>Composable Blocks, Sharper UI</h1>
-		<p class="hero-copy">
-			The demo now includes a <strong>Card Group</strong> block with responsive wrapping cards.
-			Enter one card per line in the form <code>Title|Description</code>.
-		</p>
-	</header>
+<main class="min-h-dvh px-4 py-6 sm:px-6 lg:px-8">
+	<section class="mx-auto max-w-360">
+		<div class="mb-8">
+			<h1 class="max-w-4xl">
+				<span class="block text-sm font-bold uppercase tracking-[0.32em] text-primary sm:text-base">
+					Uncial
+				</span>
+				<span class="mt-3 block text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+					Build pages from JSON. Edit them like pages.
+				</span>
+			</h1>
+			<p class="mt-5 max-w-2xl text-lg leading-8 opacity-70">
+				Uncial keeps authoring and rendering bound to the same plain JSON document, so you can load
+				and save content through any API without coupling your blocks to a backend.
+			</p>
+		</div>
 
-	<div class="grid">
-		<section class="panel">
-			<h2>Editor</h2>
-			<div class="demo-controls">
-				<button type="button" on:click={() => attributesController.openAttributes('card')}>
-					Insert Card
-				</button>
-				<button type="button" on:click={() => attributesController.openAttributes('cardGroup')}>
-					Insert Card Group
+		<div>
+			<div class="tabs tabs-box mb-6 w-fit" role="tablist" aria-label="Demo views">
+				<button
+					type="button"
+					role="tab"
+					class={['tab gap-2', activeTab === 'editor' && 'tab-active']}
+					aria-selected={activeTab === 'editor'}
+					onclick={() => (activeTab = 'editor')}
+				>
+					<PencilSimpleIcon size={14} weight="bold" />
+					Editor
 				</button>
 				<button
 					type="button"
-					disabled={$attributesController.activeBlock === null}
-					on:click={() => attributesController.openAttributes()}
+					role="tab"
+					class={['tab gap-2', activeTab === 'rendered' && 'tab-active']}
+					aria-selected={activeTab === 'rendered'}
+					onclick={() => (activeTab = 'rendered')}
 				>
-					Edit Selected Block
+					<EyeIcon size={14} weight="bold" />
+					Rendered
 				</button>
-				<p class="hint">
-					Choose a block, then use the attributes popover to insert or update it in place.
-				</p>
+				<button
+					type="button"
+					role="tab"
+					class={['tab gap-2', activeTab === 'json' && 'tab-active']}
+					aria-selected={activeTab === 'json'}
+					onclick={() => (activeTab = 'json')}
+				>
+					<BracketsCurlyIcon size={14} weight="bold" />
+					JSON
+				</button>
 			</div>
-			<Editor {blocks} {schema} {attributesController} bind:json={document} />
-		</section>
-		<section class="panel">
-			<h2>Renderer</h2>
-			<Renderer content={document} {blocks} {schema} />
-		</section>
-	</div>
 
-	<section class="json-panel">
-		<h2>JSON</h2>
-		<pre>{JSON.stringify(document, null, 2)}</pre>
+			{#if activeTab === 'editor'}
+				<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+					<section aria-label="Editor">
+						<Editor {blocks} {schema} {attributesController} bind:json={document} />
+					</section>
+					<aside
+						aria-label="Block attributes"
+						class="card bg-base-100 shadow-sm lg:sticky lg:top-6 lg:self-start"
+					>
+						<div class="card-body p-4 sm:p-6">
+							<BlockAttributesPanel controller={attributesController} {blocks} />
+						</div>
+					</aside>
+				</div>
+			{:else if activeTab === 'rendered'}
+				<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+					<section aria-label="Rendered" class="card bg-base-100 shadow-sm">
+						<div class="card-body gap-4 p-4 sm:p-6">
+							<header class="flex items-center justify-between gap-3">
+								<div>
+									<p class="text-xs font-bold uppercase tracking-[0.2em] opacity-60">Preview</p>
+									<h2 class="text-2xl font-bold">Rendered output</h2>
+								</div>
+								<span class="badge badge-success badge-soft">Same document</span>
+							</header>
+							<Renderer {blocks} {schema} content={document} />
+						</div>
+					</section>
+					<div class="hidden lg:block" aria-hidden="true"></div>
+				</div>
+			{:else}
+				<section aria-label="JSON document" class="grid gap-4">
+					<header class="flex items-center justify-between gap-3">
+						<div>
+							<p class="text-xs font-bold uppercase tracking-[0.2em] opacity-60">Document</p>
+							<h2 class="text-2xl font-bold">Formatted JSON</h2>
+						</div>
+						<span class="badge badge-info badge-soft">Live data</span>
+					</header>
+					<div class="mockup-code max-h-[70dvh] overflow-auto text-sm leading-6 shadow-sm">
+						<pre><code
+								>{#each highlightedJson as token, index (index)}<span
+										class={`json-token-${token.kind}`}>{token.text}</span
+									>{/each}</code
+							></pre>
+					</div>
+				</section>
+			{/if}
+		</div>
 	</section>
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: 'Avenir Next', 'Segoe UI', sans-serif;
-		background:
-			radial-gradient(circle at 15% 20%, rgb(255 255 255 / 75%), transparent 40%),
-			radial-gradient(circle at 90% 0%, rgb(255 210 165 / 25%), transparent 35%),
-			linear-gradient(170deg, #fff7ea 0%, #fcfbff 45%, #edf6ff 100%);
-		color: #1f2124;
+	.json-token-key {
+		color: oklch(86% 0.127 207.078);
 	}
 
-	.demo-shell {
-		max-width: 1120px;
-		margin: 0 auto;
-		padding: 2rem 1rem 2.5rem;
+	.json-token-string {
+		color: oklch(84% 0.143 164.978);
 	}
 
-	.hero {
-		background: rgb(255 255 255 / 82%);
-		border: 1px solid rgb(255 255 255 / 85%);
-		border-radius: 22px;
-		padding: 1.1rem 1.3rem 1.3rem;
-		backdrop-filter: blur(6px);
-		box-shadow: 0 18px 36px -28px rgb(24 33 58 / 45%);
+	.json-token-number,
+	.json-token-boolean,
+	.json-token-null {
+		color: oklch(85% 0.199 91.936);
 	}
 
-	.eyebrow {
-		margin: 0;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		font-weight: 700;
-		font-size: 0.72rem;
-		color: #5e4b2f;
-	}
-
-	h1 {
-		margin: 0.5rem 0 0;
-		font-family: 'Palatino Linotype', 'Book Antiqua', serif;
-		font-size: clamp(1.9rem, 4vw, 2.8rem);
-		line-height: 1.05;
-	}
-
-	.hero-copy {
-		margin: 0.8rem 0 0;
-		max-width: 68ch;
-		color: #424d60;
-	}
-
-	.grid {
-		margin-top: 1rem;
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-		gap: 1.1rem;
-	}
-
-	.panel,
-	.json-panel {
-		background: rgb(255 255 255 / 82%);
-		border: 1px solid rgb(255 255 255 / 90%);
-		border-radius: 18px;
-		padding: 1rem;
-		box-shadow: 0 16px 30px -26px rgb(24 33 58 / 45%);
-	}
-
-	h2 {
-		font-family: 'Palatino Linotype', 'Book Antiqua', serif;
-		margin: 0 0 0.7rem;
-		font-size: 1.3rem;
-	}
-
-	pre {
-		margin: 0;
-		background: #161a21;
-		color: #e8f2ff;
-		padding: 0.9rem;
-		border-radius: 12px;
-		overflow: auto;
-		font-size: 0.84rem;
-	}
-
-	.demo-controls {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.55rem;
-		align-items: center;
-		margin-bottom: 0.85rem;
-	}
-
-	.demo-controls button {
-		font: 600 0.88rem/1.1 'Avenir Next', 'Segoe UI', sans-serif;
-		padding: 0.45rem 0.72rem;
-		border: 1px solid #d9c7ab;
-		border-radius: 999px;
-		background: linear-gradient(180deg, #fff7ec 0%, #fde8ce 100%);
-		color: #4f3521;
-		cursor: pointer;
-		transition:
-			transform 150ms ease,
-			box-shadow 150ms ease;
-	}
-
-	.demo-controls button:hover:enabled {
-		transform: translateY(-1px);
-		box-shadow: 0 9px 16px -12px rgb(96 50 21 / 65%);
-	}
-
-	.demo-controls button:disabled {
-		cursor: not-allowed;
-		opacity: 0.48;
-	}
-
-	.hint {
-		margin: 0;
-		font-size: 0.87rem;
-		color: #5e6a7c;
-	}
-
-	.json-panel {
-		margin-top: 1.1rem;
-	}
-
-	@media (max-width: 640px) {
-		.demo-shell {
-			padding: 1rem 0.8rem 1.6rem;
-		}
-
-		.hero,
-		.panel,
-		.json-panel {
-			padding: 0.9rem;
-			border-radius: 14px;
-		}
+	.json-token-punctuation {
+		color: oklch(92% 0.013 255.508);
 	}
 </style>

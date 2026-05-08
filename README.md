@@ -1,65 +1,224 @@
-# Svelte library
+# Uncial
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
+Uncial is a backend-agnostic Svelte block editor built on Tiptap. Library consumers define a block once as a Svelte component, register it with `defineBlock(...)`, and reuse that same block definition in both the WYSIWYG editor and the renderer.
 
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+Custom blocks can stay atomic or declare one default child content region for nested document flow.
 
-## Creating a project
+## What ships today
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Shared block definitions for editor and renderer
+- Atomic blocks and container blocks with nested child content
+- Registry and schema helpers for block and mark allowlists
+- Typed attribute normalization for strings, numbers, booleans, and JSON-like fields
+- Document normalization with version stamping
+- Validation hooks for editor and renderer boundaries
+- SSR-safe renderer imports separated from browser-only editor behavior
+
+## Install
 
 ```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm install uncial
 ```
 
-To recreate this project with the same configuration:
+Peer dependency:
 
-```sh
-# recreate this project
-bun x sv@0.12.4 create --template library --types ts --add prettier eslint vitest="usages:unit,component" playwright devtools-json mcp="ide:claude-code,opencode,vscode+setup:remote" --install bun ./
+- `svelte@^5`
+
+## Quick start
+
+```svelte
+<script lang="ts">
+	import {
+		Editor,
+		Renderer,
+		createBlockAttributesController,
+		createBlockRegistry,
+		createSchema,
+		defineBlock
+	} from 'uncial';
+	import PromoCard from './PromoCard.svelte';
+
+	const promoCard = defineBlock({
+		id: 'promoCard',
+		label: 'Promo Card',
+		attributes: {
+			title: '',
+			featured: false,
+			priority: 0,
+			metadata: { default: { theme: 'sand' }, input: 'json' }
+		},
+		component: PromoCard
+	});
+
+	const blocks = createBlockRegistry([promoCard]);
+	const schema = createSchema(blocks);
+	const attributesController = createBlockAttributesController();
+
+	let document = {
+		type: 'doc',
+		content: [{ type: 'paragraph' }]
+	};
+</script>
+
+<Editor {blocks} {schema} {attributesController} bind:json={document} />
+<Renderer content={document} {blocks} {schema} />
 ```
 
-## Developing
+## Styling and customization
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+The root `Editor` and `Renderer` exports ship with Uncial's starter shell and default component-scoped styling.
 
-```sh
-npm run dev
+If you want to own the editor layout yourself, use `bindEditor(...)` on an element you control:
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```svelte
+<script lang="ts">
+	import type { Editor as TiptapEditor } from '@tiptap/core';
+	import { bindEditor, Renderer } from 'uncial';
+
+	let document = $state({
+		type: 'doc',
+		content: [{ type: 'paragraph' }]
+	});
+	let editor = $state<TiptapEditor | null>(null);
+</script>
+
+<div
+	use:bindEditor={{
+		blocks,
+		schema,
+		json: document,
+		onChange: (nextDocument) => {
+			document = nextDocument;
+		},
+		onEditor: (nextEditor) => {
+			editor = nextEditor;
+		}
+	}}
+/>
+<Renderer content={document} {blocks} {schema} />
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+## Block definition
 
-## Building
+Use `component` when the same Svelte component should render in both the editor and the frontend output.
 
-To build your library:
-
-```sh
-npm pack
+```ts
+const hero = defineBlock({
+	id: 'hero',
+	label: 'Hero',
+	attributes: {
+		title: '',
+		subtitle: { default: '', input: 'textarea' },
+		featured: false,
+		priority: 1,
+		settings: { default: { align: 'left' }, input: 'json' }
+	},
+	component: Hero
+});
 ```
 
-To create a production version of your showcase app:
+Attribute specs support:
+
+- `default`: required default value
+- `required`: require a value at validation time
+- `validate`: custom validation predicate
+- `parse`: custom coercion from editor or serialized input
+- `serialize`: custom serialization for HTML persistence
+- `input`: one of `text`, `textarea`, `number`, `checkbox`, or `json`
+- `placeholder`: optional editor placeholder
+
+Blocks can also opt into child content:
+
+```ts
+const collapsible = defineBlock({
+	id: 'collapsible',
+	label: 'Collapsible',
+	attributes: {
+		title: ''
+	},
+	component: Collapsible,
+	content: { kind: 'flow' }
+});
+```
+
+Container block components receive:
+
+- attribute props as usual
+- `content`: normalized child `PMNode[]`
+- `children`: a built-in snippet for rendering or placing the child region
+
+Example:
+
+```svelte
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	interface Props {
+		title?: string;
+		children?: Snippet;
+	}
+
+	let { title = '', children }: Props = $props();
+</script>
+
+<details>
+	<summary>{title}</summary>
+	<div>
+		{#if children}
+			{@render children()}
+		{/if}
+	</div>
+</details>
+```
+
+## Content model
+
+- Documents are ProseMirror-compatible JSON objects
+- `normalizeDocument(...)` stamps the current document version and coerces known block attributes
+- Unknown custom block attributes are stripped during normalization
+- Atomic custom blocks drop accidental child content during normalization
+- Container custom blocks preserve validated child content
+- Disallowed marks are removed when a schema is supplied
+
+## Validation
+
+Use `validateDocument(...)` directly or pass `onIssue` into `Editor` or `Renderer` to observe issues during normalization and render flows.
+
+```svelte
+<Editor
+	{blocks}
+	{schema}
+	bind:json={document}
+	onIssue={(issue) => console.warn(issue.code, issue.path)}
+/
+>
+```
+
+## Rendering and security
+
+- Renderer output is driven by the same block registry used by the editor
+- Built-in rich text rendering supports headings, lists, blockquotes, code blocks, inline code, strike, bold, italic, and links
+- Links are sanitized to allow only `http`, `https`, `mailto`, `tel`, relative paths, and hash links
+
+## Development
 
 ```sh
+npm run check
+npm run test:unit -- --run
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+Additional suites:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- `npm run test:browser -- --run` for browser-backed Svelte component tests
+- `npm run test:e2e` for Playwright end-to-end tests
 
-## Publishing
-
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
-
-To publish your library to [npm](https://www.npmjs.com):
+Browser-backed tests require Playwright browsers to be installed:
 
 ```sh
-npm publish
+npx playwright install
 ```
+
+## Status
+
+Uncial is currently a production-hardening library project rather than a finished CMS platform. The API is focused on typed custom blocks with editor/render parity, including container-style blocks with nested content.

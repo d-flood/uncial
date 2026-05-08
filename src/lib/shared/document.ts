@@ -13,6 +13,7 @@ export interface PMNode {
 
 export interface PMDoc {
 	type: 'doc';
+	version?: number;
 	content?: PMNode[];
 }
 

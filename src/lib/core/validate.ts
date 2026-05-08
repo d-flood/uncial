@@ -104,6 +104,40 @@ function validateBlockAttrs(
 	}
 }
 
+function validateBlockContent(
+	node: PMNode,
+	block: BlockDefinition,
+	path: PMPath,
+	issues: ValidationIssue[],
+	options?: ValidateDocumentOptions
+): boolean {
+	if (node.content === undefined) {
+		return true;
+	}
+
+	if (!Array.isArray(node.content)) {
+		pushIssue(issues, options, {
+			code: 'INVALID_CONTENT',
+			path: [...path, 'content'],
+			message: `Block "${block.id}" content must be an array when present`,
+			severity: 'error'
+		});
+		return false;
+	}
+
+	if (!block.content) {
+		pushIssue(issues, options, {
+			code: 'INVALID_CONTENT',
+			path: [...path, 'content'],
+			message: `Atomic block "${block.id}" cannot contain child content`,
+			severity: 'error'
+		});
+		return false;
+	}
+
+	return true;
+}
+
 function validateNode(
 	node: PMNode,
 	path: PMPath,
@@ -138,6 +172,9 @@ function validateNode(
 			});
 		}
 		validateBlockAttrs(node, block, path, issues, options);
+		if (!validateBlockContent(node, block, path, issues, options)) {
+			return;
+		}
 	} else if (!isKnownBuiltin) {
 		pushIssue(issues, options, {
 			code: 'UNKNOWN_BLOCK',
@@ -157,7 +194,7 @@ function validateNode(
 		});
 	}
 
-	if (node.content && !Array.isArray(node.content)) {
+	if (!block && node.content && !Array.isArray(node.content)) {
 		pushIssue(issues, options, {
 			code: 'MALFORMED_NODE',
 			path: [...path, 'content'],
