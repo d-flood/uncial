@@ -1,17 +1,15 @@
 <script lang="ts">
 	import { Editor } from '@tiptap/core';
-	import {
-		Code,
-		CodeBlock,
-		ListBullets,
-		ListNumbers,
-		Minus,
-		Quotes,
-		TextB,
-		TextHThree,
-		TextItalic,
-		TextStrikethrough
-	} from 'phosphor-svelte';
+	import CodeIcon from 'phosphor-svelte/lib/CodeIcon';
+	import CodeBlockIcon from 'phosphor-svelte/lib/CodeBlockIcon';
+	import ListBulletsIcon from 'phosphor-svelte/lib/ListBulletsIcon';
+	import ListNumbersIcon from 'phosphor-svelte/lib/ListNumbersIcon';
+	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
+	import QuotesIcon from 'phosphor-svelte/lib/QuotesIcon';
+	import TextBIcon from 'phosphor-svelte/lib/TextBIcon';
+	import TextHThreeIcon from 'phosphor-svelte/lib/TextHThreeIcon';
+	import TextItalicIcon from 'phosphor-svelte/lib/TextItalicIcon';
+	import TextStrikethroughIcon from 'phosphor-svelte/lib/TextStrikethroughIcon';
 	import { untrack } from 'svelte';
 	import type { PMDoc } from '../shared/document.js';
 	import { coerceRichTextDocument, resolveRichTextFeatures } from '../shared/richText.js';
@@ -34,14 +32,10 @@
 
 	let element = $state<HTMLElement>();
 	let editor = $state.raw<Editor | null>(null);
-	let commandVersion = $state(0);
 	let lastJson = '';
 
 	const resolvedFeatures = $derived(resolveRichTextFeatures(features));
-	const activeEditor = $derived.by(() => {
-		commandVersion;
-		return editor;
-	});
+	const activeEditor = $derived(editor);
 	const canBold = $derived(resolvedFeatures.has('bold'));
 	const canItalic = $derived(resolvedFeatures.has('italic'));
 	const canStrike = $derived(resolvedFeatures.has('strike'));
@@ -61,7 +55,6 @@
 
 	function runCommand(command: () => boolean): void {
 		command();
-		commandVersion += 1;
 	}
 
 	const iconSize = 14;
@@ -78,12 +71,11 @@
 			editorProps: {
 				attributes: {
 					class:
-						'uncial-richtext-editor min-h-28 rounded-b-lg border border-t-0 border-base-300 bg-base-100 px-3 py-2 text-sm leading-6 outline-none',
+						'uncial-richtext-editor uncial-rich-content min-h-28 rounded-b-lg border border-t-0 border-base-300 bg-base-100 px-3 py-2 text-sm leading-6 outline-none',
 					'aria-label': placeholder
 				}
 			},
 			onUpdate: ({ editor: updatedEditor }) => {
-				commandVersion += 1;
 				emitChange(updatedEditor);
 			}
 		});
@@ -117,7 +109,7 @@
 				data-tip="Bold"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBold().run() ?? false)}
 			>
-				<TextB size={iconSize} weight="bold" />
+				<TextBIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canItalic}
@@ -129,7 +121,7 @@
 				data-tip="Italic"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleItalic().run() ?? false)}
 			>
-				<TextItalic size={iconSize} weight="bold" />
+				<TextItalicIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canStrike}
@@ -141,7 +133,7 @@
 				data-tip="Strikethrough"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleStrike().run() ?? false)}
 			>
-				<TextStrikethrough size={iconSize} weight="bold" />
+				<TextStrikethroughIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canCode}
@@ -153,7 +145,7 @@
 				data-tip="Inline code"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleCode().run() ?? false)}
 			>
-				<Code size={iconSize} weight="bold" />
+				<CodeIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canHeading}
@@ -166,7 +158,7 @@
 				onclick={() =>
 					runCommand(() => editor?.chain().focus().toggleHeading({ level: 3 }).run() ?? false)}
 			>
-				<TextHThree size={iconSize} weight="bold" />
+				<TextHThreeIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canBulletList}
@@ -178,7 +170,7 @@
 				data-tip="Bullet list"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBulletList().run() ?? false)}
 			>
-				<ListBullets size={iconSize} weight="bold" />
+				<ListBulletsIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canOrderedList}
@@ -190,7 +182,7 @@
 				data-tip="Ordered list"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleOrderedList().run() ?? false)}
 			>
-				<ListNumbers size={iconSize} weight="bold" />
+				<ListNumbersIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canBlockquote}
@@ -202,7 +194,7 @@
 				data-tip="Blockquote"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBlockquote().run() ?? false)}
 			>
-				<Quotes size={iconSize} weight="bold" />
+				<QuotesIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canCodeBlock}
@@ -214,7 +206,7 @@
 				data-tip="Code block"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleCodeBlock().run() ?? false)}
 			>
-				<CodeBlock size={iconSize} weight="bold" />
+				<CodeBlockIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 		{#if canHorizontalRule}
@@ -225,7 +217,7 @@
 				data-tip="Horizontal rule"
 				onclick={() => runCommand(() => editor?.chain().focus().setHorizontalRule().run() ?? false)}
 			>
-				<Minus size={iconSize} weight="bold" />
+				<MinusIcon size={iconSize} weight="bold" />
 			</button>
 		{/if}
 	</div>

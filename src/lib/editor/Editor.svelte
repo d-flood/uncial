@@ -84,7 +84,6 @@
 				: !schema || schema.allowedBlocks.has(block.id)
 		)
 	);
-
 	function insertBlock(blockId: string): void {
 		const ok = controller.insertBlock(blockId);
 		// Close the dropdown after an insert attempt.
@@ -185,10 +184,9 @@
 			editorHost.removeEventListener('focusin', trackInteractedNodeView, true);
 		};
 	});
-
 </script>
 
-<div class="uncial-editor-shell rounded-box bg-base-100 shadow-sm">
+<div class="uncial-editor-shell min-w-0 rounded-box bg-base-100 shadow-sm">
 	<div
 		class="uncial-toolbar flex flex-wrap items-center gap-2 border-b border-base-300 bg-base-200/60 px-3 py-2"
 	>
@@ -226,9 +224,9 @@
 			</div>
 		{/if}
 	</div>
-	<div class="uncial-editor-body">
+	<div class="uncial-editor-body min-w-0">
 		<div
-			class="uncial-content uncial-rich-content uncial-gutter-enabled min-h-112 p-5 leading-7 sm:p-8"
+			class="uncial-content uncial-rich-content uncial-gutter-enabled min-h-112 min-w-0 p-5 leading-7 sm:p-8"
 			bind:this={editorHost}
 			use:bindEditor={editorBinding}
 		></div>
@@ -237,7 +235,7 @@
 
 <style>
 	.uncial-content:focus-visible {
-		outline: 2px solid #2563eb;
+		outline: 2px solid var(--color-primary, #2563eb);
 		outline-offset: -2px;
 	}
 
@@ -257,7 +255,42 @@
 
 	@media (max-width: 639px) {
 		.uncial-content.uncial-gutter-enabled {
-			padding-left: 4.5rem;
+			padding-left: 3.5rem;
+		}
+
+		.uncial-content :global(.uncial-nodeview-gutter) {
+			left: -3rem;
+			width: 2.5rem;
+		}
+
+		.uncial-content :global(.uncial-gutter-label) {
+			font-size: 0.5rem;
+			max-width: 2.25rem;
+		}
+
+		.uncial-content
+			:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview) {
+			flex-basis: 100%;
+		}
+	}
+
+	@media (max-width: 419px) {
+		.uncial-content.uncial-gutter-enabled {
+			padding-left: 1rem;
+		}
+
+		.uncial-content :global(.uncial-nodeview-gutter) {
+			position: static;
+			width: auto;
+			margin-bottom: 0.35rem;
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-start;
+		}
+
+		.uncial-content :global(.uncial-gutter-label) {
+			max-width: none;
+			word-break: normal;
 		}
 	}
 
@@ -272,9 +305,13 @@
 
 	/* --- Gutter strip per block --- */
 	.uncial-content :global(.uncial-nodeview-frame),
-	.uncial-content :global(.uncial-nodeview-host),
-	.uncial-content :global(.uncial-nodeview-body) {
+	.uncial-content :global(.uncial-nodeview-host) {
 		display: block;
+		line-height: normal;
+	}
+
+	.uncial-content :global(.uncial-nodeview-body) {
+		display: flow-root;
 		line-height: normal;
 	}
 
@@ -323,6 +360,8 @@
 		border: none;
 		background: transparent;
 		padding: 0;
+		border-radius: 0.25rem;
+		cursor: pointer;
 		font-size: 0.6rem;
 		font-weight: 700;
 		text-transform: uppercase;
@@ -333,21 +372,35 @@
 		text-align: center;
 		word-break: break-word;
 		max-width: 3.5rem;
-		transition: opacity 140ms ease;
+		transition:
+			opacity 140ms ease,
+			background 140ms ease,
+			color 140ms ease;
 	}
 
 	.uncial-content :global(.uncial-nodeview-gutter:hover .uncial-gutter-label) {
 		opacity: 0.8;
 	}
 
+	.uncial-content :global(.uncial-gutter-label:hover),
+	.uncial-content :global(.uncial-gutter-label:focus-visible) {
+		background: color-mix(in srgb, var(--color-primary, #2563eb) 12%, transparent);
+		color: var(--color-primary, #2563eb);
+		opacity: 1;
+	}
+
 	/* --- Hover highlight: outline the block when gutter is hovered --- */
-	.uncial-content :global(.uncial-nodeview:has(.uncial-nodeview-gutter:hover)) {
-		outline: 2px dashed rgb(37 99 235 / 35%);
+	.uncial-content
+		:global(.uncial-nodeview:has(.uncial-nodeview-gutter:hover) > .uncial-nodeview-host .uncial-nodeview-body > *) {
+		outline: 2px dashed color-mix(in srgb, var(--color-primary, #2563eb) 35%, transparent);
 		outline-offset: 4px;
 	}
 
 	/* --- Row block editor layout --- */
-	.uncial-content :global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-content),
+	.uncial-content
+		:global(
+			.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-content
+		),
 	.uncial-content
 		:global(.uncial-nodeview[data-uncial-block-id='row'] .uncial-row-items .uncial-nodeview-host),
 	.uncial-content
@@ -389,10 +442,12 @@
 	}
 
 	/* --- Selected / active block --- */
-	.uncial-content :global(.uncial-nodeview.ProseMirror-selectednode),
-	.uncial-content :global(.uncial-nodeview.uncial-active-block) {
-		outline: 2px solid rgb(37 99 235 / 55%);
+	.uncial-content
+		:global(.uncial-nodeview.ProseMirror-selectednode > .uncial-nodeview-host .uncial-nodeview-body > *),
+	.uncial-content
+		:global(.uncial-nodeview.uncial-active-block > .uncial-nodeview-host .uncial-nodeview-body > *) {
+		outline: 2px solid color-mix(in srgb, var(--color-primary, #2563eb) 55%, transparent);
 		outline-offset: 4px;
-		box-shadow: 0 0 0 6px rgb(37 99 235 / 10%);
+		box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary, #2563eb) 10%, transparent);
 	}
 </style>

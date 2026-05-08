@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { createRawSnippet, mount, unmount } from 'svelte';
 	import type { BlockRegistry, ContentSchema } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
+	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
 	import RichContent from './RichContent.svelte';
 
 	interface Props {
@@ -15,34 +15,23 @@
 	const block = $derived(registry.get(node.type));
 	const blockAttrs = $derived((node.attrs ?? {}) as Record<string, unknown>);
 	const blockContent = $derived((node.content ?? []) as PMNode[]);
-	const blockChildren = $derived.by(() => {
-		if (!block?.content) {
-			return undefined;
-		}
-
-		return createRawSnippet(() => ({
-			render: () => '<div class="uncial-render-children"></div>',
-			setup: (element) => {
-				const mounted = mount(RichContent, {
-					target: element,
-					props: {
-						nodes: blockContent,
-						registry,
-						schema
-					}
-				});
-
-				return () => {
-					void unmount(mounted);
-				};
-			}
-		}));
-	});
+	const codeLanguage = $derived(node.attrs?.language);
+	const codeText = $derived.by(() =>
+		(node.content ?? [])
+			.filter((child) => child.type === 'text')
+			.map((child) => child.text ?? '')
+			.join('')
+	);
+	const highlightedCode = $derived(highlightCodeToHtml(codeText, codeLanguage));
 
 	function getActiveMarks(marks: PMMark[] = []): PMMark[] {
 		return schema ? marks.filter((mark) => schema.allowedMarks.has(mark.type)) : marks;
 	}
 </script>
+
+{#snippet blockChildren()}
+	<RichContent nodes={blockContent} {registry} {schema} />
+{/snippet}
 
 {#snippet renderMarkedText(text: string, marks: PMMark[])}
 	{#if marks.length === 0}
@@ -63,9 +52,15 @@
 	{/if}
 {/snippet}
 
-{#if block && (!schema || schema.allowedBlocks.has(block.id))}
+{#if node.type === 'codeBlock'}
+	<!-- eslint-disable svelte/no-at-html-tags -- highlighted code is escaped in syntaxHighlight.ts -->
+	<pre class="uncial-code-block"><code class={getCodeLanguageClass(codeLanguage)}
+			>{@html highlightedCode}</code
+		></pre>
+	<!-- eslint-enable svelte/no-at-html-tags -->
+{:else if block && (!schema || schema.allowedBlocks.has(block.id))}
 	{@const RenderComponent = block.components.render}
-	<RenderComponent {...blockAttrs} content={blockContent} children={blockChildren} />
+	<RenderComponent {...blockAttrs} content={blockContent} children={block.content ? blockChildren : undefined} />
 {:else if node.type === 'paragraph'}
 	<p>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />
@@ -101,8 +96,6 @@
 	<blockquote>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />
 	</blockquote>
-{:else if node.type === 'codeBlock'}
-	<pre><code><RichContent nodes={node.content ?? []} {registry} {schema} /></code></pre>
 {:else if node.type === 'horizontalRule'}
 	<hr />
 {:else if node.type === 'hardBreak'}

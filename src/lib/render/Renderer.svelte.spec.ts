@@ -38,7 +38,7 @@ describe('Renderer', () => {
 			content: { kind: 'flow' }
 		});
 
-		render(Renderer, {
+		const rendered = render(Renderer, {
 			content: {
 				type: 'doc',
 				content: [
@@ -61,6 +61,8 @@ describe('Renderer', () => {
 		await expect.element(page.getByText('FAQ')).toBeInTheDocument();
 		await expect.element(page.getByText('Nested copy')).toBeInTheDocument();
 		await expect.element(page.getByTestId('child-count')).toHaveTextContent('1');
+		// Children are rendered directly — no internal wrapper div should exist
+		expect(rendered.container.querySelector('.uncial-render-children')).toBeNull();
 	});
 });
 

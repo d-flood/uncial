@@ -1,96 +1,39 @@
 <script lang="ts">
-	import StarIcon from 'phosphor-svelte/lib/StarIcon';
-	import UserIcon from 'phosphor-svelte/lib/UserIcon';
-	import RocketIcon from 'phosphor-svelte/lib/RocketIcon';
-	import { RichText, hasRichTextContent } from '../../lib/index.js';
+	import { RichText, hasRichTextContent } from '$lib/index.js';
 
 	interface Props {
 		title?: string;
 		subtitle?: string;
 		body?: unknown;
-		featured?: boolean;
-		priority?: number;
-		owner?: string;
-		rollout?: string;
-		tags?: string;
 	}
 
-	let {
-		title = '',
-		subtitle = '',
-		body = undefined,
-		featured = false,
-		priority = 0,
-		owner = '',
-		rollout = '',
-		tags: rawTags = ''
-	}: Props = $props();
-
-	const tagList = $derived(
-		String(rawTags)
-			.split(/\n|,/)
-			.map((tag) => tag.trim())
-			.filter(Boolean)
-	);
+	let { title = '', subtitle = '', body = undefined }: Props = $props();
 </script>
 
 <article
-	class={[
-		'card bg-base-100 transition',
-		featured ? 'shadow-lg ring-2 ring-warning/60' : 'border border-base-300 shadow-sm'
-	]}
+	class="relative my-2 flex h-full flex-col border border-base-content/20 bg-base-100/95 p-5 shadow-[0_18px_45px_-35px_rgba(60,30,0,0.45)] transition-colors sm:p-6"
 >
-	<div class="card-body gap-3">
-		<header class="flex items-start justify-between gap-3">
-			<div class="min-w-0">
-				<h3 class="card-title text-lg leading-tight">{title || 'Untitled card'}</h3>
-				{#if subtitle}
-					<p class="mt-1 text-sm opacity-70">{subtitle}</p>
-				{/if}
-			</div>
-
-			<div class="flex flex-wrap justify-end gap-1.5">
-				{#if featured}
-					<span class="badge badge-warning gap-1">
-						<StarIcon size={12} weight="fill" />
-						Featured
-					</span>
-				{/if}
-				<span class="badge badge-ghost">P{priority}</span>
-			</div>
-		</header>
-
-		{#if hasRichTextContent(body)}
-			<div class="uncial-card-richtext text-sm leading-6 opacity-80">
-				<RichText content={body} features={['bold', 'italic', 'bulletList', 'orderedList']} />
-			</div>
+	<header class="space-y-2">
+		<p class="font-vellum-mono text-[0.58rem] uppercase tracking-[0.28em] text-primary/80">
+			Editor's Note
+		</p>
+		<h3
+			class="font-vellum-display text-xl font-bold leading-[1.15] tracking-tight sm:text-[1.4rem]"
+		>
+			{title || 'Untitled dispatch'}
+		</h3>
+		{#if subtitle}
+			<p class="font-vellum-display text-sm italic leading-snug opacity-70">
+				{subtitle}
+			</p>
 		{/if}
+	</header>
 
-		<div class="divider my-0"></div>
-
-		<dl class="grid grid-cols-2 gap-3 text-sm">
-			<div class="flex items-start gap-2">
-				<span class="mt-0.5 text-base-content/50"><UserIcon size={14} weight="bold" /></span>
-				<div class="min-w-0">
-					<dt class="text-[0.65rem] font-bold uppercase tracking-wider opacity-60">Owner</dt>
-					<dd class="truncate font-semibold">{owner || 'Unassigned'}</dd>
-				</div>
-			</div>
-			<div class="flex items-start gap-2">
-				<span class="mt-0.5 text-base-content/50"><RocketIcon size={14} weight="bold" /></span>
-				<div class="min-w-0">
-					<dt class="text-[0.65rem] font-bold uppercase tracking-wider opacity-60">Rollout</dt>
-					<dd class="truncate font-semibold">{rollout || 'Pending'}</dd>
-				</div>
-			</div>
-		</dl>
-
-		{#if tagList.length > 0}
-			<div class="card-actions flex-wrap" aria-label="Card tags">
-				{#each tagList as tag (tag)}
-					<span class="badge badge-soft badge-info">{tag}</span>
-				{/each}
-			</div>
-		{/if}
-	</div>
+	{#if hasRichTextContent(body)}
+		<div
+			class="uncial-card-richtext mt-4 border-t border-base-content/10 pt-4 text-[0.95rem] leading-[1.65] opacity-90"
+		>
+			<RichText content={body} features={['bold', 'italic', 'bulletList', 'orderedList']} />
+		</div>
+	{/if}
 </article>

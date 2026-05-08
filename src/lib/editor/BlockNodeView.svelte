@@ -39,16 +39,22 @@
 	});
 
 	function handleActivationPointerDown(event: PointerEvent): void {
+		event.stopPropagation();
 		pointerStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
 	}
 
 	function handleActivationPointerUp(event: PointerEvent): void {
+		event.stopPropagation();
 		if (!pointerStart || pointerStart.pointerId !== event.pointerId) return;
 		const distance = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
 		pointerStart = null;
 		if (distance <= 4) {
 			onActivate?.();
 		}
+	}
+
+	function stopActivationClick(event: MouseEvent): void {
+		event.stopPropagation();
 	}
 </script>
 
@@ -64,6 +70,7 @@
 				aria-label={`Drag ${label || blockId} block`}
 				onpointerdown={handleActivationPointerDown}
 				onpointerup={handleActivationPointerUp}
+				onclick={stopActivationClick}
 			>
 				<DotsSixVerticalIcon size={14} weight="bold" aria-hidden="true" />
 			</button>
@@ -72,7 +79,8 @@
 			type="button"
 			class="uncial-gutter-label"
 			onpointerdown={handleActivationPointerDown}
-			onpointerup={handleActivationPointerUp}>{label}</button
+			onpointerup={handleActivationPointerUp}
+			onclick={stopActivationClick}>{label}</button
 		>
 	</div><div class="uncial-nodeview-body">
 		<BlockComponent {...componentProps} />

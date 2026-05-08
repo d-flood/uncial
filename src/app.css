@@ -1,8 +1,58 @@
+/* ----------------------------------------------------------------------------
+ * Fonts
+ * -------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @import 'tailwindcss';
+
 @plugin 'daisyui' {
-	themes: bumblebee --default;
+	themes: vellum --default;
 }
 
+/* --------------------------------  VELLUM  -------------------------------- */
+@plugin 'daisyui/theme' {
+	name: 'vellum';
+	default: true;
+	prefersdark: false;
+	color-scheme: light;
+
+	/* Page is near-white warm; editor surfaces sit on the cream base-200.      */
+	--color-base-100: oklch(99% 0.006 85);
+	--color-base-200: oklch(96% 0.022 85);
+	--color-base-300: oklch(91% 0.032 82);
+	--color-base-content: oklch(22% 0.04 45);
+
+	--color-primary: oklch(46% 0.14 260);
+	--color-primary-content: oklch(98% 0.015 85);
+	--color-secondary: oklch(42% 0.06 145);
+	--color-secondary-content: oklch(98% 0.015 85);
+	--color-accent: oklch(58% 0.12 75);
+	--color-accent-content: oklch(18% 0.03 45);
+	--color-neutral: oklch(24% 0.04 45);
+	--color-neutral-content: oklch(96% 0.015 85);
+
+	--color-info: oklch(50% 0.08 220);
+	--color-info-content: oklch(98% 0.015 85);
+	--color-success: oklch(48% 0.1 145);
+	--color-success-content: oklch(98% 0.015 85);
+	--color-warning: oklch(60% 0.12 75);
+	--color-warning-content: oklch(18% 0.03 45);
+	--color-error: oklch(48% 0.18 25);
+	--color-error-content: oklch(98% 0.015 85);
+
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.5rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.28rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Base styles
+ * -------------------------------------------------------------------------- */
 @layer base {
 	body {
 		margin: 0;
@@ -24,11 +74,19 @@
 	textarea {
 		font: inherit;
 	}
+
+	:root[data-theme='vellum'] body {
+		font-family: 'Lora', Georgia, serif;
+	}
 }
 
+/* Utility classes for typography */
 @layer components {
-	.uncial-content > * + * {
-		margin-top: 1.5rem;
+	.font-vellum-display {
+		font-family: 'Playfair Display', Georgia, serif;
+	}
+	.font-vellum-mono {
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
 	}
 
 	.uncial-rich-content p {
@@ -38,7 +96,7 @@
 	.uncial-rich-content h1,
 	.uncial-rich-content h2,
 	.uncial-rich-content h3 {
-		margin: 1rem 0 0.6rem;
+		margin: 2.5rem 0 0.6rem;
 		line-height: 1.2;
 		font-weight: 700;
 	}
@@ -89,15 +147,59 @@
 	}
 
 	.uncial-rich-content pre {
-		background: var(--color-base-200);
-		padding: 0.75rem 1rem;
+		background: var(--color-neutral);
+		color: var(--color-neutral-content);
+		padding: 1rem 1.15rem;
 		border-radius: 0.6rem;
 		overflow-x: auto;
 		margin: 1rem 0;
+		border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
+		box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
 	}
 
 	.uncial-rich-content pre code {
+		display: block;
+		min-width: max-content;
 		background: transparent;
+		color: inherit;
 		padding: 0;
+		white-space: pre;
+	}
+
+	.uncial-rich-content .hljs-keyword,
+	.uncial-rich-content .hljs-selector-tag,
+	.uncial-rich-content .hljs-literal,
+	.uncial-rich-content .hljs-section,
+	.uncial-rich-content .hljs-link {
+		color: oklch(82% 0.13 75);
+	}
+
+	.uncial-rich-content .hljs-string,
+	.uncial-rich-content .hljs-attr,
+	.uncial-rich-content .hljs-symbol,
+	.uncial-rich-content .hljs-bullet,
+	.uncial-rich-content .hljs-addition {
+		color: oklch(82% 0.09 150);
+	}
+
+	.uncial-rich-content .hljs-title,
+	.uncial-rich-content .hljs-name,
+	.uncial-rich-content .hljs-type,
+	.uncial-rich-content .hljs-built_in {
+		color: oklch(82% 0.1 215);
+	}
+
+	.uncial-rich-content .hljs-number,
+	.uncial-rich-content .hljs-variable,
+	.uncial-rich-content .hljs-template-variable,
+	.uncial-rich-content .hljs-deletion {
+		color: oklch(82% 0.12 35);
+	}
+
+	.uncial-rich-content .hljs-comment,
+	.uncial-rich-content .hljs-quote,
+	.uncial-rich-content .hljs-meta {
+		color: color-mix(in srgb, var(--color-neutral-content) 58%, transparent);
+		font-style: italic;
 	}
 }

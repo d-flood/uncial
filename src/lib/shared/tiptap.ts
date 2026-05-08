@@ -1,4 +1,5 @@
 import StarterKit from '@tiptap/starter-kit';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Mark, mergeAttributes, Node, type AnyExtension } from '@tiptap/core';
 import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -18,6 +19,7 @@ import {
 import type { PMNode } from './document.js';
 import BlockNodeView from '../editor/BlockNodeView.svelte';
 import type { RichTextFeature } from '../core/types.js';
+import { lowlight } from './syntaxHighlight.js';
 
 export type BlockActivationCallback = (pos: number) => void;
 
@@ -268,7 +270,10 @@ const LinkMark = Mark.create({
 	}
 });
 
-function createBaseExtensions(schema?: ContentSchema, extensions: AnyExtension[] = []): AnyExtension[] {
+function createBaseExtensions(
+	schema?: ContentSchema,
+	extensions: AnyExtension[] = []
+): AnyExtension[] {
 	const marks = schema?.allowedMarks ?? new Set(['bold', 'italic', 'strike', 'code', 'link']);
 	const includeBold = marks.has('bold');
 	const includeItalic = marks.has('italic');
@@ -287,10 +292,11 @@ function createBaseExtensions(schema?: ContentSchema, extensions: AnyExtension[]
 			orderedList: {},
 			listItem: {},
 			blockquote: {},
-			codeBlock: {},
+			codeBlock: false,
 			horizontalRule: {},
 			link: false
 		}),
+		CodeBlockLowlight.configure({ lowlight }),
 		...(includeLink ? [LinkMark] : []),
 		...extensions
 	];
@@ -307,11 +313,12 @@ export function createRichTextExtensions(features: ReadonlySet<RichTextFeature>)
 			bulletList: features.has('bulletList') ? {} : false,
 			orderedList: features.has('orderedList') ? {} : false,
 			blockquote: features.has('blockquote') ? {} : false,
-			codeBlock: features.has('codeBlock') ? {} : false,
+			codeBlock: false,
 			horizontalRule: features.has('horizontalRule') ? {} : false,
 			hardBreak: features.has('hardBreak') ? {} : false,
 			link: false
-		})
+		}),
+		...(features.has('codeBlock') ? [CodeBlockLowlight.configure({ lowlight })] : [])
 	];
 }
 

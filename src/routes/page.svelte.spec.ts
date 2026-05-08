@@ -16,7 +16,7 @@ describe('/+page.svelte', () => {
 		await expect
 			.element(
 				editor.getByText(
-					'Plain rich text now lives directly in the document beside custom container blocks.'
+					'This home page is a live Uncial document: rich text, Svelte blocks, typed attributes, renderer output, and source JSON all moving together.'
 				)
 			)
 			.toBeInTheDocument();
@@ -24,18 +24,17 @@ describe('/+page.svelte', () => {
 
 		await page.getByRole('tab', { name: 'Rendered' }).click();
 		const rendered = page.getByRole('region', { name: 'Rendered' });
-		await expect.element(rendered.getByText('Launch Checklist')).toBeInTheDocument();
+		await expect.element(rendered.getByText('Define a block once.')).toBeInTheDocument();
 	});
 
 	it('opens block attributes when an atomic block is selected in the editor', async () => {
 		render(Page);
 		const editor = page.getByRole('region', { name: 'Editor' });
 
-		await editor.getByText('Launch Checklist').click();
+		await editor.getByText('Define a block once.').click();
 		await expect.element(page.getByText(/Edit\s+card/i)).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: 'Update Block' })).toBeInTheDocument();
 
-		await editor.getByText('Schema-backed authoring').click();
+		await editor.getByText('The editor is the demo.').click();
 		await expect.element(page.getByText(/Edit\s+callout/i)).toBeInTheDocument();
 		await expect.element(page.getByText(/Configure\s+card/i)).not.toBeInTheDocument();
 	});
@@ -47,9 +46,24 @@ describe('/+page.svelte', () => {
 		await expect.element(page.getByText('Rich Text', { exact: true })).not.toBeInTheDocument();
 
 		await editor
-			.getByText('Edit this document and use the toolbar to insert or configure blocks.')
+			.getByText(
+				'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+			)
 			.click();
 
 		await expect.element(page.getByText('Rich Text', { exact: true })).not.toBeInTheDocument();
+	});
+
+	it('edits code block language through the attributes panel', async () => {
+		render(Page);
+		const editor = page.getByRole('region', { name: 'Editor' });
+
+		await editor.getByText('createBlockRegistry').click();
+		await expect.element(page.getByText(/Edit\s+Code block/i)).toBeInTheDocument();
+
+		await page.getByRole('combobox', { name: 'language' }).selectOptions('python');
+		await page.getByRole('tab', { name: 'JSON' }).click();
+
+		await expect.element(page.getByText('"language": "python"')).toBeInTheDocument();
 	});
 });

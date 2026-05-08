@@ -8,21 +8,6 @@
 	let { children }: Props = $props();
 </script>
 
-<div class="uncial-row-items">
-	{#if children}
-		{@render children()}
-	{/if}
+<div class="uncial-row-items flex flex-wrap items-stretch gap-5 *:min-w-0 *:flex-1 *:basis-64">
+	{@render children?.()}
 </div>
-
-<style>
-	.uncial-row-items {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-	}
-
-	.uncial-row-items > :global(*) {
-		flex: 1 1 16rem;
-		min-width: 0;
-	}
-</style>

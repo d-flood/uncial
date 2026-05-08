@@ -6,6 +6,8 @@ import type {
 } from './types.js';
 import { coerceRichTextDocument } from '../shared/richText.js';
 
+export type AttributeDefinition = Pick<BlockDefinition, 'attributes'>;
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -115,7 +117,7 @@ export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown):
 }
 
 export function normalizeBlockAttributes(
-	block: BlockDefinition,
+	block: AttributeDefinition,
 	attrs: Record<string, unknown> = {}
 ): Record<string, unknown> {
 	return Object.fromEntries(
@@ -135,7 +137,7 @@ export function serializeAttributeValue<T>(spec: AttributeSpec<T>, value: T): un
 }
 
 export function serializeBlockAttributes(
-	block: BlockDefinition,
+	block: AttributeDefinition,
 	attrs: Record<string, unknown>
 ): string {
 	return JSON.stringify(
@@ -161,7 +163,7 @@ export function toAttributeDraftValue(spec: AttributeSpec<unknown>, value: unkno
 }
 
 export function toAttributeDraftValues(
-	block: BlockDefinition,
+	block: AttributeDefinition,
 	attrs: Record<string, unknown>
 ): Record<string, unknown> {
 	return Object.fromEntries(
@@ -173,7 +175,7 @@ export function toAttributeDraftValues(
 }
 
 export function parseBlockDraftAttributes(
-	block: BlockDefinition,
+	block: AttributeDefinition,
 	draftAttrs: Record<string, unknown>
 ): Record<string, unknown> {
 	return Object.fromEntries(

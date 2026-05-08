@@ -1,9 +1,5 @@
 <script lang="ts">
-	import InfoIcon from 'phosphor-svelte/lib/InfoIcon';
-	import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';
-	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
-	import WarningOctagonIcon from 'phosphor-svelte/lib/WarningOctagonIcon';
-	import { RichText, hasRichTextContent } from '../../lib/index.js';
+	import { RichText, hasRichTextContent } from '$lib/index.js';
 
 	type Tone = 'info' | 'success' | 'warning' | 'danger';
 
@@ -21,91 +17,98 @@
 	);
 
 	const toneLabel = $derived(
-		toneKey === 'success'
-			? 'Success'
-			: toneKey === 'warning'
-				? 'Warning'
-				: toneKey === 'danger'
-					? 'Danger'
-					: 'Info'
+		{
+			info: "Info",
+			success: 'Success!',
+			warning: 'Warning',
+			danger: 'Danger!'
+		}[toneKey]
 	);
 
-	const containerClasses = $derived(
-		toneKey === 'success'
-			? 'border-success/40 bg-success/5'
-			: toneKey === 'warning'
-				? 'border-warning/40 bg-warning/5'
-				: toneKey === 'danger'
-					? 'border-error/40 bg-error/5'
-					: 'border-info/40 bg-info/5'
+	// Ornamental mark per tone — all typographic, no icon chrome.
+	const toneGlyph = $derived(
+		{ info: '§', success: '❦', warning: '⚠', danger: '❢' }[toneKey]
 	);
 
-	const accentClasses = $derived(
-		toneKey === 'success'
-			? 'bg-success'
-			: toneKey === 'warning'
-				? 'bg-warning'
-				: toneKey === 'danger'
-					? 'bg-error'
-					: 'bg-info'
+	// Map tones onto Vellum theme tokens — mostly `accent` / `secondary` /
+	// `warning` / `error` so the newsprint stays calm.
+	const toneText = $derived(
+		{
+			info: 'text-accent',
+			success: 'text-secondary',
+			warning: 'text-warning',
+			danger: 'text-error'
+		}[toneKey]
 	);
 
-	const iconBadgeClasses = $derived(
-		toneKey === 'success'
-			? 'bg-success/15 text-success'
-			: toneKey === 'warning'
-				? 'bg-warning/15 text-warning'
-				: toneKey === 'danger'
-					? 'bg-error/15 text-error'
-					: 'bg-info/15 text-info'
+	const toneRail = $derived(
+		{
+			info: 'bg-accent',
+			success: 'bg-secondary',
+			warning: 'bg-warning',
+			danger: 'bg-error'
+		}[toneKey]
 	);
 
-	const labelClasses = $derived(
-		toneKey === 'success'
-			? 'text-success'
-			: toneKey === 'warning'
-				? 'text-warning'
-				: toneKey === 'danger'
-					? 'text-error'
-					: 'text-info'
+	const toneTint = $derived(
+		{
+			info: 'bg-accent/[0.06]',
+			success: 'bg-secondary/[0.06]',
+			warning: 'bg-warning/[0.08]',
+			danger: 'bg-error/[0.06]'
+		}[toneKey]
 	);
 </script>
 
 <aside
-	class={['relative overflow-hidden rounded-lg border', containerClasses]}
 	role="note"
-	aria-label={`${toneLabel} callout`}
+	aria-label={`${toneLabel} — ${title || 'note'}`}
+	class={[
+		'relative overflow-hidden border border-base-content/25 my-2',
+		toneTint
+	]}
 >
-	<span class={['absolute inset-y-0 left-0 w-1', accentClasses]} aria-hidden="true"></span>
-	<div class="flex items-start gap-3 p-4 pl-5">
-		{#if showIcon}
-			<span
-				class={['flex size-8 shrink-0 items-center justify-center rounded-full', iconBadgeClasses]}
-				aria-hidden="true"
+	<!-- Accent rail -->
+	<span
+		class={['absolute inset-y-0 left-0 w-0.75', toneRail]}
+		aria-hidden="true"
+	></span>
+
+	<div class="px-5 py-4 pl-6 sm:px-6 sm:pl-8">
+		<!-- Dateline -->
+		<header
+			class="flex items-center justify-between gap-3 border-b border-current/20 pb-2"
+		>
+			<p
+				class={[
+					'font-vellum-mono flex items-center gap-2 text-[0.6rem] uppercase tracking-[0.3em]',
+					toneText
+				]}
 			>
-				{#if toneKey === 'success'}
-					<CheckCircleIcon size={16} weight="bold" />
-				{:else if toneKey === 'warning'}
-					<WarningIcon size={16} weight="bold" />
-				{:else if toneKey === 'danger'}
-					<WarningOctagonIcon size={16} weight="bold" />
-				{:else}
-					<InfoIcon size={16} weight="bold" />
+				{#if showIcon}
+					<span
+						class="font-vellum-display text-lg leading-none"
+						aria-hidden="true">{toneGlyph}</span
+					>
 				{/if}
-			</span>
-		{/if}
-		<div class="min-w-0 flex-1">
-			<p class={['text-[0.65rem] font-bold uppercase tracking-[0.18em]', labelClasses]}>
-				{toneLabel}
+				<span>{toneLabel}</span>
 			</p>
-			<h3 class="mt-0.5 text-base font-semibold leading-snug">
-				{title || 'Untitled callout'}
-			</h3>
-			{#if hasRichTextContent(body)}
-				<div class="uncial-callout-richtext mt-2 text-sm leading-6 opacity-80">
-					<RichText content={body} features={['bold', 'italic', 'link']} />
-				</div>
-			{/if}
-		</div>
+		</header>
+
+		<!-- Headline -->
+		<h3
+			class="font-vellum-display mt-3 text-xl font-bold leading-[1.15] tracking-tight sm:text-[1.35rem]"
+		>
+			{title || 'Untitled notice'}
+		</h3>
+
+		<!-- Body -->
+		{#if hasRichTextContent(body)}
+			<div
+				class="uncial-callout-richtext mt-2 text-[0.95rem] leading-[1.7] opacity-90"
+			>
+				<RichText content={body} features={['bold', 'italic', 'link']} />
+			</div>
+		{/if}
 	</div>
 </aside>
