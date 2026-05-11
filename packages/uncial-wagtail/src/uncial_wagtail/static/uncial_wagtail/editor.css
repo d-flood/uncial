@@ -1,0 +1,114 @@
+.uncial-wagtail-widget {
+	box-sizing: border-box;
+	border: 1px solid var(--w-color-border-field-default, #d1d5db);
+	border-radius: 0.3125rem;
+	padding: 1rem;
+	max-width: none;
+	width: 100%;
+}
+
+.w-form-width:has(.uncial-wagtail-widget),
+.w-form-width:has(.uncial-wagtail-widget) .w-panel,
+.w-form-width:has(.uncial-wagtail-widget) .w-panel__content,
+.w-form-width:has(.uncial-wagtail-widget) .w-field,
+.w-form-width:has(.uncial-wagtail-widget) .w-field__wrapper,
+.w-form-width:has(.uncial-wagtail-widget) .w-field__input,
+.w-form-width:has(.uncial-wagtail-widget) .field,
+.w-form-width:has(.uncial-wagtail-widget) .field-content,
+.w-form-width:has(.uncial-wagtail-widget) [data-field],
+.w-form-width:has(.uncial-wagtail-widget) [data-field-wrapper],
+.w-form-width:has(.uncial-wagtail-widget) [data-field-input] {
+	max-width: none;
+}
+
+.w-form-width:has(.uncial-wagtail-widget) .w-panel,
+.w-form-width:has(.uncial-wagtail-widget) .w-panel__content,
+.w-form-width:has(.uncial-wagtail-widget) .w-field,
+.w-form-width:has(.uncial-wagtail-widget) .w-field__wrapper,
+.w-form-width:has(.uncial-wagtail-widget) .w-field__input,
+.w-form-width:has(.uncial-wagtail-widget) .field,
+.w-form-width:has(.uncial-wagtail-widget) .field-content,
+.w-form-width:has(.uncial-wagtail-widget) [data-field],
+.w-form-width:has(.uncial-wagtail-widget) [data-field-wrapper],
+.w-form-width:has(.uncial-wagtail-widget) [data-field-input] {
+	width: 100%;
+}
+
+.uncial-wagtail-editor:empty::before {
+	color: #6b7280;
+	content: "Loading Uncial editor...";
+}
+
+.uncial-wagtail-editor {
+	width: 100%;
+}
+
+.uncial-wagtail-editor uncial-editor {
+	display: block;
+}
+
+.uncial-wagtail-image-browser {
+	width: min(64rem, calc(100vw - 2rem));
+	border: 0;
+	border-radius: 0.75rem;
+	padding: 0;
+	box-shadow: 0 24px 80px rgb(0 0 0 / 0.3);
+}
+
+.uncial-wagtail-image-browser::backdrop {
+	background: rgb(0 0 0 / 0.45);
+}
+
+.uncial-wagtail-image-browser__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1rem;
+	border-bottom: 1px solid #ddd;
+}
+
+.uncial-wagtail-image-browser__header h2 {
+	margin: 0;
+	font-size: 1.125rem;
+}
+
+.uncial-wagtail-image-browser__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+	gap: 0.75rem;
+	max-height: min(42rem, calc(100vh - 10rem));
+	overflow: auto;
+	padding: 1rem;
+}
+
+.uncial-wagtail-image-choice {
+	display: grid;
+	gap: 0.35rem;
+	border: 1px solid #ddd;
+	border-radius: 0.5rem;
+	background: white;
+	padding: 0.5rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.uncial-wagtail-image-choice:hover,
+.uncial-wagtail-image-choice:focus-visible {
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgb(37 99 235 / 0.18);
+}
+
+.uncial-wagtail-image-choice img,
+.uncial-wagtail-image-choice span {
+	display: block;
+	width: 100%;
+	aspect-ratio: 3 / 2;
+	object-fit: cover;
+	border-radius: 0.35rem;
+	background: #f3f4f6;
+}
+
+.uncial-wagtail-image-choice small {
+	color: #6b7280;
+}

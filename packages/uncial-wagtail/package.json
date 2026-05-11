@@ -1,0 +1,41 @@
+{
+	"name": "uncial-wagtail",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"demo": "uv run python demo/manage.py runserver 0.0.0.0:8000",
+		"demo:migrate": "uv run python demo/manage.py migrate",
+		"demo:seed": "uv run python demo/manage.py seed_demo",
+		"test": "vitest --run --passWithNoTests",
+		"build": "svelte-package --input frontend/src --output dist && bun run build:admin",
+		"build:admin": "vite build --config vite.admin.config.ts"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./WagtailImage.svelte": {
+			"types": "./dist/WagtailImage.svelte.d.ts",
+			"svelte": "./dist/WagtailImage.svelte",
+			"default": "./dist/WagtailImage.svelte"
+		}
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0",
+		"uncial": "workspace:*"
+	},
+	"devDependencies": {
+		"@sveltejs/package": "^2.5.7",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@tailwindcss/vite": "^4.2.4",
+		"svelte": "^5.51.0",
+		"svelte-check": "^4.4.2",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1",
+		"vitest": "^4.0.18"
+	}
+}

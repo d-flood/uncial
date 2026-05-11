@@ -1,0 +1,4 @@
+<div class="uncial-wagtail-widget" data-uncial-config='{{ widget.config_json }}'>
+	<input type="hidden" name="{{ widget.name }}" value="{{ widget.value|stringformat:'s' }}"{% include "django/forms/widgets/attrs.html" %}>
+	<div class="uncial-wagtail-editor" data-uncial-editor></div>
+</div>

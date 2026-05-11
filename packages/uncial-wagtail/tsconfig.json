@@ -1,0 +1,13 @@
+{
+	"extends": "../uncial/tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "..",
+		"paths": {
+			"uncial": ["../uncial/src/lib/index.ts"],
+			"uncial/core": ["../uncial/src/lib/core/index.ts"],
+			"uncial/runtime/svelte": ["../uncial/src/lib/runtime/svelte.ts"],
+			"uncial/*": ["../uncial/src/lib/*"]
+		}
+	},
+	"include": ["frontend/src/**/*.ts", "frontend/src/**/*.svelte"]
+}
