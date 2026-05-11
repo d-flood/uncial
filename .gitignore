@@ -5,9 +5,14 @@ node_modules
 .vercel
 .netlify
 .wrangler
-/.svelte-kit
-/build
-/dist
+.svelte-kit
+build
+dist
+.venv
+__pycache__
+packages/uncial-wagtail/demo/db.sqlite3
+packages/uncial-wagtail/demo/media
+packages/uncial-wagtail/demo/staticfiles
 
 # OS
 .DS_Store

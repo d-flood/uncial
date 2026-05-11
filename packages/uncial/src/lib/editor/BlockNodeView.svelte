@@ -10,6 +10,7 @@
 		blockId: string;
 		label: string;
 		draggable?: boolean;
+		updateAttributes?: (attrs: Record<string, unknown>) => void;
 		onActivate?: () => void;
 	}
 
@@ -27,6 +28,7 @@
 		blockId,
 		label,
 		draggable = true,
+		updateAttributes,
 		onActivate
 	}: Props = $props();
 
@@ -35,7 +37,8 @@
 	const componentProps = $derived({
 		...attrs,
 		content,
-		children
+		children,
+		updateAttributes
 	});
 
 	function handleActivationPointerDown(event: PointerEvent): void {

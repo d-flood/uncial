@@ -12,7 +12,9 @@ export type AttributeInputKind =
 	| 'checkbox'
 	| 'json'
 	| 'richtext'
-	| 'select';
+	| 'select'
+	| 'hidden'
+	| (string & {});
 
 export interface AttributeOption<T> {
 	value: T;

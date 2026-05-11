@@ -81,6 +81,7 @@
 	{@const RenderComponent = getSvelteRenderComponent(block.components.render.component)}
 	<RenderComponent
 		{...blockAttrs}
+		{...((block as unknown as { renderProps?: Record<string, unknown> }).renderProps ?? {})}
 		content={blockContent}
 		children={block.content ? blockChildren : undefined}
 	/>
