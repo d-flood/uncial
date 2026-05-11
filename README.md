@@ -6,8 +6,8 @@ Uncial is a backend-agnostic block editor built on Tiptap. It turns a normal fro
 
 Custom blocks can stay atomic or declare one default child content region for nested document flow.
 
-![screenshot of the Uncial richtext and block editorwith a callout component selected](.github/images/image.png)
-
+![screenshot of the Uncial richtext and block editorwith a callout component selected](.github/images/basic%20editor.png)
+![screen recording demonstrating editing main page text and custom components](.github/images/basic%20text%20and%20component%20editing.gif)
 ## What ships today
 
 - Shared block definitions for editor and renderer
