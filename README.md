@@ -1,8 +1,12 @@
 # Uncial
 
-Uncial is a backend-agnostic block editor built on Tiptap. Svelte is the only bundled runtime today: library consumers define a block once as a Svelte component, register it with `defineSvelteBlock(...)`, and reuse that same block definition in both the WYSIWYG editor and the SSR-capable renderer.
+[Demo](https://d-flood.github.io/uncial/) | [Docs](https://d-flood.github.io/uncial/docs/) | [GitHub](https://github.com/d-flood/uncial)
+
+Uncial is a backend-agnostic block editor built on Tiptap. It turns a normal frontend framework component into an editable block in a richtext editor. It supports any frontend framework though Svelte is supported out of the box today. Library consumers define a block once as a component, register it with `defineSvelteBlock(...)`, and reuse that same block definition in both the WYSIWYG editor and the SSR-capable renderer.
 
 Custom blocks can stay atomic or declare one default child content region for nested document flow.
+
+![screenshot of the Uncial richtext and block editorwith a callout component selected](.github/images/image.png)
 
 ## What ships today
 
