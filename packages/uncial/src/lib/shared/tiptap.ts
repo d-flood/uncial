@@ -1,6 +1,6 @@
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Mark, mergeAttributes, Node, type AnyExtension } from '@tiptap/core';
+import { Mark, mergeAttributes, Node, type AnyExtension, type Editor as TiptapEditor } from '@tiptap/core';
 import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type {
@@ -44,6 +44,7 @@ function mountBlockEditorComponent(
 	container: HTMLElement,
 	contentDOM: HTMLElement | null,
 	mounted: MountedComponent | null,
+	editor?: TiptapEditor,
 	onActivate?: BlockActivationCallback,
 	getPos?: () => number
 ): MountedComponent {
@@ -64,6 +65,8 @@ function mountBlockEditorComponent(
 			blockId: block.id,
 			label: block.label,
 			draggable: block.behaviors.draggable ?? true,
+			updateAttributes: (attrs: Record<string, unknown>) =>
+				editor?.chain().focus().updateAttributes(block.id, attrs).run(),
 			onActivate: getPos && onActivate ? () => onActivate(getPos()) : undefined
 		}
 	});
@@ -86,7 +89,8 @@ function createBlockNodeView(
 	block: BlockDefinition,
 	node: ProseMirrorNode,
 	getPos?: () => number,
-	onActivate?: BlockActivationCallback
+	onActivate?: BlockActivationCallback,
+	editor?: TiptapEditor
 ): ProseMirrorNodeView {
 	const dom = document.createElement(block.behaviors.inline ? 'span' : 'div');
 	dom.className = 'uncial-nodeview';
@@ -108,7 +112,7 @@ function createBlockNodeView(
 	}
 
 	let mounted: MountedComponent | null = null;
-	mounted = mountBlockEditorComponent(block, node, dom, contentDOM, mounted, onActivate, getPos);
+	mounted = mountBlockEditorComponent(block, node, dom, contentDOM, mounted, editor, onActivate, getPos);
 	syncBlockPosition();
 
 	return {
@@ -130,6 +134,7 @@ function createBlockNodeView(
 				dom,
 				contentDOM,
 				mounted,
+				editor,
 				onActivate,
 				getPos
 			);
@@ -200,8 +205,8 @@ function createBlockNodeExtension(
 			return [{ tag: block.html?.parseTag ?? `div[data-uncial-block="${block.id}"]` }];
 		},
 		addNodeView() {
-			return ({ node, getPos }) =>
-				createBlockNodeView(block, node, getPos as () => number, onActivate);
+			return ({ node, getPos, editor }) =>
+				createBlockNodeView(block, node, getPos as () => number, onActivate, editor);
 		},
 		renderHTML({ HTMLAttributes, node }) {
 			const normalizedAttrs = normalizeBlockAttributes(block, node.attrs ?? {});

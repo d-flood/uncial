@@ -93,6 +93,29 @@
 		}
 	}
 
+	function chooseCustomAttribute(name: string, inputKind: string): void {
+		window.dispatchEvent(
+			new CustomEvent('uncial:choose-attribute', {
+				detail: {
+					inputKind,
+					name,
+					attrs: controllerState.draftAttrs,
+					setAttrs: (attrs: Record<string, unknown>) => {
+						for (const [key, value] of Object.entries(attrs)) {
+							controller.setDraftAttr(key, value);
+						}
+					}
+				}
+			})
+		);
+	}
+
+	function isBuiltInInputKind(inputKind: string): boolean {
+		return ['checkbox', 'number', 'richtext', 'select', 'textarea', 'json', 'text', 'hidden'].includes(
+			inputKind
+		);
+	}
+
 	function startChildDrag(event: PointerEvent, index: number): void {
 		event.stopPropagation();
 		draggingChildIndex = index;
@@ -150,11 +173,24 @@
 		</p>
 		{#each selectedAttributeSpecs as [name, spec] (name)}
 			{@const inputKind = inferAttributeInputKind(spec)}
+			{#if inputKind === 'hidden'}
+				{@const _hidden = null}
+			{:else}
 			<div class="form-control mb-3 grid gap-1">
 				<span class="label-text text-xs font-semibold uppercase tracking-wide opacity-70"
 					>{name}</span
 				>
-				{#if inputKind === 'checkbox'}
+				{#if !isBuiltInInputKind(inputKind)}
+					<button
+						type="button"
+						class="btn btn-outline btn-sm justify-start"
+						onclick={() => chooseCustomAttribute(name, inputKind)}
+					>
+						{controllerState.draftAttrs[name]
+							? `Change ${name}: ${controllerState.draftAttrs[name]}`
+							: `Choose ${name}`}
+					</button>
+				{:else if inputKind === 'checkbox'}
 					<input
 						class="checkbox checkbox-sm"
 						type="checkbox"
@@ -224,6 +260,7 @@
 					<span class="text-xs text-error">{controllerState.validationErrors[name]}</span>
 				{/if}
 			</div>
+			{/if}
 		{/each}
 		<div
 			class="sticky -bottom-4 flex flex-wrap items-center justify-between gap-2 bg-base-100 pt-3"
