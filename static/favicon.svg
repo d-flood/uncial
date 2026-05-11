@@ -4,7 +4,7 @@
 <title>Uncial</title>
 <style>
 .icon-bg { fill: #ffffff; }
-path { fill: oklch(46% 0.14 40); stroke: oklch(46% 0.14 40); stroke-linejoin: round; stroke-width: 140; paint-order: stroke fill; }
+path { fill: oklch(46% 0.14 260); stroke: oklch(46% 0.14 260); stroke-linejoin: round; stroke-width: 140; paint-order: stroke fill; }
 </style>
 <rect class="icon-bg" x="130.570312" y="217.302537" width="1784.367188" height="1598.018729" rx="260" />
 
