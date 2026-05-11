@@ -2,6 +2,8 @@
 	import PencilSimpleIcon from 'phosphor-svelte/lib/PencilSimpleIcon';
 	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
 	import BracketsCurlyIcon from 'phosphor-svelte/lib/BracketsCurlyIcon';
+	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
+	import { resolve } from '$app/paths';
 	import { BlockAttributesPanel, Editor, Renderer } from '$lib/index.js';
 	import { buildDemo } from './demo.js';
 	import Logo from './demo/Logo.svelte';
@@ -9,6 +11,8 @@
 	const { blocks, schema, attributesController, initialDocument } = buildDemo();
 	const pageWashBackground =
 		'radial-gradient(1200px 600px at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%), radial-gradient(900px 700px at 10% 90%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%)';
+	const repoUrl = 'https://github.com/d-flood/uncial';
+	const docsUrl = resolve('/docs');
 	let doc = $state(initialDocument);
 	let activeTab = $state<'editor' | 'rendered' | 'json'>('editor');
 	let editorRegion = $state<HTMLElement>();
@@ -78,16 +82,6 @@
 	}
 
 	$effect(() => {
-		const root = globalThis.document.documentElement;
-		const prev = root.getAttribute('data-theme');
-		root.setAttribute('data-theme', 'vellum');
-		return () => {
-			if (prev) root.setAttribute('data-theme', prev);
-			else root.removeAttribute('data-theme');
-		};
-	});
-
-	$effect(() => {
 		const unsubscribe = attributesController.subscribe((state) => {
 			mobilePanelOpen = state.open || state.link.open;
 		});
@@ -135,6 +129,13 @@
 				Define custom blocks once as components, and reuse them seamlessly across your WYSIWYG editor
 				and frontend.
 			</p>
+			<nav aria-label="Project links" class="mt-6 flex flex-wrap justify-center gap-3">
+				<a href={repoUrl} target="_blank" rel="noreferrer" class="btn btn-primary btn-sm">
+					<GithubLogoIcon size={16} weight="bold" />
+					GitHub repo
+				</a>
+				<a href={docsUrl} class="btn btn-outline btn-secondary btn-sm"> Docs </a>
+			</nav>
 		</div>
 	</header>
 

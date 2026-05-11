@@ -18,6 +18,8 @@ Custom blocks can stay atomic or declare one default child content region for ne
 
 ```sh
 npm install uncial
+pnpm add uncial
+bun add uncial
 ```
 
 Peer dependency:
@@ -25,6 +27,27 @@ Peer dependency:
 - `svelte@^5`
 
 ## Quick start
+
+Define a standard Svelte component first:
+
+```svelte
+<!-- PromoCard.svelte -->
+<script lang="ts">
+	interface Props {
+		title?: string;
+		body?: string;
+	}
+
+	let { title = 'Spring launch', body = 'Save 20% on featured plans.' }: Props = $props();
+</script>
+
+<article class="promo-card">
+	<h3>{title}</h3>
+	<p>{body}</p>
+</article>
+```
+
+Then register and use that component as an Uncial block:
 
 ```svelte
 <script lang="ts">
@@ -203,21 +226,25 @@ Use `validateDocument(...)` directly or pass `onIssue` into `Editor` or `Rendere
 ## Development
 
 ```sh
-npm run check
-npm run test:unit -- --run
-npm run build
+bun run check
+bun run test:unit -- --run
+bun run build
 ```
 
 Additional suites:
 
-- `npm run test:browser -- --run` for browser-backed Svelte component tests
-- `npm run test:e2e` for Playwright end-to-end tests
+- `bun run test:browser -- --run` for browser-backed Svelte component tests
+- `bun run test:e2e` for Playwright end-to-end tests
 
 Browser-backed tests require Playwright browsers to be installed:
 
 ```sh
-npx playwright install
+bunx playwright install
 ```
+
+## Releasing
+
+For user-facing library changes, run `bun run changeset` and commit the generated changeset with your PR. After regular PRs merge into `main`, Changesets opens or updates a version PR. Merging that version PR publishes `uncial` to npm with trusted publishing/provenance and creates the GitHub release.
 
 ## Status
 

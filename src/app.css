@@ -64,7 +64,7 @@
 			BlinkMacSystemFont,
 			'Segoe UI',
 			sans-serif;
-		background: var(--color-base-200);
+		background: var(--color-base-100);
 		color: var(--color-base-content);
 	}
 
