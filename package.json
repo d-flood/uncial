@@ -11,6 +11,7 @@
 		"release": "bun --filter=uncial run prepack && changeset publish"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.31.0"
+		"@changesets/cli": "^2.31.0",
+		"prettier-plugin-svelte": "^3.5.2"
 	}
 }
