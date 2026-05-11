@@ -9,6 +9,7 @@ import {
 	type AttributeDefinition
 } from '../core/attributes.js';
 import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
+import { sanitizeHref } from '../render/sanitize.js';
 
 export type BlockAttributeMode = 'insert' | 'edit' | null;
 
@@ -445,7 +446,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 	function commitLinkAttributes(): boolean {
 		if (!editor) return false;
 		const attrs = get(state).link.attrs;
-		const href = attrs.href?.trim();
+		const href = sanitizeHref(attrs.href);
 		if (!href) return false;
 
 		return editor

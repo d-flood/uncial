@@ -47,7 +47,7 @@ bun add uncial
 
 A block definition gives Uncial a stable `id`, an editor label, normalized attribute defaults, and the Svelte component used by both the editor and renderer.
 
-	    			<div class="space-y-4">
+        			<div class="space-y-4">
 
 ```svelte
 <!-- src/lib/blocks/PromoCard.svelte -->
@@ -178,7 +178,7 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
 
 Atomic blocks have no child content. Add `content: { kind: 'flow' }` when a block should own one default child region. The block component receives attribute props plus a `children` snippet for that region.
 
-	    			<div class="space-y-4">
+        			<div class="space-y-4">
 
 ```ts
 // src/lib/blocks/collapsible.ts
@@ -251,10 +251,10 @@ if (!result.ok) {
 
     			<ul class="list bg-base-100">
     				<li class="list-row">Renderer uses the block registry you provide, so unknown custom blocks are not rendered as trusted components.</li>
-    				<li class="list-row">Built-in rich text links are sanitized to http, https, mailto, tel, relative paths, and hash links.</li>
-    				<li class="list-row">Run validation before publishing or saving user-authored documents.</li>
-    				<li class="list-row">Sanitize any custom block attribute yourself if your block intentionally renders raw HTML.</li>
-    			</ul>
+     				<li class="list-row">Built-in rich text links are sanitized to http, https, mailto, tel, relative paths, and hash links.</li>
+      				<li class="list-row">Run validation before publishing or saving user-authored documents.</li>
+        				<li class="list-row">Custom block components and html.render hooks are trusted application code; sanitize any raw HTML or navigation attributes they emit.</li>
+      			</ul>
     		</section>
     	</div>
     </div>

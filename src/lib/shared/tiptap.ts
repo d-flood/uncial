@@ -20,6 +20,7 @@ import type { PMNode } from './document.js';
 import BlockNodeView from '../editor/BlockNodeView.svelte';
 import type { RichTextFeature } from '../core/types.js';
 import { lowlight } from './syntaxHighlight.js';
+import { sanitizeHref } from '../render/sanitize.js';
 
 export type BlockActivationCallback = (pos: number) => void;
 
@@ -238,7 +239,10 @@ const LinkMark = Mark.create({
 	inclusive: false,
 	addAttributes() {
 		return {
-			href: { default: null },
+			href: {
+				default: null,
+				parseHTML: (element: HTMLElement) => sanitizeHref(element.getAttribute('href'))
+			},
 			target: { default: null },
 			rel: { default: null }
 		};
@@ -247,7 +251,10 @@ const LinkMark = Mark.create({
 		return [{ tag: 'a[href]' }];
 	},
 	renderHTML({ HTMLAttributes }) {
-		return ['a', mergeAttributes(HTMLAttributes), 0];
+		const href = sanitizeHref(HTMLAttributes.href);
+		const rest = { ...HTMLAttributes };
+		delete rest.href;
+		return ['a', mergeAttributes(rest, href ? { href } : {}), 0];
 	},
 	addCommands() {
 		return {
@@ -260,8 +267,12 @@ const LinkMark = Mark.create({
 					title?: string | null;
 				}) =>
 				({ commands }) =>
-					Boolean(attributes?.href) &&
-					commands.toggleMark(this.name, attributes, { extendEmptyMarkRange: true }),
+					Boolean(sanitizeHref(attributes?.href)) &&
+					commands.toggleMark(
+						this.name,
+						{ ...attributes, href: sanitizeHref(attributes?.href) },
+						{ extendEmptyMarkRange: true }
+					),
 			unsetLink:
 				() =>
 				({ commands }) =>

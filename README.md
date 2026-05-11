@@ -259,6 +259,7 @@ Use `validateDocument(...)` directly or pass `onIssue` into `Editor` or `Rendere
 - Renderer output is driven by the same block registry used by the editor
 - Built-in rich text rendering supports headings, lists, blockquotes, code blocks, inline code, strike, bold, italic, and links
 - Links are sanitized to allow only `http`, `https`, `mailto`, `tel`, relative paths, and hash links
+- Custom block components and `html.render` hooks are trusted application code; sanitize any raw HTML or navigation attributes they emit
 
 ## Development
 

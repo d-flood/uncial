@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { BlockRegistry, ContentSchema } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
 	import RichContent from './RichContent.svelte';
+	import { sanitizeHref } from './sanitize.js';
 
 	interface Props {
 		node: PMNode;
@@ -46,6 +48,18 @@
 			<s>{@render renderMarkedText(text, rest)}</s>
 		{:else if mark.type === 'code'}
 			<code>{@render renderMarkedText(text, rest)}</code>
+		{:else if mark.type === 'link'}
+			{@const href = sanitizeHref(mark.attrs?.href)}
+			{#if href}
+				{#if href.startsWith('/')}
+					<a href={resolve(href as '/')}>{@render renderMarkedText(text, rest)}</a>
+				{:else}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sanitized rich-text links may be external, mailto, tel, or hash URLs -->
+					<a {href}>{@render renderMarkedText(text, rest)}</a>
+				{/if}
+			{:else}
+				{@render renderMarkedText(text, rest)}
+			{/if}
 		{:else}
 			{@render renderMarkedText(text, rest)}
 		{/if}
@@ -60,7 +74,11 @@
 	<!-- eslint-enable svelte/no-at-html-tags -->
 {:else if block && (!schema || schema.allowedBlocks.has(block.id))}
 	{@const RenderComponent = block.components.render}
-	<RenderComponent {...blockAttrs} content={blockContent} children={block.content ? blockChildren : undefined} />
+	<RenderComponent
+		{...blockAttrs}
+		content={blockContent}
+		children={block.content ? blockChildren : undefined}
+	/>
 {:else if node.type === 'paragraph'}
 	<p>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />
