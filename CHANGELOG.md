@@ -1,5 +1,11 @@
 # uncial
 
+## 0.0.4
+
+### Patch Changes
+
+- 5314d08: Add screen recording to readme
+
 ## 0.0.3
 
 ### Patch Changes
