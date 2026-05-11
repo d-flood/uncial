@@ -1,5 +1,5 @@
-import type { Component, Snippet } from 'svelte';
 import type { PMDoc, PMPath } from '../shared/document.js';
+import type { NormalizedBlockComponentDefinition } from './runtime.js';
 
 export type AttrValidator<T> = (value: unknown) => value is T;
 export type AttrParser<T> = (value: unknown) => T | undefined;
@@ -54,6 +54,7 @@ export interface AttributeSpec<T> {
 export type AttributeConfig<T> = AttributeSpec<T> | T;
 
 export type BlockAttributes = Record<string, unknown>;
+export type BlockIcon = string | unknown;
 export type HtmlSpecValue = string | number | boolean | null | undefined;
 export type HtmlSpec = [string, Record<string, unknown>?, ...(HtmlSpec | HtmlSpecValue)[]];
 export type BlockHtmlRenderer = (attrs: BlockAttributes) => HtmlSpec;
@@ -65,7 +66,6 @@ export interface BlockContentDefinition {
 
 export interface BlockComponentProps {
 	content?: import('../shared/document.js').PMNode[];
-	children?: Snippet;
 	[name: string]: unknown;
 }
 
@@ -74,11 +74,9 @@ export type NormalizedAttributes<Attrs extends BlockAttributes> = {
 };
 
 export interface BlockComponents {
-	editor: Component<Record<string, unknown>>;
-	render: Component<Record<string, unknown>>;
+	editor: NormalizedBlockComponentDefinition;
+	render: NormalizedBlockComponentDefinition;
 }
-
-export type BlockComponent = Component<Record<string, unknown>>;
 
 export interface BlockBehavior {
 	inline?: boolean;
@@ -86,16 +84,14 @@ export interface BlockBehavior {
 	selectable?: boolean;
 }
 
-export interface BlockConfig<Attrs extends BlockAttributes> {
+export interface BaseBlockConfig<Attrs extends BlockAttributes> {
 	id: string;
 	label: string;
 	description?: string;
-	icon?: string | Component<Record<string, never>>;
+	icon?: BlockIcon;
 	attributes: {
 		[K in keyof Attrs]: AttributeConfig<Attrs[K]>;
 	};
-	component?: BlockComponent;
-	components?: Partial<BlockComponents>;
 	behaviors?: BlockBehavior;
 	content?: false | BlockContentDefinition;
 	html?: {
@@ -104,11 +100,23 @@ export interface BlockConfig<Attrs extends BlockAttributes> {
 	};
 }
 
+export interface RuntimeBlockConfig<Attrs extends BlockAttributes, Component>
+	extends BaseBlockConfig<Attrs> {
+	component?: Component;
+	components?: {
+		editor?: Component;
+		render?: Component;
+	};
+}
+
+export type BlockConfig<Attrs extends BlockAttributes> = RuntimeBlockConfig<Attrs, unknown>;
+
 export interface BlockDefinition<Attrs extends BlockAttributes = BlockAttributes> {
 	id: string;
+	runtime: string;
 	label: string;
 	description?: string;
-	icon?: string | Component<Record<string, never>>;
+	icon?: BlockIcon;
 	attributes: NormalizedAttributes<Attrs>;
 	components: BlockComponents;
 	behaviors: BlockBehavior;
@@ -123,7 +131,7 @@ export interface BlockMetadata {
 	id: string;
 	label: string;
 	description?: string;
-	icon?: string | Component<Record<string, never>>;
+	icon?: BlockIcon;
 }
 
 export interface BlockRegistry {

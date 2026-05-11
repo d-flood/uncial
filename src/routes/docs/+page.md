@@ -18,6 +18,7 @@
 					<li><a href="#setup">Registry and schema</a></li>
 					<li><a href="#usage">Editor and Renderer</a></li>
 					<li><a href="#attributes">Attributes</a></li>
+					<li><a href="#runtime-plugins">Runtime plugins</a></li>
 					<li><a href="#containers">Container blocks</a></li>
 					<li><a href="#validation">Validation</a></li>
 					<li><a href="#security">Security</a></li>
@@ -45,7 +46,7 @@ bun add uncial
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Blocks</p>
     			<h2 class="text-3xl font-bold">Define a custom block once</h2>
 
-A block definition gives Uncial a stable `id`, an editor label, normalized attribute defaults, and the Svelte component used by both the editor and renderer.
+A Svelte block definition gives Uncial a stable `id`, an editor label, normalized attribute defaults, and the Svelte component used by both the editor and SSR-capable renderer.
 
         			<div class="space-y-4">
 
@@ -68,10 +69,10 @@ A block definition gives Uncial a stable `id`, an editor label, normalized attri
 
 ```ts
 // src/lib/blocks/promoCard.ts
-import { defineBlock } from 'uncial';
+import { defineSvelteBlock } from 'uncial';
 import PromoCard from './PromoCard.svelte';
 
-export const promoCard = defineBlock({
+export const promoCard = defineSvelteBlock({
 	id: 'promoCard',
 	label: 'Promo Card',
 	description: 'A reusable promotional card block',
@@ -170,9 +171,28 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
     					</tbody>
     				</table>
     			</div>
-    		</section>
+		</section>
 
-    		<section id="containers" class="space-y-4 scroll-mt-6">
+		<section id="runtime-plugins" class="space-y-4 scroll-mt-6">
+			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Runtime plugins</p>
+			<h2 class="text-3xl font-bold">Svelte ships first, core stays neutral</h2>
+
+Svelte is the only bundled block runtime today. Non-Svelte block authoring is enabled through public runtime plugins that normalize native components and can provide editor node-view mounting. A registry may contain blocks from only one runtime in this release; mixed-runtime documents fail fast.
+
+Svelte blocks keep the direct Svelte renderer path, so custom block rendering remains SSR-capable. Future React or Vue support should be implemented with full-document runtime renderers that can use each framework's SSR APIs, not by mixing client-only component islands into the Svelte renderer.
+
+```ts
+import { defineRuntimeBlock } from 'uncial/core';
+import { reactRuntime } from 'uncial-react-runtime';
+
+export function defineReactBlock(config) {
+	return defineRuntimeBlock(reactRuntime, config);
+}
+```
+
+		</section>
+
+		<section id="containers" class="space-y-4 scroll-mt-6">
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Containers</p>
     			<h2 class="text-3xl font-bold">Allow nested document flow</h2>
 
@@ -182,10 +202,10 @@ Atomic blocks have no child content. Add `content: { kind: 'flow' }` when a bloc
 
 ```ts
 // src/lib/blocks/collapsible.ts
-import { defineBlock } from 'uncial';
+import { defineSvelteBlock } from 'uncial';
 import Collapsible from './Collapsible.svelte';
 
-export const collapsible = defineBlock({
+export const collapsible = defineSvelteBlock({
 	id: 'collapsible',
 	label: 'Collapsible',
 	attributes: {

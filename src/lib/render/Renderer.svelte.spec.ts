@@ -5,7 +5,8 @@ import { Editor as TiptapEditor } from '@tiptap/core';
 import Renderer from './Renderer.svelte';
 import RichText from './RichText.svelte';
 import ContainerBlockFixture from './ContainerBlockFixture.svelte';
-import { createBlockRegistry, defineBlock } from '../core/index.js';
+import { createBlockRegistry } from '../core/index.js';
+import { defineSvelteBlock } from '../runtime/svelte.js';
 import { createEditorExtensions } from '../shared/tiptap.js';
 
 describe('Renderer', () => {
@@ -114,7 +115,7 @@ describe('Renderer', () => {
 	});
 
 	it('renders child content inside container blocks', async () => {
-		const collapsible = defineBlock({
+		const collapsible = defineSvelteBlock({
 			id: 'collapsible',
 			label: 'Collapsible',
 			attributes: {

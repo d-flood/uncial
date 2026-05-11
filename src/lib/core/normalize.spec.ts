@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { createBlockRegistry, createSchema, defineBlock, normalizeDocument } from './index.js';
+import { createBlockRegistry, createSchema, normalizeDocument } from './index.js';
+import { defineSvelteBlock } from '../runtime/svelte.js';
 import type { Component } from 'svelte';
 
 const Dummy = (() => ({})) as unknown as Component<Record<string, unknown>>;
 
 describe('normalizeDocument', () => {
 	it('coerces typed attrs and strips unknown block attrs', () => {
-		const profile = defineBlock({
+		const profile = defineSvelteBlock({
 			id: 'profile',
 			label: 'Profile',
 			attributes: {
@@ -75,7 +76,7 @@ describe('normalizeDocument', () => {
 	});
 
 	it('strips child content from atomic custom blocks', () => {
-		const note = defineBlock({
+		const note = defineSvelteBlock({
 			id: 'note',
 			label: 'Note',
 			attributes: { title: '' },
@@ -103,7 +104,7 @@ describe('normalizeDocument', () => {
 	});
 
 	it('preserves child content for container custom blocks', () => {
-		const collapsible = defineBlock({
+		const collapsible = defineSvelteBlock({
 			id: 'collapsible',
 			label: 'Collapsible',
 			attributes: { title: '' },

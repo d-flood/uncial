@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import type { Component } from 'svelte';
 	import type { BlockRegistry, ContentSchema } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
@@ -28,6 +29,10 @@
 
 	function getActiveMarks(marks: PMMark[] = []): PMMark[] {
 		return schema ? marks.filter((mark) => schema.allowedMarks.has(mark.type)) : marks;
+	}
+
+	function getSvelteRenderComponent(component: unknown): Component<Record<string, unknown>> {
+		return component as Component<Record<string, unknown>>;
 	}
 </script>
 
@@ -73,7 +78,7 @@
 		></pre>
 	<!-- eslint-enable svelte/no-at-html-tags -->
 {:else if block && (!schema || schema.allowedBlocks.has(block.id))}
-	{@const RenderComponent = block.components.render}
+	{@const RenderComponent = getSvelteRenderComponent(block.components.render.component)}
 	<RenderComponent
 		{...blockAttrs}
 		content={blockContent}

@@ -16,7 +16,7 @@ describe('/+page.svelte', () => {
 		await expect
 			.element(
 				editor.getByText(
-					'This home page is a live Uncial document: rich text, Svelte blocks, typed attributes, renderer output, and source JSON all moving together.'
+					"Uncial is a backend-agnostic, block-based WYSIWYG editor for Svelte, powered by Tiptap, designed to bridge the gap between authoring and rendering. For CMS implementers, Uncial's primary value is achieving true 1:1 visual parity with zero code duplication: you define a custom block once as a single Svelte component and reuse that exact component across both the editor interface and the final frontend presentation. Coupled with built-in schema validation, typed attribute normalization, and support for deeply nested block content, Uncial significantly reduces development overhead and ensures a highly predictable, seamless content creation experience."
 				)
 			)
 			.toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('/+page.svelte', () => {
 		await editor.getByText('Define a block once.').click();
 		await expect.element(page.getByText(/Edit\s+card/i)).toBeInTheDocument();
 
-		await editor.getByText('The editor is the demo.').click();
+		await editor.getByText('This editor is the demo.').click();
 		await expect.element(page.getByText(/Edit\s+callout/i)).toBeInTheDocument();
 		await expect.element(page.getByText(/Configure\s+card/i)).not.toBeInTheDocument();
 	});

@@ -1,6 +1,6 @@
 # Uncial
 
-Uncial is a backend-agnostic Svelte block editor built on Tiptap. Library consumers define a block once as a Svelte component, register it with `defineBlock(...)`, and reuse that same block definition in both the WYSIWYG editor and the renderer.
+Uncial is a backend-agnostic block editor built on Tiptap. Svelte is the only bundled runtime today: library consumers define a block once as a Svelte component, register it with `defineSvelteBlock(...)`, and reuse that same block definition in both the WYSIWYG editor and the SSR-capable renderer.
 
 Custom blocks can stay atomic or declare one default child content region for nested document flow.
 
@@ -13,6 +13,7 @@ Custom blocks can stay atomic or declare one default child content region for ne
 - Document normalization with version stamping
 - Validation hooks for editor and renderer boundaries
 - SSR-safe renderer imports separated from browser-only editor behavior
+- A public runtime plugin contract for third-party React, Vue, Web Component, or vanilla runtimes
 
 ## Install
 
@@ -57,11 +58,11 @@ Then register and use that component as an Uncial block:
 		createBlockAttributesController,
 		createBlockRegistry,
 		createSchema,
-		defineBlock
+		defineSvelteBlock
 	} from 'uncial';
 	import PromoCard from './PromoCard.svelte';
 
-	const promoCard = defineBlock({
+	const promoCard = defineSvelteBlock({
 		id: 'promoCard',
 		label: 'Promo Card',
 		attributes: {
@@ -122,7 +123,24 @@ renderer.addEventListener('uncial-issue', (event) => {
 });
 ```
 
-For SSR frameworks, import `uncial/web-components` on the client only. Host frameworks can mount the elements, but block definitions currently still point to Svelte components.
+For SSR frameworks, import `uncial/web-components` on the client only. Svelte blocks still render through the Svelte renderer for SSR; non-Svelte block runtimes should provide their own full-document renderer rather than relying on mixed component islands.
+
+## Runtime plugins
+
+Uncial's core block model is runtime-neutral. `defineSvelteBlock(...)` is the first-party helper for the bundled Svelte runtime, and `defineRuntimeBlock(runtimePlugin, config)` is the public escape hatch for third-party runtimes.
+
+Registries currently allow a single runtime per document. Empty registries and one-runtime registries are valid; mixed-runtime registries fail fast so future non-Svelte SSR can be implemented as full-document runtime renderers.
+
+Runtime plugins normalize native components and may provide editor node-view mounting with `destroy()` and optional `update()` lifecycle hooks. Container block children are exposed as a runtime-specific child outlet; plugins must leave ProseMirror-owned child DOM under editor control. SSR-capable runtimes should provide a renderer that can render the whole document for that runtime.
+
+```ts
+import { defineRuntimeBlock } from 'uncial/core';
+import { reactRuntime } from 'uncial-react-runtime';
+
+export function defineReactBlock(config) {
+	return defineRuntimeBlock(reactRuntime, config);
+}
+```
 
 ## Styling and customization
 
@@ -163,7 +181,7 @@ If you want to own the editor layout yourself, use `bindEditor(...)` on an eleme
 Use `component` when the same Svelte component should render in both the editor and the frontend output.
 
 ```ts
-const hero = defineBlock({
+const hero = defineSvelteBlock({
 	id: 'hero',
 	label: 'Hero',
 	attributes: {
@@ -190,7 +208,7 @@ Attribute specs support:
 Blocks can also opt into child content:
 
 ```ts
-const collapsible = defineBlock({
+const collapsible = defineSvelteBlock({
 	id: 'collapsible',
 	label: 'Collapsible',
 	attributes: {

@@ -67,6 +67,11 @@
 			"svelte": "./dist/render/index.js",
 			"default": "./dist/render/index.js"
 		},
+		"./runtime/svelte": {
+			"types": "./dist/runtime/svelte.d.ts",
+			"svelte": "./dist/runtime/svelte.js",
+			"default": "./dist/runtime/svelte.js"
+		},
 		"./web-components": {
 			"types": "./dist/web-components/index.d.ts",
 			"svelte": "./dist/web-components/index.js",

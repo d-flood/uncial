@@ -1,4 +1,4 @@
-export { defineBlock } from './defineBlock.js';
+export { defineRuntimeBlock } from './defineBlock.js';
 export {
 	coerceAttributeValue,
 	inferAttributeInputKind,
@@ -11,6 +11,12 @@ export {
 export { createBlockRegistry, createSchema, resolveRegistry } from './registry.js';
 export { CURRENT_DOCUMENT_VERSION, normalizeDocument } from './normalize.js';
 export { validateDocument } from './validate.js';
+export type {
+	BlockEditorMountHandle,
+	BlockEditorMountOptions,
+	BlockRuntimePlugin,
+	NormalizedBlockComponentDefinition
+} from './runtime.js';
 export {
 	coerceRichTextDocument,
 	emptyRichTextDocument,
@@ -33,6 +39,7 @@ export type {
 	BlockContentDefinition,
 	BlockContentKind,
 	BlockDefinition,
+	BlockIcon,
 	BlockMetadata,
 	BlockRegistry,
 	ContentDocument,
@@ -40,6 +47,7 @@ export type {
 	CreateSchemaOptions,
 	RichTextFeature,
 	RichTextFeatureSelection,
+	RuntimeBlockConfig,
 	ValidateDocumentOptions,
 	ValidationCode,
 	ValidationIssue,

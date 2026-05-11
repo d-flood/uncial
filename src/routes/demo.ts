@@ -2,7 +2,7 @@ import {
 	createBlockAttributesController,
 	createBlockRegistry,
 	createSchema,
-	defineBlock,
+	defineSvelteBlock,
 	hasRichTextContent,
 	richTextDocument
 } from '$lib/index.js';
@@ -29,7 +29,7 @@ export type DemoDocument = {
 };
 
 export function buildDemo() {
-	const card = defineBlock({
+	const card = defineSvelteBlock({
 		id: 'card',
 		label: 'Card',
 		description: 'Typed attributes with normalization and validation.',
@@ -52,7 +52,7 @@ export function buildDemo() {
 		component: Card
 	});
 
-	const callout = defineBlock({
+	const callout = defineSvelteBlock({
 		id: 'callout',
 		label: 'Callout',
 		description: 'Tone-tinted notice with a validated variant and rich text body.',
@@ -80,7 +80,7 @@ export function buildDemo() {
 		component: Callout
 	});
 
-	const row = defineBlock({
+	const row = defineSvelteBlock({
 		id: 'row',
 		label: 'Row',
 		description: 'Lay out any other blocks side by side.',
@@ -173,12 +173,12 @@ export function buildDemo() {
   Renderer,
   createBlockRegistry,
   createSchema,
-  defineBlock,
+  defineSvelteBlock,
   richTextDocument
 } from 'uncial';
 import PromoCard from './PromoCard.svelte';
 
-const promoCard = defineBlock({
+const promoCard = defineSvelteBlock({
   id: 'promoCard',
   label: 'Promo Card',
   attributes: {

@@ -3,12 +3,13 @@ import type {
 	AttributeOption,
 	AttributeSpec,
 	BlockAttributes,
-	BlockConfig,
 	BlockContentDefinition,
 	BlockComponents,
 	BlockDefinition,
-	NormalizedAttributes
+	NormalizedAttributes,
+	RuntimeBlockConfig
 } from './types.js';
+import type { BlockRuntimePlugin } from './runtime.js';
 
 function isAttributeSpec<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
 	return typeof value === 'object' && value !== null && 'default' in value;
@@ -34,7 +35,7 @@ function normalizeAttribute<T>(value: AttributeConfig<T>): AttributeSpec<T> {
 }
 
 function normalizeAttributes<Attrs extends BlockAttributes>(
-	attributes: BlockConfig<Attrs>['attributes']
+	attributes: RuntimeBlockConfig<Attrs, unknown>['attributes']
 ): NormalizedAttributes<Attrs> {
 	const normalized = {} as NormalizedAttributes<Attrs>;
 
@@ -46,7 +47,9 @@ function normalizeAttributes<Attrs extends BlockAttributes>(
 	return normalized;
 }
 
-function validateConfig<Attrs extends BlockAttributes>(config: BlockConfig<Attrs>): void {
+function validateConfig<Attrs extends BlockAttributes, Component>(
+	config: RuntimeBlockConfig<Attrs, Component>
+): void {
 	if (!config.id.trim()) {
 		throw new Error('Block id must be a non-empty string');
 	}
@@ -69,8 +72,9 @@ function validateConfig<Attrs extends BlockAttributes>(config: BlockConfig<Attrs
 	}
 }
 
-function normalizeComponents<Attrs extends BlockAttributes>(
-	config: BlockConfig<Attrs>
+function normalizeComponents<Attrs extends BlockAttributes, Component>(
+	runtime: BlockRuntimePlugin<Component>,
+	config: RuntimeBlockConfig<Attrs, Component>
 ): BlockComponents {
 	const shared = config.component;
 	const editor = config.components?.editor ?? shared ?? config.components?.render;
@@ -82,7 +86,7 @@ function normalizeComponents<Attrs extends BlockAttributes>(
 		);
 	}
 
-	return { editor, render };
+	return { editor: runtime.defineComponent(editor), render: runtime.defineComponent(render) };
 }
 
 function normalizeContent(
@@ -97,18 +101,20 @@ function normalizeContent(
 	};
 }
 
-export function defineBlock<Attrs extends BlockAttributes>(
-	config: BlockConfig<Attrs>
+export function defineRuntimeBlock<Attrs extends BlockAttributes, Component>(
+	runtime: BlockRuntimePlugin<Component>,
+	config: RuntimeBlockConfig<Attrs, Component>
 ): BlockDefinition<Attrs> {
 	validateConfig(config);
 
 	return Object.freeze({
 		id: config.id,
+		runtime: runtime.id,
 		label: config.label,
 		description: config.description,
 		icon: config.icon,
 		attributes: normalizeAttributes(config.attributes),
-		components: normalizeComponents(config),
+		components: normalizeComponents(runtime, config),
 		behaviors: {
 			inline: config.behaviors?.inline ?? false,
 			draggable: config.behaviors?.draggable ?? true,

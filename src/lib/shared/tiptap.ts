@@ -3,7 +3,6 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Mark, mergeAttributes, Node, type AnyExtension } from '@tiptap/core';
 import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { createRawSnippet, mount, unmount } from 'svelte';
 import type {
 	AttributeSpec,
 	BlockDefinition,
@@ -17,7 +16,6 @@ import {
 	serializeBlockAttributes
 } from '../core/attributes.js';
 import type { PMNode } from './document.js';
-import BlockNodeView from '../editor/BlockNodeView.svelte';
 import type { RichTextFeature } from '../core/types.js';
 import { lowlight } from './syntaxHighlight.js';
 import { sanitizeHref } from '../render/sanitize.js';
@@ -34,7 +32,7 @@ function safeParseJSON(raw: string | null): Record<string, unknown> {
 	}
 }
 
-type MountedComponent = ReturnType<typeof mount>;
+type MountedComponent = { destroy(): void };
 
 export function getBlockDefaultAttrs(block: BlockDefinition): Record<string, unknown> {
 	return normalizeBlockAttributes(block, {});
@@ -49,32 +47,24 @@ function mountBlockEditorComponent(
 	onActivate?: BlockActivationCallback,
 	getPos?: () => number
 ): MountedComponent {
-	if (mounted) {
-		void unmount(mounted);
+	mounted?.destroy();
+	const createEditorMount = block.components.editor.plugin.createEditorMount;
+	if (!createEditorMount) {
+		throw new Error(`Runtime "${block.runtime}" does not support editor node views`);
 	}
 
-	const host = document.createElement(block.behaviors.inline ? 'span' : 'div');
-	host.className = 'uncial-nodeview-host';
-	container.replaceChildren(host);
-
-	return mount(BlockNodeView, {
-		target: host,
+	return createEditorMount({
+		target: container,
+		inline: block.behaviors.inline ?? false,
+		component: block.components.editor,
 		props: {
-			component: block.components.editor,
 			attrs: node.attrs ?? {},
 			content: (node.content?.toJSON() ?? []) as PMNode[],
+			contentDOM,
 			blockId: block.id,
 			label: block.label,
 			draggable: block.behaviors.draggable ?? true,
-			onActivate: getPos && onActivate ? () => onActivate(getPos()) : undefined,
-			children: contentDOM
-				? createRawSnippet(() => ({
-						render: () => '<div class="uncial-nodeview-content"></div>',
-						setup: (element) => {
-							element.replaceChildren(contentDOM);
-						}
-					}))
-				: undefined
+			onActivate: getPos && onActivate ? () => onActivate(getPos()) : undefined
 		}
 	});
 }
@@ -160,9 +150,7 @@ function createBlockNodeView(
 			dom.classList.remove('ProseMirror-selectednode');
 		},
 		destroy() {
-			if (mounted) {
-				void unmount(mounted);
-			}
+			mounted?.destroy();
 		}
 	};
 }

@@ -7,7 +7,7 @@ import {
 	createBlockAttributesController,
 	createBlockRegistry,
 	createSchema,
-	defineBlock,
+	defineSvelteBlock,
 	normalizeDocument
 } from './lib/index.js';
 import type { Component } from 'svelte';
@@ -16,7 +16,7 @@ const Dummy = (() => ({})) as unknown as Component<Record<string, unknown>>;
 
 describe('public api', () => {
 	it('exports a usable block workflow from the package root', () => {
-		const callout = defineBlock({
+		const callout = defineSvelteBlock({
 			id: 'callout',
 			label: 'Callout',
 			attributes: {

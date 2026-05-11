@@ -3,12 +3,13 @@ import {
 	coerceRichTextDocument,
 	createBlockRegistry,
 	createSchema,
-	defineBlock,
+	defineRuntimeBlock,
 	hasRichTextContent,
 	richTextDocument,
 	resolveRichTextFeatures,
 	validateDocument
 } from './index.js';
+import { defineSvelteBlock } from '../runtime/svelte.js';
 import {
 	coerceAttributeValue,
 	inferAttributeInputKind,
@@ -16,13 +17,21 @@ import {
 	toAttributeDraftValue
 } from './attributes.js';
 import type { ValidationIssue } from './types.js';
+import type { BlockRuntimePlugin } from './runtime.js';
 import type { Component } from 'svelte';
 
 const Dummy = (() => ({})) as unknown as Component<Record<string, unknown>>;
 
+const fakeRuntime: BlockRuntimePlugin<{ name: string }> = {
+	id: 'fake',
+	defineComponent(component) {
+		return { runtime: 'fake', component, plugin: fakeRuntime };
+	}
+};
+
 describe('core', () => {
 	it('defines block and normalizes shorthand attributes', () => {
-		const image = defineBlock({
+		const image = defineSvelteBlock({
 			id: 'image',
 			label: 'Image',
 			attributes: {
@@ -34,13 +43,14 @@ describe('core', () => {
 
 		expect(image.attributes.src.default).toBe('');
 		expect(image.attributes.alt.default).toBe('');
-		expect(image.components.editor).toBe(Dummy);
-		expect(image.components.render).toBe(Dummy);
+		expect(image.components.editor.component).toBe(Dummy);
+		expect(image.components.render.component).toBe(Dummy);
+		expect(image.runtime).toBe('svelte');
 		expect(image.content).toBeUndefined();
 	});
 
 	it('defines container blocks with flow content', () => {
-		const collapsible = defineBlock({
+		const collapsible = defineSvelteBlock({
 			id: 'collapsible',
 			label: 'Collapsible',
 			attributes: {
@@ -54,19 +64,19 @@ describe('core', () => {
 	});
 
 	it('normalizes partial component configs', () => {
-		const block = defineBlock({
+		const block = defineSvelteBlock({
 			id: 'note',
 			label: 'Note',
 			attributes: { body: '' },
 			components: { editor: Dummy }
 		});
 
-		expect(block.components.editor).toBe(Dummy);
-		expect(block.components.render).toBe(Dummy);
+		expect(block.components.editor.component).toBe(Dummy);
+		expect(block.components.render.component).toBe(Dummy);
 	});
 
 	it('builds a registry and rejects duplicate ids', () => {
-		const block = defineBlock({
+		const block = defineSvelteBlock({
 			id: 'image',
 			label: 'Image',
 			attributes: { src: '' },
@@ -76,8 +86,38 @@ describe('core', () => {
 		expect(() => createBlockRegistry([block, block])).toThrow(/Duplicate block id/);
 	});
 
+	it('defines blocks with a custom runtime plugin', () => {
+		const block = defineRuntimeBlock(fakeRuntime, {
+			id: 'custom',
+			label: 'Custom',
+			attributes: { title: '' },
+			component: { name: 'CustomComponent' }
+		});
+
+		expect(block.runtime).toBe('fake');
+		expect(block.components.editor.runtime).toBe('fake');
+		expect(block.components.render.component).toEqual({ name: 'CustomComponent' });
+	});
+
+	it('rejects mixed runtime registries', () => {
+		const svelte = defineSvelteBlock({
+			id: 'svelteBlock',
+			label: 'Svelte Block',
+			attributes: {},
+			component: Dummy
+		});
+		const custom = defineRuntimeBlock(fakeRuntime, {
+			id: 'customBlock',
+			label: 'Custom Block',
+			attributes: {},
+			component: { name: 'CustomComponent' }
+		});
+
+		expect(() => createBlockRegistry([svelte, custom])).toThrow(/cannot mix runtimes/);
+	});
+
 	it('validates document issues against schema', () => {
-		const image = defineBlock({
+		const image = defineSvelteBlock({
 			id: 'image',
 			label: 'Image',
 			attributes: {
@@ -113,7 +153,7 @@ describe('core', () => {
 	});
 
 	it('rejects child content on atomic custom blocks', () => {
-		const image = defineBlock({
+		const image = defineSvelteBlock({
 			id: 'image',
 			label: 'Image',
 			attributes: { src: '' },
@@ -179,7 +219,7 @@ describe('core', () => {
 	});
 
 	it('infers select input kind and auto-derives a validator from options', () => {
-		const callout = defineBlock({
+		const callout = defineSvelteBlock({
 			id: 'callout',
 			label: 'Callout',
 			attributes: {
@@ -209,7 +249,7 @@ describe('core', () => {
 
 	it('preserves explicit validate and accepts labeled options', () => {
 		const ownValidate = (value: unknown): value is string => value === 'a' || value === 'b';
-		const block = defineBlock({
+		const block = defineSvelteBlock({
 			id: 'flags',
 			label: 'Flags',
 			attributes: {

@@ -11,10 +11,16 @@ const DEFAULT_MARKS = ['bold', 'italic', 'strike', 'code', 'link'] as const;
 export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	const byId = new Map<string, BlockDefinition>();
 	const metadata: BlockMetadata[] = [];
+	const runtimes = new Set<string>();
 
 	for (const block of blocks) {
 		if (byId.has(block.id)) {
 			throw new Error(`Duplicate block id "${block.id}"`);
+		}
+
+		runtimes.add(block.runtime);
+		if (runtimes.size > 1) {
+			throw new Error('Block registries cannot mix runtimes in this release');
 		}
 
 		byId.set(block.id, block);
