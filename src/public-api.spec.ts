@@ -50,4 +50,11 @@ describe('public api', () => {
 			count: 2
 		});
 	});
+
+	it('exposes the web component entrypoint', async () => {
+		const webComponents = await import('./lib/web-components/index.js');
+
+		expect(webComponents.UncialEditor).toBeTruthy();
+		expect(webComponents.UncialRenderer).toBeTruthy();
+	});
 });

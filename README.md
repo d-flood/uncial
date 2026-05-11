@@ -87,6 +87,43 @@ Then register and use that component as an Uncial block:
 <Renderer content={document} {blocks} {schema} />
 ```
 
+## Web components
+
+React, Vue, and vanilla browser apps can register browser-native elements with a client-side import:
+
+```ts
+import 'uncial/web-components';
+```
+
+Use DOM properties for complex values such as registries, schemas, documents, extensions, and controllers:
+
+```ts
+const renderer = document.querySelector('uncial-renderer');
+Object.assign(renderer, { blocks, schema, content: document });
+
+const editor = document.querySelector('uncial-editor');
+Object.assign(editor, { blocks, schema, json: document, attributesController });
+```
+
+```html
+<uncial-editor></uncial-editor>
+<uncial-renderer></uncial-renderer>
+```
+
+Validation callbacks are emitted as bubbling, composed DOM events. Editor document updates are emitted as `uncial-change` because non-Svelte hosts cannot use `bind:json`:
+
+```ts
+editor.addEventListener('uncial-change', (event) => {
+	document = event.detail;
+});
+
+renderer.addEventListener('uncial-issue', (event) => {
+	console.warn(event.detail.code, event.detail.path);
+});
+```
+
+For SSR frameworks, import `uncial/web-components` on the client only. Host frameworks can mount the elements, but block definitions currently still point to Svelte components.
+
 ## Styling and customization
 
 The root `Editor` and `Renderer` exports ship with Uncial's starter shell and default component-scoped styling.
