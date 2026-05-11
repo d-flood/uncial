@@ -1,5 +1,11 @@
 # uncial
 
+## 0.0.5
+
+### Patch Changes
+
+- 05dc82a: Restructure repo to prepare for a mono repo and add a barely-working django wagtail package
+
 ## 0.0.4
 
 ### Patch Changes
