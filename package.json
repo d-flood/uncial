@@ -7,7 +7,7 @@
 		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test",
 		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build",
 		"prepack": "bun --filter=uncial run prepack",
-		"version": "bunx changeset version && bun run scripts/sync-py-versions.ts",
-		"release": "bun --filter=uncial run prepack && bunx changeset publish"
+		"version": "node_modules/.bin/changeset version && bun run scripts/sync-py-versions.ts",
+		"release": "bun --filter=uncial run prepack && node_modules/.bin/changeset publish"
 	}
 }
