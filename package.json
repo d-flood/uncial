@@ -5,6 +5,9 @@
 	"scripts": {
 		"check": "bun --filter=uncial run check && bun --filter=uncial-wagtail run check",
 		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test",
-		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build"
+		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build",
+		"prepack": "bun --filter=uncial run prepack",
+		"version": "changeset version && bun run scripts/sync-py-versions.ts",
+		"release": "bun --filter=uncial run prepack && changeset publish"
 	}
 }
