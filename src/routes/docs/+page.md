@@ -33,6 +33,7 @@
 Install the package in your application. Uncial expects `svelte@^5` as a peer dependency.
 
 ```bash
+# Terminal
 npm install uncial
 pnpm add uncial
 bun add uncial
@@ -46,9 +47,10 @@ bun add uncial
 
 A block definition gives Uncial a stable `id`, an editor label, normalized attribute defaults, and the Svelte component used by both the editor and renderer.
 
-    			<div class="grid gap-4 xl:grid-cols-2">
+	    			<div class="space-y-4">
 
 ```svelte
+<!-- src/lib/blocks/PromoCard.svelte -->
 <script lang="ts">
 	interface Props {
 		title?: string;
@@ -65,6 +67,7 @@ A block definition gives Uncial a stable `id`, an editor label, normalized attri
 ```
 
 ```ts
+// src/lib/blocks/promoCard.ts
 import { defineBlock } from 'uncial';
 import PromoCard from './PromoCard.svelte';
 
@@ -92,6 +95,7 @@ export const promoCard = defineBlock({
 The registry is the shared block catalog. The schema controls allowed blocks and marks. The attributes controller powers block and link editing UI.
 
 ```ts
+// src/lib/uncial.ts
 import { createBlockAttributesController, createBlockRegistry, createSchema } from 'uncial';
 import { promoCard } from './blocks/promoCard';
 
@@ -109,6 +113,7 @@ export const attributesController = createBlockAttributesController();
 Bind your document to `Editor` with `bind:json`. Later, pass the saved document to `Renderer` as `content` with the same blocks and schema.
 
 ```svelte
+<!-- src/routes/editor/+page.svelte -->
 <script lang="ts">
 	import { Editor, Renderer } from 'uncial';
 	import { attributesController, blocks, schema } from './uncial';
@@ -173,9 +178,10 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
 
 Atomic blocks have no child content. Add `content: { kind: 'flow' }` when a block should own one default child region. The block component receives attribute props plus a `children` snippet for that region.
 
-    			<div class="grid gap-4 xl:grid-cols-2">
+	    			<div class="space-y-4">
 
 ```ts
+// src/lib/blocks/collapsible.ts
 import { defineBlock } from 'uncial';
 import Collapsible from './Collapsible.svelte';
 
@@ -191,6 +197,7 @@ export const collapsible = defineBlock({
 ```
 
 ```svelte
+<!-- src/lib/blocks/Collapsible.svelte -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
@@ -222,6 +229,7 @@ export const collapsible = defineBlock({
 Use `normalizeDocument` and `validateDocument` around persistence boundaries, or pass `onIssue` to `Editor` and `Renderer` to observe document issues as they happen.
 
 ```ts
+// src/lib/publish.ts
 import { normalizeDocument, validateDocument } from 'uncial';
 import { blocks, schema } from './uncial';
 
