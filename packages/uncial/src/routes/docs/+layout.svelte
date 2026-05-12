@@ -2,6 +2,7 @@
 	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
 	import { resolve } from '$app/paths';
 	import Logo from '../demo/Logo.svelte';
+	import ThemeSwitcher from '$lib/ui/ThemeSwitcher.svelte';
 
 	let { children } = $props();
 
@@ -33,6 +34,7 @@
 					GitHub repo
 				</a>
 				<a href={resolve('/')} class="btn btn-outline btn-secondary btn-sm">Demo</a>
+				<ThemeSwitcher />
 			</nav>
 		</div>
 	</header>
