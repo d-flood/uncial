@@ -1,5 +1,11 @@
 # uncial
 
+## 0.0.6
+
+### Patch Changes
+
+- 89eb04f: Add top level readme and umami script to demo/docs
+
 ## 0.0.5
 
 ### Patch Changes
