@@ -67,6 +67,12 @@
 			"svelte": "./dist/render/index.js",
 			"default": "./dist/render/index.js"
 		},
+		"./styles": "./dist/styles/index.css",
+		"./styles/chrome": "./dist/styles/chrome.css",
+		"./styles/tokens": "./dist/styles/tokens.css",
+		"./styles/base": "./dist/styles/base.css",
+		"./styles/controls": "./dist/styles/controls.css",
+		"./styles/prose": "./dist/styles/prose.css",
 		"./runtime/svelte": {
 			"types": "./dist/runtime/svelte.d.ts",
 			"svelte": "./dist/runtime/svelte.js",

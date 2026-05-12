@@ -1,0 +1,115 @@
+.uncial-rich-content p {
+	margin: 0;
+}
+
+.uncial-rich-content h1,
+.uncial-rich-content h2,
+.uncial-rich-content h3 {
+	margin: 2.5rem 0 0.6rem;
+	line-height: 1.2;
+	font-family: var(--uncial-font-display);
+	font-weight: var(--uncial-font-weight-strong);
+}
+
+.uncial-rich-content h1 {
+	font-size: 1.75rem;
+}
+
+.uncial-rich-content h2 {
+	font-size: 1.4rem;
+}
+
+.uncial-rich-content h3 {
+	font-size: 1.15rem;
+}
+
+.uncial-rich-content ul,
+.uncial-rich-content ol {
+	margin: 0 0 0.8rem 1.25rem;
+}
+
+.uncial-rich-content ul {
+	list-style: disc;
+}
+
+.uncial-rich-content ol {
+	list-style: decimal;
+}
+
+.uncial-rich-content blockquote {
+	margin: 1rem 0;
+	padding: 0.5rem 0.9rem;
+	border-left: 4px solid color-mix(in srgb, var(--uncial-color-text) 20%, transparent);
+	color: color-mix(in srgb, var(--uncial-color-text) 70%, transparent);
+}
+
+.uncial-rich-content a {
+	color: var(--uncial-color-primary);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.uncial-rich-content code {
+	background: var(--uncial-color-surface-elevated);
+	padding: 0.1em 0.35em;
+	border-radius: 0.35rem;
+	font-family: var(--uncial-font-mono);
+	font-size: 0.9em;
+}
+
+.uncial-rich-content pre {
+	background: var(--uncial-color-code-bg, oklch(24% 0.04 45));
+	color: var(--uncial-color-code-text, oklch(96% 0.015 85));
+	padding: 1rem 1.15rem;
+	border-radius: 0.6rem;
+	overflow-x: auto;
+	margin: 1rem 0;
+	border: 1px solid color-mix(in srgb, var(--uncial-color-text) 15%, transparent);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+}
+
+.uncial-rich-content pre code {
+	display: block;
+	min-width: max-content;
+	background: transparent;
+	color: inherit;
+	padding: 0;
+	white-space: pre;
+}
+
+.uncial-rich-content .hljs-keyword,
+.uncial-rich-content .hljs-selector-tag,
+.uncial-rich-content .hljs-literal,
+.uncial-rich-content .hljs-section,
+.uncial-rich-content .hljs-link {
+	color: oklch(82% 0.13 75);
+}
+
+.uncial-rich-content .hljs-string,
+.uncial-rich-content .hljs-attr,
+.uncial-rich-content .hljs-symbol,
+.uncial-rich-content .hljs-bullet,
+.uncial-rich-content .hljs-addition {
+	color: oklch(82% 0.09 150);
+}
+
+.uncial-rich-content .hljs-title,
+.uncial-rich-content .hljs-name,
+.uncial-rich-content .hljs-type,
+.uncial-rich-content .hljs-built_in {
+	color: oklch(82% 0.1 215);
+}
+
+.uncial-rich-content .hljs-number,
+.uncial-rich-content .hljs-variable,
+.uncial-rich-content .hljs-template-variable,
+.uncial-rich-content .hljs-deletion {
+	color: oklch(82% 0.12 35);
+}
+
+.uncial-rich-content .hljs-comment,
+.uncial-rich-content .hljs-quote,
+.uncial-rich-content .hljs-meta {
+	color: color-mix(in srgb, var(--uncial-color-code-text, oklch(96% 0.015 85)) 58%, transparent);
+	font-style: italic;
+}

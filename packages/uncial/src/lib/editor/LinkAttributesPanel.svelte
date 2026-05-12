@@ -26,26 +26,31 @@
 </script>
 
 <form
-	class="grid gap-3"
+	class="uncial-link-panel"
 	onsubmit={(event) => {
 		event.preventDefault();
 		onApply();
 	}}
 >
-	<div class="flex items-start justify-between gap-3">
+	<div class="uncial-link-panel__header">
 		<div>
-			<p class="text-sm font-bold">Edit link</p>
-			<p class="text-xs opacity-60">Configure the selected link mark.</p>
+			<p class="uncial-link-panel__title">Edit link</p>
+			<p class="uncial-link-panel__description">Configure the selected link mark.</p>
 		</div>
-		<button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Close link editor" onclick={onClose}>
+		<button
+			type="button"
+			class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square"
+			aria-label="Close link editor"
+			onclick={onClose}
+		>
 			<XIcon size={12} weight="bold" />
 		</button>
 	</div>
 
-	<label class="form-control grid gap-1">
-		<span class="label-text text-xs font-semibold uppercase tracking-wide opacity-70">URL</span>
+	<label class="uncial-field">
+		<span class="uncial-field__label">URL</span>
 		<input
-			class="input input-bordered input-sm"
+			class="uncial-input uncial-input--sm"
 			type="url"
 			value={href}
 			placeholder="https://example.com"
@@ -53,10 +58,10 @@
 		/>
 	</label>
 
-	<label class="form-control grid gap-1">
-		<span class="label-text text-xs font-semibold uppercase tracking-wide opacity-70">Title</span>
+	<label class="uncial-field">
+		<span class="uncial-field__label">Title</span>
 		<input
-			class="input input-bordered input-sm"
+			class="uncial-input uncial-input--sm"
 			type="text"
 			value={title}
 			placeholder="Optional title"
@@ -64,10 +69,10 @@
 		/>
 	</label>
 
-	<label class="form-control grid gap-1">
-		<span class="label-text text-xs font-semibold uppercase tracking-wide opacity-70">Class</span>
+	<label class="uncial-field">
+		<span class="uncial-field__label">Class</span>
 		<input
-			class="input input-bordered input-sm"
+			class="uncial-input uncial-input--sm"
 			type="text"
 			value={className}
 			placeholder="Optional CSS class"
@@ -75,9 +80,9 @@
 		/>
 	</label>
 
-	<label class="flex items-center gap-2 text-sm">
+	<label class="uncial-link-panel__new-tab">
 		<input
-			class="checkbox checkbox-sm"
+			class="uncial-checkbox uncial-checkbox--sm"
 			type="checkbox"
 			checked={openInNewTab}
 			onchange={(event) => {
@@ -89,8 +94,16 @@
 		<span>Open in a new tab</span>
 	</label>
 
-	<div class="flex flex-wrap justify-between gap-2 border-t border-base-300 pt-3">
-		<button type="button" class="btn btn-error btn-outline btn-sm" onclick={onRemove}>Remove Link</button>
-		<button type="submit" class="btn btn-primary btn-sm" disabled={!href.trim()}>Update Link</button>
+	<div class="uncial-link-panel__actions">
+		<button
+			type="button"
+			class="uncial-btn uncial-btn--danger uncial-btn--outline uncial-btn--sm"
+			onclick={onRemove}>Remove Link</button
+		>
+		<button
+			type="submit"
+			class="uncial-btn uncial-btn--primary uncial-btn--sm"
+			disabled={!href.trim()}>Update Link</button
+		>
 	</div>
 </form>

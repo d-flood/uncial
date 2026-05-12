@@ -8,6 +8,7 @@ Custom blocks can stay atomic or declare one default child content region for ne
 
 ![screenshot of the Uncial richtext and block editorwith a callout component selected](.github/images/basic%20editor.png)
 ![screen recording demonstrating editing main page text and custom components](.github/images/basic%20text%20and%20component%20editing.gif)
+
 ## What ships today
 
 - Shared block definitions for editor and renderer
@@ -56,6 +57,7 @@ Then register and use that component as an Uncial block:
 
 ```svelte
 <script lang="ts">
+	import 'uncial/styles';
 	import {
 		Editor,
 		Renderer,
@@ -111,8 +113,7 @@ Object.assign(editor, { blocks, schema, json: document, attributesController });
 ```
 
 ```html
-<uncial-editor></uncial-editor>
-<uncial-renderer></uncial-renderer>
+<uncial-editor></uncial-editor> <uncial-renderer></uncial-renderer>
 ```
 
 Validation callbacks are emitted as bubbling, composed DOM events. Editor document updates are emitted as `uncial-change` because non-Svelte hosts cannot use `bind:json`:
@@ -148,7 +149,102 @@ export function defineReactBlock(config) {
 
 ## Styling and customization
 
-The root `Editor` and `Renderer` exports ship with Uncial's starter shell and default component-scoped styling.
+The root `Editor` and `Renderer` exports ship stable `uncial-*` classes and optional default CSS. Import the CSS layer you want once in your app:
+
+```ts
+// Full default editor, renderer, controls, and rich text prose styles.
+import 'uncial/styles';
+
+// Editor chrome only. Use this if your app owns rich text typography.
+import 'uncial/styles/chrome';
+```
+
+Uncial does not require Tailwind or DaisyUI. The default styles are plain CSS and are driven by `--uncial-*` custom properties that you can scope to your app, page, or a wrapper around the editor:
+
+```css
+.my-editor-theme {
+	--brand-primary: #8b5cf6;
+	--brand-surface: #101012;
+	--brand-border: #303039;
+}
+
+.my-editor-theme .uncial-editor-shell,
+.my-editor-theme .uncial-renderer,
+.my-editor-theme .uncial-attrs-panel,
+.my-editor-theme .uncial-link-panel,
+.my-editor-theme .uncial-richtext-wrapper,
+.my-editor-theme .uncial-block-menu {
+	--uncial-color-surface: var(--brand-surface);
+	--uncial-color-surface-elevated: #19191d;
+	--uncial-color-border: var(--brand-border);
+	--uncial-color-text: #f4f4f5;
+	--uncial-color-primary: var(--brand-primary);
+	--uncial-color-primary-contrast: #ffffff;
+	--uncial-color-accent: #f59e0b;
+	--uncial-color-focus-ring: var(--brand-primary);
+	--uncial-color-code-bg: #171717;
+	--uncial-color-code-text: #fafafa;
+
+	--uncial-radius-sm: 0.375rem;
+	--uncial-radius-md: 0.625rem;
+	--uncial-radius-lg: 1rem;
+
+	--uncial-font-body: Inter, system-ui, sans-serif;
+}
+```
+
+Wrap the editor with that class:
+
+```svelte
+<div class="my-editor-theme">
+	<Editor {blocks} {schema} bind:json={document} />
+	<Renderer content={document} {blocks} {schema} />
+</div>
+```
+
+Core token groups:
+
+| Token                                                                                                                                      | Purpose                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `--uncial-color-bg`, `--uncial-color-surface`, `--uncial-color-surface-elevated`                                                           | Page/editor surfaces                 |
+| `--uncial-color-border`, `--uncial-color-border-strong`                                                                                    | Borders and separators               |
+| `--uncial-color-text`, `--uncial-color-text-muted`, `--uncial-color-text-inverted`                                                         | Foreground colors                    |
+| `--uncial-color-primary`, `--uncial-color-primary-contrast`, `--uncial-color-accent`, `--uncial-color-danger`, `--uncial-color-focus-ring` | Actions, links, errors, focus states |
+| `--uncial-color-code-bg`, `--uncial-color-code-text`                                                                                       | Fenced code block colors             |
+| `--uncial-font-body`, `--uncial-font-display`, `--uncial-font-mono`                                                                        | Typography families                  |
+| `--uncial-font-size-base`, `--uncial-line-height`, `--uncial-font-weight-regular`, `--uncial-font-weight-strong`                           | Typography scale                     |
+| `--uncial-radius-sm`, `--uncial-radius-md`, `--uncial-radius-lg`                                                                           | Control and shell radii              |
+| `--uncial-space-1` through `--uncial-space-6`                                                                                              | Spacing scale                        |
+| `--uncial-gutter-width`, `--uncial-gutter-width-sm`, `--uncial-toolbar-gap`, `--uncial-panel-width`                                        | Editor structure                     |
+| `--uncial-shadow-sm`, `--uncial-shadow-md`, `--uncial-transition`                                                                          | Depth and motion                     |
+
+Rich text output uses the stable `.uncial-rich-content` hook. To bring your own prose styles, import only the chrome layer and target that class:
+
+```ts
+import 'uncial/styles/chrome';
+```
+
+```css
+.article-editor .uncial-rich-content {
+	font: 400 1rem/1.7 var(--site-body-font);
+	color: var(--site-ink);
+}
+
+.article-editor .uncial-rich-content h2 {
+	font: 700 1.75rem/1.2 var(--site-display-font);
+	margin-block: 2rem 0.75rem;
+}
+```
+
+If you use Tailwind Typography, apply it to the same hook in your app stylesheet:
+
+```css
+.article-editor .uncial-rich-content {
+	@apply prose prose-neutral max-w-none;
+}
+```
+
+Phosphor is the default icon set for Uncial controls. Icon override props are planned for a future theming tier.
 
 If you want to own the editor layout yourself, use `bindEditor(...)` on an element you control:
 

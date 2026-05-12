@@ -91,9 +91,9 @@
 	}
 </script>
 
-<div class="contents">
+<div>
 	{#each groupedFeatures as group (group.group)}
-		<div class="join">
+		<div class="uncial-join">
 			{#each group.features as feature (feature.id)}
 				{@const context = editor ? { editor, schema } : null}
 				{@const Icon = iconFor(feature.id)}
@@ -103,12 +103,13 @@
 					type="button"
 					aria-label={feature.label}
 					data-tip={feature.tooltip ?? feature.label}
+					data-uncial-tooltip-position="bottom"
 					aria-pressed={active ? 'true' : 'false'}
-					disabled={disabled}
+					{disabled}
 					class={[
-						'btn btn-sm join-item tooltip tooltip-bottom',
-						feature.label.length <= 2 ? 'btn-square' : '',
-						active ? 'btn-neutral' : 'btn-ghost'
+						'uncial-btn uncial-btn--sm uncial-join__item uncial-tooltip',
+						feature.label.length <= 2 ? 'uncial-btn--square' : '',
+						active ? 'uncial-btn--active' : 'uncial-btn--ghost'
 					]}
 					onclick={() => runFeature(feature)}
 				>
