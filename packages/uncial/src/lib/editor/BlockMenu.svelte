@@ -4,16 +4,22 @@
 	import { resolveRegistry } from '../core/registry.js';
 	import { getBlockDefaultAttrs } from '../shared/tiptap.js';
 
-	export let editor: Editor | null = null;
-	export let blocks: BlockRegistry | BlockDefinition[] = [];
-	export let schema: ContentSchema | undefined = undefined;
+	interface Props {
+		editor?: Editor | null;
+		blocks?: BlockRegistry | BlockDefinition[];
+		schema?: ContentSchema;
+	}
 
-	let query = '';
+	let { editor = null, blocks = [], schema = undefined }: Props = $props();
 
-	$: registry = resolveRegistry(blocks);
-	$: availableBlocks = registry.blocks
-		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
-		.filter((block: BlockDefinition) => block.label.toLowerCase().includes(query.toLowerCase()));
+	let query = $state('');
+
+	const registry = $derived(resolveRegistry(blocks));
+	const availableBlocks = $derived(
+		registry.blocks
+			.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
+			.filter((block: BlockDefinition) => block.label.toLowerCase().includes(query.toLowerCase()))
+	);
 
 	function insertBlock(id: string): void {
 		if (!editor) return;
@@ -31,33 +37,16 @@
 	}
 </script>
 
-<div class="uncial-toolbar">
-	<input type="search" placeholder="Filter blocks..." bind:value={query} />
+<div class="uncial-block-menu uncial-toolbar">
+	<input
+		class="uncial-input uncial-input--sm"
+		type="search"
+		placeholder="Filter blocks..."
+		bind:value={query}
+	/>
 	{#each availableBlocks as block (block.id)}
-		<button type="button" on:click={() => insertBlock(block.id)}>{block.label}</button>
+		<button type="button" class="uncial-btn uncial-btn--sm" onclick={() => insertBlock(block.id)}>
+			{block.label}
+		</button>
 	{/each}
 </div>
-
-<style>
-	.uncial-toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		border-bottom: 1px solid #ececec;
-		background: #f9f9f9;
-	}
-
-	.uncial-toolbar button,
-	.uncial-toolbar input {
-		font: inherit;
-		padding: 0.35rem 0.55rem;
-		border: 1px solid #cfcfcf;
-		border-radius: 8px;
-		background: #fff;
-	}
-
-	.uncial-toolbar button {
-		cursor: pointer;
-	}
-</style>

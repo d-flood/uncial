@@ -111,9 +111,16 @@
 	}
 
 	function isBuiltInInputKind(inputKind: string): boolean {
-		return ['checkbox', 'number', 'richtext', 'select', 'textarea', 'json', 'text', 'hidden'].includes(
-			inputKind
-		);
+		return [
+			'checkbox',
+			'number',
+			'richtext',
+			'select',
+			'textarea',
+			'json',
+			'text',
+			'hidden'
+		].includes(inputKind);
 	}
 
 	function startChildDrag(event: PointerEvent, index: number): void {
@@ -167,7 +174,7 @@
 			onClose={() => controller.closeLinkAttributes()}
 		/>
 	{:else if controllerState.open && selectedBlock}
-		<p class="uncial-attrs-title text-sm font-bold">
+		<p class="uncial-attrs-title">
 			{controllerState.mode === 'edit' ? 'Edit' : 'Configure'}
 			{selectedBlock.label || controllerState.selectedBlockId || 'block'}
 		</p>
@@ -176,135 +183,133 @@
 			{#if inputKind === 'hidden'}
 				{@const _hidden = null}
 			{:else}
-			<div class="form-control mb-3 grid gap-1">
-				<span class="label-text text-xs font-semibold uppercase tracking-wide opacity-70"
-					>{name}</span
-				>
-				{#if !isBuiltInInputKind(inputKind)}
-					<button
-						type="button"
-						class="btn btn-outline btn-sm justify-start"
-						onclick={() => chooseCustomAttribute(name, inputKind)}
-					>
-						{controllerState.draftAttrs[name]
-							? `Change ${name}: ${controllerState.draftAttrs[name]}`
-							: `Choose ${name}`}
-					</button>
-				{:else if inputKind === 'checkbox'}
-					<input
-						class="checkbox checkbox-sm"
-						type="checkbox"
-						checked={Boolean(controllerState.draftAttrs[name])}
-						onchange={(event) => {
-							const target = event.currentTarget as HTMLInputElement;
-							controller.setDraftAttr(name, target.checked);
-						}}
-					/>
-				{:else if inputKind === 'number'}
-					<input
-						class="input input-bordered input-sm"
-						type="number"
-						placeholder={spec.placeholder ?? name}
-						value={controllerState.draftAttrs[name] ?? ''}
-						oninput={(event) => {
-							const target = event.currentTarget as HTMLInputElement;
-							controller.setDraftAttr(name, target.value === '' ? '' : target.valueAsNumber);
-						}}
-					/>
-				{:else if inputKind === 'richtext'}
-					<RichTextAttributeEditor
-						value={controllerState.draftAttrs[name]}
-						features={spec.richText?.features}
-						placeholder={spec.richText?.placeholder ?? spec.placeholder ?? name}
-						onChange={(value) => controller.setDraftAttr(name, value)}
-					/>
-				{:else if inputKind === 'select'}
-					{@const options = normalizeAttributeOptions(spec) ?? []}
-					<select
-						class="select select-bordered select-sm"
-						aria-label={name}
-						value={getDraftStringValue(name)}
-						onchange={(event) => {
-							const target = event.currentTarget as HTMLSelectElement;
-							controller.setDraftAttr(name, target.value);
-						}}
-					>
-						{#each options as option (String(option.value))}
-							<option value={String(option.value)}>{option.label ?? String(option.value)}</option>
-						{/each}
-					</select>
-				{:else if inputKind === 'textarea' || inputKind === 'json'}
-					<textarea
-						class="textarea textarea-bordered min-h-28"
-						placeholder={spec.placeholder ?? name}
-						spellcheck={inputKind !== 'json'}
-						value={getDraftStringValue(name)}
-						oninput={(event) => {
-							const target = event.currentTarget as HTMLTextAreaElement;
-							controller.setDraftAttr(name, target.value);
-						}}
-					></textarea>
-				{:else}
-					<input
-						class="input input-bordered input-sm"
-						type="text"
-						placeholder={spec.placeholder ?? name}
-						value={getDraftStringValue(name)}
-						oninput={(event) => {
-							const target = event.currentTarget as HTMLInputElement;
-							controller.setDraftAttr(name, target.value);
-						}}
-					/>
-				{/if}
-				{#if controllerState.validationErrors[name]}
-					<span class="text-xs text-error">{controllerState.validationErrors[name]}</span>
-				{/if}
-			</div>
+				<div class="uncial-field">
+					<span class="uncial-field__label">{name}</span>
+					{#if !isBuiltInInputKind(inputKind)}
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--outline uncial-btn--sm uncial-btn--start"
+							onclick={() => chooseCustomAttribute(name, inputKind)}
+						>
+							{controllerState.draftAttrs[name]
+								? `Change ${name}: ${controllerState.draftAttrs[name]}`
+								: `Choose ${name}`}
+						</button>
+					{:else if inputKind === 'checkbox'}
+						<input
+							class="uncial-checkbox uncial-checkbox--sm"
+							type="checkbox"
+							checked={Boolean(controllerState.draftAttrs[name])}
+							onchange={(event) => {
+								const target = event.currentTarget as HTMLInputElement;
+								controller.setDraftAttr(name, target.checked);
+							}}
+						/>
+					{:else if inputKind === 'number'}
+						<input
+							class="uncial-input uncial-input--sm"
+							type="number"
+							placeholder={spec.placeholder ?? name}
+							value={controllerState.draftAttrs[name] ?? ''}
+							oninput={(event) => {
+								const target = event.currentTarget as HTMLInputElement;
+								controller.setDraftAttr(name, target.value === '' ? '' : target.valueAsNumber);
+							}}
+						/>
+					{:else if inputKind === 'richtext'}
+						<RichTextAttributeEditor
+							value={controllerState.draftAttrs[name]}
+							features={spec.richText?.features}
+							placeholder={spec.richText?.placeholder ?? spec.placeholder ?? name}
+							onChange={(value) => controller.setDraftAttr(name, value)}
+						/>
+					{:else if inputKind === 'select'}
+						{@const options = normalizeAttributeOptions(spec) ?? []}
+						<select
+							class="uncial-select uncial-select--sm"
+							aria-label={name}
+							value={getDraftStringValue(name)}
+							onchange={(event) => {
+								const target = event.currentTarget as HTMLSelectElement;
+								controller.setDraftAttr(name, target.value);
+							}}
+						>
+							{#each options as option (String(option.value))}
+								<option value={String(option.value)}>{option.label ?? String(option.value)}</option>
+							{/each}
+						</select>
+					{:else if inputKind === 'textarea' || inputKind === 'json'}
+						<textarea
+							class="uncial-textarea uncial-textarea--tall"
+							placeholder={spec.placeholder ?? name}
+							spellcheck={inputKind !== 'json'}
+							value={getDraftStringValue(name)}
+							oninput={(event) => {
+								const target = event.currentTarget as HTMLTextAreaElement;
+								controller.setDraftAttr(name, target.value);
+							}}
+						></textarea>
+					{:else}
+						<input
+							class="uncial-input uncial-input--sm"
+							type="text"
+							placeholder={spec.placeholder ?? name}
+							value={getDraftStringValue(name)}
+							oninput={(event) => {
+								const target = event.currentTarget as HTMLInputElement;
+								controller.setDraftAttr(name, target.value);
+							}}
+						/>
+					{/if}
+					{#if controllerState.validationErrors[name]}
+						<span class="uncial-field__error">{controllerState.validationErrors[name]}</span>
+					{/if}
+				</div>
 			{/if}
 		{/each}
-		<div
-			class="sticky -bottom-4 flex flex-wrap items-center justify-between gap-2 bg-base-100 pt-3"
-		>
+		<div class="uncial-panel__actions">
 			{#if controllerState.mode === 'edit'}
 				<button
 					type="button"
-					class="btn btn-error btn-outline btn-sm"
+					class="uncial-btn uncial-btn--danger uncial-btn--outline uncial-btn--sm"
 					onclick={() => controller.removeActiveBlock()}
 				>
 					Remove Block
 				</button>
 			{/if}
 			{#if controllerState.mode !== 'edit' && controllerState.selectedBlockId !== CODE_BLOCK_ID}
-				<button type="button" class="btn btn-primary btn-sm" onclick={() => controller.commit()}>
+				<button
+					type="button"
+					class="uncial-btn uncial-btn--primary uncial-btn--sm"
+					onclick={() => controller.commit()}
+				>
 					Insert Block
 				</button>
 			{/if}
 		</div>
 	{:else}
-		<p class="text-sm opacity-60">Select a block to edit its attributes.</p>
+		<p class="uncial-help-text">Select a block to edit its attributes.</p>
 	{/if}
 
 	{#if !controllerState.link.open && canAddNestedBlock}
-		<div class="uncial-children-section mt-6 border-t border-base-300 pt-4">
-			<div class="mb-3 flex items-center justify-between gap-2">
-				<p class="text-xs font-bold uppercase tracking-wide opacity-60">Nested blocks</p>
+		<div class="uncial-children-section">
+			<div class="uncial-children-section__header">
+				<p class="uncial-section-label">Nested blocks</p>
 				{#if activeBlocks.length > 0}
-					<details class="dropdown dropdown-end">
-						<summary class="btn btn-primary btn-xs gap-1">
+					<details class="uncial-dropdown uncial-dropdown--end">
+						<summary class="uncial-btn uncial-btn--primary uncial-btn--xs">
 							<PlusIcon size={12} weight="bold" />
 							<span>Add block</span>
 							<CaretDownIcon size={10} weight="bold" />
 						</summary>
-						<div
-							class="dropdown-content z-20 mt-2 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl"
-						>
+						<div class="uncial-dropdown__menu uncial-dropdown__menu--wide">
 							<input
-								class="input input-bordered input-xs mb-2 w-full"
+								class="uncial-input uncial-input--xs uncial-input--block uncial-dropdown__search"
 								type="search"
 								placeholder="Filter blocks..."
 								bind:value={childBlockQuery}
 							/>
-							<ul class="menu max-h-64 overflow-auto p-0">
+							<ul class="uncial-menu uncial-menu--scroll">
 								{#each filteredChildBlocks as block (block.id)}
 									<li>
 										<button type="button" onclick={() => addNestedBlock(block.id)}>
@@ -312,7 +317,7 @@
 										</button>
 									</li>
 								{:else}
-									<li class="px-3 py-2 text-xs opacity-60">No matching blocks</li>
+									<li class="uncial-menu__empty">No matching blocks</li>
 								{/each}
 							</ul>
 						</div>
@@ -320,32 +325,34 @@
 				{/if}
 			</div>
 			{#if hasChildren}
-				<ul class="uncial-children-list flex flex-col gap-1.5">
+				<ul class="uncial-children-list">
 					{#each controllerState.containerChildren as child, index (child.key)}
 						<li
-							class="uncial-child-item flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-2 py-2"
-							class:opacity-60={draggingChildIndex === index}
+							class={[
+								'uncial-child-item',
+								draggingChildIndex === index ? 'uncial-child-item--dragging' : ''
+							]}
 							data-child-index={index}
 							animate:flip={{ duration: 120 }}
 						>
 							<button
 								type="button"
-								class="btn btn-ghost btn-xs btn-square cursor-grab"
+								class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square uncial-btn--drag"
 								aria-label="Drag nested block"
 								onpointerdown={(event) => startChildDrag(event, index)}
 							>
 								<DotsSixVerticalIcon size={12} weight="bold" />
 							</button>
-							<div class="min-w-0 flex-1">
-								<span class="text-xs font-bold">{child.label}</span>
+							<div class="uncial-child-item__content">
+								<span class="uncial-child-item__label">{child.label}</span>
 								{#if child.summary}
-									<span class="ml-1 text-xs opacity-50">{child.summary}</span>
+									<span class="uncial-child-item__summary">{child.summary}</span>
 								{/if}
 							</div>
-							<div class="flex gap-0.5">
+							<div class="uncial-child-item__actions">
 								<button
 									type="button"
-									class="btn btn-ghost btn-xs btn-square"
+									class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square"
 									aria-label="Move up"
 									disabled={index === 0}
 									onclick={(event) => {
@@ -357,7 +364,7 @@
 								</button>
 								<button
 									type="button"
-									class="btn btn-ghost btn-xs btn-square"
+									class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square"
 									aria-label="Move down"
 									disabled={index === controllerState.containerChildren.length - 1}
 									onclick={(event) => {
@@ -369,7 +376,7 @@
 								</button>
 								<button
 									type="button"
-									class="btn btn-ghost btn-xs btn-square text-error"
+									class="uncial-btn uncial-btn--ghost uncial-btn--danger uncial-btn--xs uncial-btn--square"
 									aria-label="Remove nested block"
 									disabled={!canRemoveChild}
 									onclick={(event) => {
@@ -384,7 +391,7 @@
 					{/each}
 				</ul>
 			{:else}
-				<p class="text-xs opacity-60">No nested blocks yet.</p>
+				<p class="uncial-help-text">No nested blocks yet.</p>
 			{/if}
 		</div>
 	{/if}

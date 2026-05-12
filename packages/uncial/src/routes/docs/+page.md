@@ -17,6 +17,7 @@
 					<li><a href="#blocks">Define blocks</a></li>
 					<li><a href="#setup">Registry and schema</a></li>
 					<li><a href="#usage">Editor and Renderer</a></li>
+					<li><a href="#theming">Custom theming</a></li>
 					<li><a href="#attributes">Attributes</a></li>
 					<li><a href="#runtime-plugins">Runtime plugins</a></li>
 					<li><a href="#containers">Container blocks</a></li>
@@ -116,6 +117,7 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
 ```svelte
 <!-- src/routes/editor/+page.svelte -->
 <script lang="ts">
+	import 'uncial/styles';
 	import { Editor, Renderer } from 'uncial';
 	import { attributesController, blocks, schema } from './uncial';
 
@@ -130,6 +132,99 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
 ```
 
     		</section>
+
+    	<section id="theming" class="space-y-4 scroll-mt-6">
+    		<p class="text-sm font-semibold uppercase tracking-wide text-primary">Theming</p>
+    		<h2 class="text-3xl font-bold">Match Uncial to your site</h2>
+
+Uncial's editor and renderer chrome are plain CSS. Tailwind and DaisyUI are not required by the library. Import the default styles once, then override `--uncial-*` custom properties anywhere above the editor in the cascade.
+
+```ts
+// Full default editor, renderer, controls, and rich text prose styles.
+import 'uncial/styles';
+
+// Or import only the editor chrome if your app owns prose typography.
+import 'uncial/styles/chrome';
+```
+
+Scope theme tokens to a wrapper when one page should look different from the rest of your app:
+
+```svelte
+<div class="your-custom-class">
+	<Editor {blocks} {schema} bind:json={document} />
+	<Renderer content={document} {blocks} {schema} />
+	<BlockAttributesPanel controller={attributesController} {blocks} />
+</div>
+```
+
+```css
+.your-custom-class .uncial-editor-shell,
+.your-custom-class .uncial-renderer,
+.your-custom-class .uncial-attrs-panel,
+.your-custom-class .uncial-link-panel,
+.your-custom-class .uncial-richtext-wrapper,
+.your-custom-class .uncial-block-menu {
+	--uncial-color-surface: white;
+	--uncial-color-surface-elevated: #f6f3ee;
+	--uncial-color-border: #d8cab8;
+	--uncial-color-text: #241a12;
+	--uncial-color-text-muted: #756657;
+	--uncial-color-primary: #7c3aed;
+	--uncial-color-primary-contrast: white;
+	--uncial-color-accent: #d97706;
+	--uncial-color-danger: #dc2626;
+	--uncial-color-focus-ring: #7c3aed;
+
+	--uncial-radius-sm: 0.25rem;
+	--uncial-radius-md: 0.5rem;
+	--uncial-radius-lg: 0.875rem;
+
+	--uncial-font-body: Inter, system-ui, sans-serif;
+	--uncial-font-display: Georgia, serif;
+	--uncial-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+```
+
+The most common tokens are:
+
+<div class="overflow-x-auto border border-base-300">
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Token</th>
+				<th>Controls</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td><code>--uncial-color-primary</code></td><td>Primary buttons, links, active controls, block focus outlines.</td></tr>
+			<tr><td><code>--uncial-color-primary-contrast</code></td><td>Text/icons on primary buttons.</td></tr>
+			<tr><td><code>--uncial-color-accent</code></td><td>Secondary emphasis color for consumers who want one.</td></tr>
+			<tr><td><code>--uncial-color-surface</code></td><td>Main editor and renderer background.</td></tr>
+			<tr><td><code>--uncial-color-surface-elevated</code></td><td>Toolbar, inputs, nested block surfaces.</td></tr>
+			<tr><td><code>--uncial-color-border</code></td><td>Control, panel, renderer, and block chrome borders.</td></tr>
+			<tr><td><code>--uncial-color-text</code></td><td>Editor UI and rich text foreground.</td></tr>
+			<tr><td><code>--uncial-color-code-bg</code></td><td>Fenced code block background. Defaults dark in both light and dark themes.</td></tr>
+			<tr><td><code>--uncial-radius-sm/md/lg</code></td><td>Buttons, inputs, panels, renderer, and block chrome radius.</td></tr>
+			<tr><td><code>--uncial-font-body/display/mono</code></td><td>Editor UI, headings, and code typography.</td></tr>
+		</tbody>
+	</table>
+</div>
+
+Rich text uses a stable `.uncial-rich-content` hook. If your site already has article typography, import `uncial/styles/chrome` and style that hook yourself:
+
+```css
+.your-custom-class .uncial-rich-content {
+	font: 400 1rem/1.7 var(--site-body-font);
+	color: var(--site-ink);
+}
+
+.your-custom-class .uncial-rich-content h2 {
+	font: 700 1.75rem/1.2 var(--site-display-font);
+	margin-block: 2rem 0.75rem;
+}
+```
+
+    	</section>
 
     		<section id="attributes" class="space-y-4 scroll-mt-6">
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Attributes</p>
@@ -171,11 +266,11 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
     					</tbody>
     				</table>
     			</div>
-		</section>
+    	</section>
 
-		<section id="runtime-plugins" class="space-y-4 scroll-mt-6">
-			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Runtime plugins</p>
-			<h2 class="text-3xl font-bold">Svelte ships first, core stays neutral</h2>
+    	<section id="runtime-plugins" class="space-y-4 scroll-mt-6">
+    		<p class="text-sm font-semibold uppercase tracking-wide text-primary">Runtime plugins</p>
+    		<h2 class="text-3xl font-bold">Svelte ships first, core stays neutral</h2>
 
 Svelte is the only bundled block runtime today. Non-Svelte block authoring is enabled through public runtime plugins that normalize native components and can provide editor node-view mounting. A registry may contain blocks from only one runtime in this release; mixed-runtime documents fail fast.
 
@@ -190,9 +285,9 @@ export function defineReactBlock(config) {
 }
 ```
 
-		</section>
+    	</section>
 
-		<section id="containers" class="space-y-4 scroll-mt-6">
+    	<section id="containers" class="space-y-4 scroll-mt-6">
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Containers</p>
     			<h2 class="text-3xl font-bold">Allow nested document flow</h2>
 

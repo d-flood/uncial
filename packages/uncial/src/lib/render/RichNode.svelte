@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Component } from 'svelte';
 	import type { BlockRegistry, ContentSchema } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
@@ -56,12 +55,8 @@
 		{:else if mark.type === 'link'}
 			{@const href = sanitizeHref(mark.attrs?.href)}
 			{#if href}
-				{#if href.startsWith('/')}
-					<a href={resolve(href as '/')}>{@render renderMarkedText(text, rest)}</a>
-				{:else}
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sanitized rich-text links may be external, mailto, tel, or hash URLs -->
-					<a {href}>{@render renderMarkedText(text, rest)}</a>
-				{/if}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sanitized rich-text links may be external, app-relative, mailto, tel, or hash URLs -->
+				<a {href}>{@render renderMarkedText(text, rest)}</a>
 			{:else}
 				{@render renderMarkedText(text, rest)}
 			{/if}
@@ -81,7 +76,7 @@
 	{@const RenderComponent = getSvelteRenderComponent(block.components.render.component)}
 	<RenderComponent
 		{...blockAttrs}
-		{...((block as unknown as { renderProps?: Record<string, unknown> }).renderProps ?? {})}
+		{...(block as unknown as { renderProps?: Record<string, unknown> }).renderProps ?? {}}
 		content={blockContent}
 		children={block.content ? blockChildren : undefined}
 	/>

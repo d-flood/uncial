@@ -70,8 +70,7 @@
 			extensions: createRichTextExtensions(resolvedFeatures),
 			editorProps: {
 				attributes: {
-					class:
-						'uncial-richtext-editor uncial-rich-content min-h-28 rounded-b-lg border border-t-0 border-base-300 bg-base-100 px-3 py-2 text-sm leading-6 outline-none',
+					class: 'uncial-richtext-editor uncial-rich-content',
 					'aria-label': placeholder
 				}
 			},
@@ -98,13 +97,15 @@
 	});
 </script>
 
-<div class="rounded-lg border-base-300">
-	<div class="flex flex-wrap gap-1 rounded-t-lg border border-base-300 bg-base-200/70 p-1.5">
+<div class="uncial-richtext-wrapper">
+	<div class="uncial-richtext-toolbar">
 		{#if canBold}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('bold')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('bold') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Bold"
 				data-tip="Bold"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBold().run() ?? false)}
@@ -115,8 +116,10 @@
 		{#if canItalic}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('italic')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('italic') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Italic"
 				data-tip="Italic"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleItalic().run() ?? false)}
@@ -127,8 +130,10 @@
 		{#if canStrike}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('strike')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('strike') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Strikethrough"
 				data-tip="Strikethrough"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleStrike().run() ?? false)}
@@ -139,8 +144,10 @@
 		{#if canCode}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('code')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('code') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Inline code"
 				data-tip="Inline code"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleCode().run() ?? false)}
@@ -151,8 +158,10 @@
 		{#if canHeading}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('heading')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('heading') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Heading"
 				data-tip="Heading"
 				onclick={() =>
@@ -164,8 +173,10 @@
 		{#if canBulletList}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('bulletList')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('bulletList') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Bullet list"
 				data-tip="Bullet list"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBulletList().run() ?? false)}
@@ -176,8 +187,10 @@
 		{#if canOrderedList}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('orderedList')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('orderedList') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Ordered list"
 				data-tip="Ordered list"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleOrderedList().run() ?? false)}
@@ -188,8 +201,10 @@
 		{#if canBlockquote}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('blockquote')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('blockquote') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Blockquote"
 				data-tip="Blockquote"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleBlockquote().run() ?? false)}
@@ -200,8 +215,10 @@
 		{#if canCodeBlock}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
-				class:btn-active={activeEditor?.isActive('codeBlock')}
+				class={[
+					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
+					activeEditor?.isActive('codeBlock') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+				]}
 				aria-label="Code block"
 				data-tip="Code block"
 				onclick={() => runCommand(() => editor?.chain().focus().toggleCodeBlock().run() ?? false)}
@@ -212,7 +229,7 @@
 		{#if canHorizontalRule}
 			<button
 				type="button"
-				class="tooltip btn btn-square btn-xs"
+				class="uncial-btn uncial-btn--ghost uncial-btn--square uncial-btn--xs uncial-tooltip"
 				aria-label="Horizontal rule"
 				data-tip="Horizontal rule"
 				onclick={() => runCommand(() => editor?.chain().focus().setHorizontalRule().run() ?? false)}
@@ -223,10 +240,3 @@
 	</div>
 	<div bind:this={element}></div>
 </div>
-
-<style>
-	:global(.uncial-richtext-editor.ProseMirror:focus) {
-		outline: none;
-		box-shadow: none;
-	}
-</style>

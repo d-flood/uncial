@@ -41,8 +41,8 @@
 	});
 </script>
 
-<div class="uncial-renderer rounded-box border border-base-300 bg-base-100 shadow-sm">
-	<div class="uncial-content uncial-rich-content min-h-112 p-5 leading-7 sm:p-8">
+<div class="uncial-renderer">
+	<div class="uncial-content uncial-rich-content">
 		<RichContent nodes={(normalizedContent.content ?? []) as PMNode[]} {registry} {schema} />
 	</div>
 </div>

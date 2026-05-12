@@ -518,7 +518,7 @@ wheels = [
 
 [[package]]
 name = "uncial-wagtail"
-version = "0.0.0"
+version = "0.0.6"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
