@@ -6,7 +6,7 @@
 @import 'tailwindcss';
 
 @plugin 'daisyui' {
-	themes: vellum --default;
+	themes: vellum --default, vellum-dark --prefersdark;
 }
 
 /* --------------------------------  VELLUM  -------------------------------- */
@@ -50,20 +50,54 @@
 	--noise: 0;
 }
 
+/* --------------------------------  VELLUM-DARK  --------------------------- */
+@plugin 'daisyui/theme' {
+	name: 'vellum-dark';
+	default: false;
+	prefersdark: true;
+	color-scheme: dark;
+
+	/* Warm inverted vellum — near-black parchment, off-white ink.              */
+	--color-base-100: oklch(18% 0.015 60);
+	--color-base-200: oklch(22% 0.02 60);
+	--color-base-300: oklch(27% 0.025 60);
+	--color-base-content: oklch(92% 0.015 85);
+
+	--color-primary: oklch(72% 0.13 260);
+	--color-primary-content: oklch(16% 0.03 260);
+	--color-secondary: oklch(70% 0.08 145);
+	--color-secondary-content: oklch(16% 0.03 145);
+	--color-accent: oklch(78% 0.13 75);
+	--color-accent-content: oklch(18% 0.03 45);
+	--color-neutral: oklch(28% 0.03 60);
+	--color-neutral-content: oklch(90% 0.015 85);
+
+	--color-info: oklch(72% 0.1 220);
+	--color-info-content: oklch(16% 0.03 220);
+	--color-success: oklch(70% 0.11 145);
+	--color-success-content: oklch(16% 0.03 145);
+	--color-warning: oklch(80% 0.12 75);
+	--color-warning-content: oklch(18% 0.03 45);
+	--color-error: oklch(72% 0.16 25);
+	--color-error-content: oklch(16% 0.03 25);
+
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.5rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.28rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
+}
+
 /* ----------------------------------------------------------------------------
  * Base styles
  * -------------------------------------------------------------------------- */
 @layer base {
 	body {
 		margin: 0;
-		font-family:
-			Inter,
-			ui-sans-serif,
-			system-ui,
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			sans-serif;
+		font-family: 'Lora', Georgia, serif;
 		background: var(--color-base-100);
 		color: var(--color-base-content);
 	}
@@ -73,10 +107,6 @@
 	select,
 	textarea {
 		font: inherit;
-	}
-
-	:root[data-theme='vellum'] body {
-		font-family: 'Lora', Georgia, serif;
 	}
 }
 

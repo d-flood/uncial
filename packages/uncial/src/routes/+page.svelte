@@ -7,6 +7,7 @@
 	import { BlockAttributesPanel, Editor, Renderer } from '$lib/index.js';
 	import { buildDemo } from './demo.js';
 	import Logo from './demo/Logo.svelte';
+	import ThemeSwitcher from '$lib/ui/ThemeSwitcher.svelte';
 
 	const { blocks, schema, attributesController, initialDocument } = buildDemo();
 	const pageWashBackground =
@@ -135,6 +136,7 @@
 					GitHub repo
 				</a>
 				<a href={docsUrl} class="btn btn-outline btn-secondary btn-sm"> Docs </a>
+				<ThemeSwitcher />
 			</nav>
 		</div>
 	</header>
