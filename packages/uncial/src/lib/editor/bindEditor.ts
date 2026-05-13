@@ -22,18 +22,22 @@ export interface BindEditorOptions {
 	blocks?: BlockRegistry | BlockDefinition[];
 	schema?: ContentSchema;
 	json?: JSONContent;
+	meta?: Record<string, unknown>;
 	extensions?: AnyExtension[];
 	attributesController?: BlockAttributesController | null;
 	onIssue?: (issue: ValidationIssue) => void;
 	onChange?: (json: JSONContent) => void;
+	onMetaChange?: (meta: Record<string, unknown>) => void;
 	onEditor?: (editor: TiptapEditor | null) => void;
 }
 
 function toEditorDocument(document: JSONContent): JSONContent {
-	const { version: _version, ...editorDocument } = document as JSONContent & {
+	const { version: _version, meta: _meta, ...editorDocument } = document as JSONContent & {
 		version?: unknown;
+		meta?: unknown;
 	};
 	void _version;
+	void _meta;
 
 	return editorDocument;
 }
@@ -72,7 +76,11 @@ export function bindEditor(
 	let lastSerialized = '';
 
 	function normalizeAndValidate(document: JSONContent | null | undefined): JSONContent {
-		const normalized = normalizeDocument(document as Partial<PMDoc>, registry, schema);
+		const normalized = normalizeDocument(
+			{ ...((document ?? emptyDocument()) as Partial<PMDoc>), meta: options.meta },
+			registry,
+			schema
+		);
 
 		if (schema) {
 			validateDocument(normalized, registry, schema, { onIssue: options.onIssue });
@@ -123,6 +131,11 @@ export function bindEditor(
 		const serialized = JSON.stringify(nextDocument);
 		if (serialized !== JSON.stringify(options.json ?? emptyDocument())) {
 			options.onChange?.(nextDocument);
+		}
+
+		const nextMeta = (nextDocument as JSONContent & { meta?: Record<string, unknown> }).meta ?? {};
+		if (JSON.stringify(nextMeta) !== JSON.stringify(options.meta ?? {})) {
+			options.onMetaChange?.(nextMeta);
 		}
 	}
 

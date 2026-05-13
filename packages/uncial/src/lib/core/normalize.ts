@@ -2,6 +2,7 @@ import type { PMDoc, PMMark, PMNode } from '../shared/document.js';
 import type { BlockDefinition, ContentSchema } from './types.js';
 import { resolveRegistry } from './registry.js';
 import { normalizeBlockAttributes } from './attributes.js';
+import { normalizeMeta } from './meta.js';
 
 export const CURRENT_DOCUMENT_VERSION = 1;
 
@@ -52,9 +53,16 @@ export function normalizeDocument(
 	);
 	const content = Array.isArray(document?.content) ? document.content : [];
 
-	return {
+	const metaFields = schema?.metaFields ?? new Map();
+	const normalized: PMDoc = {
 		type: 'doc',
 		version: CURRENT_DOCUMENT_VERSION,
 		content: content.map((node) => normalizeNode(node, registryBlocks, schema))
 	};
+
+	if (metaFields.size > 0) {
+		normalized.meta = normalizeMeta(document?.meta, metaFields);
+	}
+
+	return normalized;
 }

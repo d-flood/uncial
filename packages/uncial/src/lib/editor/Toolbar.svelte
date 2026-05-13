@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Editor } from '@tiptap/core';
 	import type { Component } from 'svelte';
+	import { createSubscriber } from 'svelte/reactivity';
 	import CodeIcon from 'phosphor-svelte/lib/CodeIcon';
 	import CodeBlockIcon from 'phosphor-svelte/lib/CodeBlockIcon';
 	import LinkIcon from 'phosphor-svelte/lib/LinkIcon';
@@ -55,6 +56,37 @@
 		}
 		return groups;
 	});
+	const getEditorStateVersion = $derived.by(() => {
+		if (!editor) return () => 0;
+		const activeEditor = editor;
+
+		let version = 0;
+		const subscribe = createSubscriber((update) => {
+			const refreshToolbarState = () => {
+				version += 1;
+				update();
+			};
+
+			activeEditor.on('transaction', refreshToolbarState);
+			activeEditor.on('selectionUpdate', refreshToolbarState);
+			activeEditor.on('update', refreshToolbarState);
+
+			return () => {
+				activeEditor.off('transaction', refreshToolbarState);
+				activeEditor.off('selectionUpdate', refreshToolbarState);
+				activeEditor.off('update', refreshToolbarState);
+			};
+		});
+
+		return () => {
+			subscribe();
+			return version;
+		};
+	});
+	const toolbarContext = $derived.by(() => {
+		getEditorStateVersion();
+		return editor ? { editor, schema } : null;
+	});
 
 	function runFeature(feature: ToolbarFeature): void {
 		if (feature.id === 'link' && onEditLink) {
@@ -95,7 +127,7 @@
 	{#each groupedFeatures as group (group.group)}
 		<div class="uncial-join">
 			{#each group.features as feature (feature.id)}
-				{@const context = editor ? { editor, schema } : null}
+				{@const context = toolbarContext}
 				{@const Icon = iconFor(feature.id)}
 				{@const active = context ? (feature.isActive?.(context) ?? false) : false}
 				{@const disabled = !context || !(feature.canRun?.(context) ?? true)}

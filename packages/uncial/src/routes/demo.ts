@@ -1,6 +1,7 @@
 import {
 	createBlockAttributesController,
 	createBlockRegistry,
+	createDocumentMetaController,
 	createSchema,
 	defineSvelteBlock,
 	hasRichTextContent,
@@ -25,6 +26,7 @@ export type DemoNode = {
 export type DemoDocument = {
 	type: 'doc';
 	version: number;
+	meta?: Record<string, unknown>;
 	content: DemoNode[];
 };
 
@@ -90,16 +92,29 @@ export function buildDemo() {
 	});
 
 	const blocks = createBlockRegistry([card, callout, row]);
-	const schema = createSchema(blocks);
+	const metaFields = {
+		title: { default: 'Uncial demo document', required: true, validate: isNonEmptyString },
+		author: { default: 'Demo Author' },
+		publishedAt: { default: '2026-05-13', placeholder: 'YYYY-MM-DD' },
+		tags: { default: ['demo', 'blocks'], input: 'json' as const }
+	};
+	const schema = createSchema(blocks, { metaFields });
 	const attributesController = createBlockAttributesController();
+	const metaController = createDocumentMetaController(schema.metaFields);
 
 	const initialDocument: DemoDocument = {
 		type: 'doc',
 		version: 0,
+		meta: {
+			title: 'Uncial demo document',
+			author: 'Demo Author',
+			publishedAt: '2026-05-13',
+			tags: ['demo', 'blocks']
+		},
 		content: [
 			{
 				type: 'heading',
-				attrs: { level: 1 },
+				attrs: { level: 2 },
 				content: [{ type: 'text', text: 'Build pages from JSON. Edit them like pages.' }]
 			},
 			{
@@ -208,5 +223,5 @@ let doc = $state({ type: 'doc', content: [{ type: 'paragraph' }] });`
 		]
 	};
 
-	return { blocks, schema, attributesController, initialDocument };
+	return { blocks, schema, attributesController, metaController, initialDocument };
 }

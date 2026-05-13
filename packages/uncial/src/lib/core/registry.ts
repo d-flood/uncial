@@ -54,10 +54,12 @@ export function createSchema(
 		: new Set(registry.blocks.map((block: BlockDefinition) => block.id));
 
 	const allowedMarks = new Set(options.allowedMarks ?? DEFAULT_MARKS);
+	const metaFields = new Map(Object.entries(options.metaFields ?? {}));
 
 	return {
 		allowedBlocks,
-		allowedMarks
+		allowedMarks,
+		metaFields
 	};
 }
 

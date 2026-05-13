@@ -22,7 +22,8 @@
 	const nodes = $derived(filterRichTextNodes(document.content ?? [], resolvedFeatures));
 	const schema = $derived<ContentSchema>({
 		allowedBlocks: new Set(),
-		allowedMarks: resolvedFeatures
+		allowedMarks: resolvedFeatures,
+		metaFields: new Map()
 	});
 </script>
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { inferAttributeInputKind, normalizeAttributeOptions } from '../core/attributes.js';
 	import { resolveRegistry } from '../core/registry.js';
 	import type { AttributeSpec, BlockDefinition, BlockRegistry } from '../core/types.js';
 	import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
@@ -11,8 +10,8 @@
 	import DotsSixVerticalIcon from 'phosphor-svelte/lib/DotsSixVerticalIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
-	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
 	import LinkAttributesPanel from './LinkAttributesPanel.svelte';
+	import AttributeFieldControl from './AttributeFieldControl.svelte';
 
 	interface Props {
 		controller: BlockAttributesController;
@@ -70,13 +69,6 @@
 	let draggingChildIndex = $state<number | null>(null);
 	let draggingPointerId = $state<number | null>(null);
 
-	function getDraftStringValue(name: string): string {
-		const value = controllerState.draftAttrs[name];
-		if (typeof value === 'string') return value;
-		if (value === undefined || value === null) return '';
-		return String(value);
-	}
-
 	function moveUp(index: number): void {
 		if (index > 0) controller.moveContainerChild(index, index - 1);
 	}
@@ -108,19 +100,6 @@
 				}
 			})
 		);
-	}
-
-	function isBuiltInInputKind(inputKind: string): boolean {
-		return [
-			'checkbox',
-			'number',
-			'richtext',
-			'select',
-			'textarea',
-			'json',
-			'text',
-			'hidden'
-		].includes(inputKind);
 	}
 
 	function startChildDrag(event: PointerEvent, index: number): void {
@@ -179,93 +158,14 @@
 			{selectedBlock.label || controllerState.selectedBlockId || 'block'}
 		</p>
 		{#each selectedAttributeSpecs as [name, spec] (name)}
-			{@const inputKind = inferAttributeInputKind(spec)}
-			{#if inputKind === 'hidden'}
-				{@const _hidden = null}
-			{:else}
-				<div class="uncial-field">
-					<span class="uncial-field__label">{name}</span>
-					{#if !isBuiltInInputKind(inputKind)}
-						<button
-							type="button"
-							class="uncial-btn uncial-btn--outline uncial-btn--sm uncial-btn--start"
-							onclick={() => chooseCustomAttribute(name, inputKind)}
-						>
-							{controllerState.draftAttrs[name]
-								? `Change ${name}: ${controllerState.draftAttrs[name]}`
-								: `Choose ${name}`}
-						</button>
-					{:else if inputKind === 'checkbox'}
-						<input
-							class="uncial-checkbox uncial-checkbox--sm"
-							type="checkbox"
-							checked={Boolean(controllerState.draftAttrs[name])}
-							onchange={(event) => {
-								const target = event.currentTarget as HTMLInputElement;
-								controller.setDraftAttr(name, target.checked);
-							}}
-						/>
-					{:else if inputKind === 'number'}
-						<input
-							class="uncial-input uncial-input--sm"
-							type="number"
-							placeholder={spec.placeholder ?? name}
-							value={controllerState.draftAttrs[name] ?? ''}
-							oninput={(event) => {
-								const target = event.currentTarget as HTMLInputElement;
-								controller.setDraftAttr(name, target.value === '' ? '' : target.valueAsNumber);
-							}}
-						/>
-					{:else if inputKind === 'richtext'}
-						<RichTextAttributeEditor
-							value={controllerState.draftAttrs[name]}
-							features={spec.richText?.features}
-							placeholder={spec.richText?.placeholder ?? spec.placeholder ?? name}
-							onChange={(value) => controller.setDraftAttr(name, value)}
-						/>
-					{:else if inputKind === 'select'}
-						{@const options = normalizeAttributeOptions(spec) ?? []}
-						<select
-							class="uncial-select uncial-select--sm"
-							aria-label={name}
-							value={getDraftStringValue(name)}
-							onchange={(event) => {
-								const target = event.currentTarget as HTMLSelectElement;
-								controller.setDraftAttr(name, target.value);
-							}}
-						>
-							{#each options as option (String(option.value))}
-								<option value={String(option.value)}>{option.label ?? String(option.value)}</option>
-							{/each}
-						</select>
-					{:else if inputKind === 'textarea' || inputKind === 'json'}
-						<textarea
-							class="uncial-textarea uncial-textarea--tall"
-							placeholder={spec.placeholder ?? name}
-							spellcheck={inputKind !== 'json'}
-							value={getDraftStringValue(name)}
-							oninput={(event) => {
-								const target = event.currentTarget as HTMLTextAreaElement;
-								controller.setDraftAttr(name, target.value);
-							}}
-						></textarea>
-					{:else}
-						<input
-							class="uncial-input uncial-input--sm"
-							type="text"
-							placeholder={spec.placeholder ?? name}
-							value={getDraftStringValue(name)}
-							oninput={(event) => {
-								const target = event.currentTarget as HTMLInputElement;
-								controller.setDraftAttr(name, target.value);
-							}}
-						/>
-					{/if}
-					{#if controllerState.validationErrors[name]}
-						<span class="uncial-field__error">{controllerState.validationErrors[name]}</span>
-					{/if}
-				</div>
-			{/if}
+			<AttributeFieldControl
+				{name}
+				{spec}
+				value={controllerState.draftAttrs[name]}
+				error={controllerState.validationErrors[name]}
+				onChange={(value) => controller.setDraftAttr(name, value)}
+				onCustom={chooseCustomAttribute}
+			/>
 		{/each}
 		<div class="uncial-panel__actions">
 			{#if controllerState.mode === 'edit'}

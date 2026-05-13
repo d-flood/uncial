@@ -4,9 +4,11 @@
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import { resolveRegistry } from '../core/registry.js';
 	import type {
+		AttributeSpec,
 		BlockDefinition,
 		BlockRegistry,
 		ContentSchema,
+		DocumentMetaSchema,
 		ValidationIssue
 	} from '../core/types.js';
 	import { emptyDocument } from '../shared/content.js';
@@ -16,6 +18,12 @@
 		type BlockAttributesState
 	} from './attributesController.js';
 	import { bindEditor, type BindEditorOptions } from './bindEditor.js';
+	import {
+		createDocumentMetaController,
+		type DocumentMetaController,
+		type DocumentMetaState
+	} from './metaController.js';
+	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import Toolbar from './Toolbar.svelte';
 	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
@@ -24,9 +32,12 @@
 		schema?: ContentSchema;
 		json?: JSONContent;
 		extensions?: AnyExtension[];
+		meta?: Record<string, unknown>;
+		metaFields?: DocumentMetaSchema | ReadonlyMap<string, AttributeSpec<unknown>>;
 		toolbarFeatures?: ToolbarFeatureSelection;
 		toolbarExtensions?: ToolbarFeature[];
 		attributesController?: BlockAttributesController | null;
+		metaController?: DocumentMetaController | null;
 		onIssue?: (issue: ValidationIssue) => void;
 	}
 
@@ -35,9 +46,12 @@
 		schema = undefined,
 		json = $bindable(emptyDocument()),
 		extensions = [],
+		meta = $bindable({}),
+		metaFields = undefined,
 		toolbarFeatures = undefined,
 		toolbarExtensions = [],
 		attributesController = null,
+		metaController = null,
 		onIssue
 	}: Props = $props();
 
@@ -59,19 +73,40 @@
 		}
 	});
 	let attrsTriggerEl = $state<HTMLElement | null>(null);
+	let metaTriggerEl = $state<HTMLElement | null>(null);
 	const internalController = createBlockAttributesController();
+	const internalMetaController = createDocumentMetaController();
+	let metaState = $state<DocumentMetaState>({
+		draft: {},
+		errors: {},
+		dirty: false
+	});
+	let committedMetaSerialized = JSON.stringify(meta);
 
 	const registry = $derived(resolveRegistry(blocks));
 	const controller = $derived(attributesController ?? internalController);
+	const resolvedMetaFields = $derived.by(() => {
+		if (metaFields instanceof Map) return metaFields;
+		if (metaFields) return new Map(Object.entries(metaFields));
+		return schema?.metaFields ?? new Map<string, AttributeSpec<unknown>>();
+	});
+	const documentMetaController = $derived(metaController ?? internalMetaController);
+	const hasMetaFields = $derived(resolvedMetaFields.size > 0);
 	const editorBinding = $derived<BindEditorOptions>({
 		blocks,
 		schema,
 		json,
+		meta,
 		extensions,
 		attributesController: controller,
 		onIssue,
 		onChange: (nextDocument) => {
 			json = nextDocument;
+		},
+		onMetaChange: (nextMeta) => {
+			meta = nextMeta;
+			committedMetaSerialized = JSON.stringify(nextMeta);
+			documentMetaController.reset(nextMeta);
 		},
 		onEditor: (nextEditor) => {
 			editor = nextEditor;
@@ -84,6 +119,14 @@
 				: !schema || schema.allowedBlocks.has(block.id)
 		)
 	);
+	const editorGutterWidth = $derived.by(() => {
+		const longestLabelLength = registry.blocks.reduce(
+			(longest, block) => Math.max(longest, block.label.length),
+			0
+		);
+
+		return `max(var(--uncial-gutter-width), ${longestLabelLength * 0.68 + 1.75}rem)`;
+	});
 	function insertBlock(blockId: string): void {
 		const ok = controller.insertBlock(blockId);
 		// Close the dropdown after an insert attempt.
@@ -96,6 +139,13 @@
 				controller.openAttributes(blockId);
 			}
 		});
+	}
+
+	function commitMeta(nextMeta: Record<string, unknown>): void {
+		meta = nextMeta;
+		json = { ...json, meta: nextMeta };
+		committedMetaSerialized = JSON.stringify(nextMeta);
+		metaTriggerEl?.closest('details')?.removeAttribute('open');
 	}
 
 	function syncActiveBlockIndicator(): void {
@@ -150,6 +200,36 @@
 	});
 
 	$effect(() => {
+		documentMetaController.setMetaFields(resolvedMetaFields);
+	});
+
+	$effect(() => {
+		const serialized = JSON.stringify(meta);
+		if (serialized === committedMetaSerialized) return;
+		committedMetaSerialized = serialized;
+		documentMetaController.reset(meta);
+	});
+
+	$effect(() => {
+		const unsubscribe = documentMetaController.subscribe((state) => {
+			metaState = state;
+		});
+
+		return unsubscribe;
+	});
+
+	$effect(() => {
+		if (metaState.dirty) return;
+		const nextMeta = documentMetaController.getMeta();
+		const serialized = JSON.stringify(nextMeta);
+		if (serialized === committedMetaSerialized) return;
+
+		committedMetaSerialized = serialized;
+		meta = nextMeta;
+		json = { ...json, meta: nextMeta };
+	});
+
+	$effect(() => {
 		void controllerState.activeBlock;
 		requestAnimationFrame(() => {
 			syncActiveBlockIndicator();
@@ -195,34 +275,56 @@
 			{toolbarExtensions}
 			onEditLink={() => controller.openLinkAttributes()}
 		/>
-		{#if activeBlocks.length > 0}
+		{#if hasMetaFields || activeBlocks.length > 0}
 			<div class="uncial-toolbar__actions">
-				<details class="uncial-dropdown uncial-dropdown--end">
-					<summary
-						bind:this={attrsTriggerEl}
-						aria-label="Insert block"
-						class="uncial-btn uncial-btn--primary uncial-btn--sm"
-					>
-						<PlusIcon size={14} weight="bold" />
-						<span>Insert block</span>
-						<CaretDownIcon size={12} weight="bold" />
-					</summary>
-					<ul class="uncial-dropdown__menu uncial-menu">
-						{#each activeBlocks as block (block.id)}
-							<li>
-								<button type="button" onclick={() => insertBlock(block.id)}>
-									{block.label}
-								</button>
-							</li>
-						{/each}
-					</ul>
-				</details>
+				{#if hasMetaFields}
+					<details class="uncial-dropdown uncial-dropdown--end">
+						<summary
+							bind:this={metaTriggerEl}
+							aria-label="Edit document metadata"
+							class="uncial-btn uncial-btn--ghost uncial-btn--sm"
+						>
+							<span>Metadata</span>
+							<CaretDownIcon size={12} weight="bold" />
+						</summary>
+						<div class="uncial-dropdown__menu uncial-dropdown__menu--wide">
+							<DocumentMetaPanel
+								controller={documentMetaController}
+								fields={resolvedMetaFields}
+								onCommit={commitMeta}
+							/>
+						</div>
+					</details>
+				{/if}
+				{#if activeBlocks.length > 0}
+					<details class="uncial-dropdown uncial-dropdown--end">
+						<summary
+							bind:this={attrsTriggerEl}
+							aria-label="Insert block"
+							class="uncial-btn uncial-btn--primary uncial-btn--sm"
+						>
+							<PlusIcon size={14} weight="bold" />
+							<span>Insert block</span>
+							<CaretDownIcon size={12} weight="bold" />
+						</summary>
+						<ul class="uncial-dropdown__menu uncial-menu">
+							{#each activeBlocks as block (block.id)}
+								<li>
+									<button type="button" onclick={() => insertBlock(block.id)}>
+										{block.label}
+									</button>
+								</li>
+							{/each}
+						</ul>
+					</details>
+				{/if}
 			</div>
 		{/if}
 	</div>
 	<div class="uncial-editor-body">
 		<div
 			class="uncial-content uncial-rich-content uncial-gutter-enabled"
+			style:--uncial-reserved-gutter-width={editorGutterWidth}
 			bind:this={editorHost}
 			use:bindEditor={editorBinding}
 		></div>
