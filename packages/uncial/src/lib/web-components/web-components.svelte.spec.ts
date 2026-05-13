@@ -35,10 +35,11 @@ describe('web components', () => {
 			issues.push(event as CustomEvent);
 		});
 		Object.assign(element, {
-			schema: {
-				allowedBlocks: new Set(),
-				allowedMarks: new Set()
-			},
+				schema: {
+					allowedBlocks: new Set(),
+					allowedMarks: new Set(),
+					metaFields: new Map()
+				},
 			content: {
 				type: 'doc',
 				content: [{ type: 'unknownBlock' }]

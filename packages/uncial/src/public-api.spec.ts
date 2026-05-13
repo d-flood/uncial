@@ -5,10 +5,12 @@ import {
 	Renderer,
 	bindEditor,
 	createBlockAttributesController,
+	createDocumentMetaController,
 	createBlockRegistry,
 	createSchema,
 	defineSvelteBlock,
-	normalizeDocument
+	normalizeDocument,
+	normalizeMeta
 } from './lib/index.js';
 import type { Component } from 'svelte';
 
@@ -44,6 +46,8 @@ describe('public api', () => {
 		expect(Editor).toBeTruthy();
 		expect(Renderer).toBeTruthy();
 		expect(bindEditor).toBeTypeOf('function');
+		expect(createDocumentMetaController).toBeTypeOf('function');
+		expect(normalizeMeta).toBeTypeOf('function');
 		expect(normalized.content?.[0]?.attrs).toEqual({
 			title: 'Hello',
 			featured: true,

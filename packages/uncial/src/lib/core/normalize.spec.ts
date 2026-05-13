@@ -103,6 +103,51 @@ describe('normalizeDocument', () => {
 		expect(normalized.content?.[0]?.content).toBeUndefined();
 	});
 
+	it('normalizes declared document metadata and drops unknown keys', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry, {
+			metaFields: {
+				title: { default: '', required: true },
+				published: { default: false },
+				tags: { default: [] as string[], input: 'json' }
+			}
+		});
+
+		const normalized = normalizeDocument(
+			{
+				type: 'doc',
+				meta: {
+					title: 42,
+					published: 'true',
+					tags: '["demo","typed"]',
+					ignored: 'nope'
+				},
+				content: []
+			},
+			registry,
+			schema
+		);
+
+		expect(normalized.meta).toEqual({
+			title: '42',
+			published: true,
+			tags: ['demo', 'typed']
+		});
+	});
+
+	it('omits metadata when no metadata schema is supplied', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry);
+
+		const normalized = normalizeDocument(
+			{ type: 'doc', meta: { title: 'Draft' }, content: [] },
+			registry,
+			schema
+		);
+
+		expect(normalized).not.toHaveProperty('meta');
+	});
+
 	it('preserves child content for container custom blocks', () => {
 		const collapsible = defineSvelteBlock({
 			id: 'collapsible',

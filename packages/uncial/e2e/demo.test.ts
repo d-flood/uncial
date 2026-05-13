@@ -19,7 +19,7 @@ test('clicking rich text focuses the editor surface', async ({ page }) => {
 	);
 	await firstLine.click();
 
-	await expect(page.getByRole('textbox')).toBeFocused();
+	await expect(page.locator('.ProseMirror')).toBeFocused();
 	await expect(page.getByText('Define a block once.')).toBeVisible();
 });
 

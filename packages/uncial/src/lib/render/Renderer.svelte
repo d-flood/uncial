@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { JSONContent } from '@tiptap/core';
+	import type { Snippet } from 'svelte';
 	import { normalizeDocument } from '../core/normalize.js';
 	import { validateDocument } from '../core/validate.js';
 	import type {
@@ -18,10 +19,17 @@
 		content?: JSONContent;
 		blocks?: BlockRegistry | BlockDefinition[];
 		schema?: ContentSchema;
+		meta?: Snippet<[Record<string, unknown> | undefined]>;
 		onIssue?: (issue: ValidationIssue) => void;
 	}
 
-	let { content = emptyDocument(), blocks = [], schema = undefined, onIssue }: Props = $props();
+	let {
+		content = emptyDocument(),
+		blocks = [],
+		schema = undefined,
+		meta: metaSnippet = undefined,
+		onIssue
+	}: Props = $props();
 
 	const registry = $derived.by(() => {
 		const resolved = resolveRegistry(blocks);
@@ -42,6 +50,7 @@
 </script>
 
 <div class="uncial-renderer">
+	{@render metaSnippet?.(normalizedContent.meta)}
 	<div class="uncial-content uncial-rich-content">
 		<RichContent nodes={(normalizedContent.content ?? []) as PMNode[]} {registry} {schema} />
 	</div>

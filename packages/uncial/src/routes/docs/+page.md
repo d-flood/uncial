@@ -17,6 +17,7 @@
 					<li><a href="#blocks">Define blocks</a></li>
 					<li><a href="#setup">Registry and schema</a></li>
 					<li><a href="#usage">Editor and Renderer</a></li>
+					<li><a href="#metadata">Document metadata</a></li>
 					<li><a href="#theming">Custom theming</a></li>
 					<li><a href="#attributes">Attributes</a></li>
 					<li><a href="#runtime-plugins">Runtime plugins</a></li>
@@ -131,9 +132,60 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
 <Renderer content={document} {blocks} {schema} />
 ```
 
-    		</section>
+     		</section>
 
-    	<section id="theming" class="space-y-4 scroll-mt-6">
+     		<section id="metadata" class="space-y-4 scroll-mt-6">
+     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Metadata</p>
+     			<h2 class="text-3xl font-bold">Edit document-level metadata</h2>
+
+Add typed `metaFields` to your schema for frontmatter-style data such as title, author, publish date, or tags. Metadata is stored as JSON on the top-level document `meta` field and is not serialized to YAML.
+
+```svelte
+<script lang="ts">
+	import {
+		DocumentMetaPanel,
+		Editor,
+		createDocumentMetaController,
+		createSchema
+	} from 'uncial';
+
+	const schema = createSchema(blocks, {
+		metaFields: {
+			title: { default: '', required: true },
+			author: { default: '' },
+			publishedAt: { default: '', placeholder: 'YYYY-MM-DD' },
+			tags: { default: [], input: 'json' }
+		}
+	});
+
+	const metaController = createDocumentMetaController(schema.metaFields);
+	let document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });
+	let meta = $state({ title: 'Hello world', author: 'Ada' });
+</script>
+
+<Editor {blocks} {schema} {metaController} bind:json={document} bind:meta />
+<DocumentMetaPanel
+	controller={metaController}
+	fields={schema.metaFields}
+	onCommit={(nextMeta) => (meta = nextMeta)}
+/>
+```
+
+When metadata fields are configured, `Editor` also shows a built-in `Metadata` button in the toolbar. `DocumentMetaPanel` remains available for apps that prefer a permanent sidebar or custom placement.
+
+The renderer normalizes the same metadata and exposes it as an optional snippet prop.
+
+```svelte
+<Renderer content={document} {blocks} {schema}>
+	{#snippet meta(meta)}
+		<h1>{meta?.title}</h1>
+	{/snippet}
+</Renderer>
+```
+
+     		</section>
+
+     	<section id="theming" class="space-y-4 scroll-mt-6">
     		<p class="text-sm font-semibold uppercase tracking-wide text-primary">Theming</p>
     		<h2 class="text-3xl font-bold">Match Uncial to your site</h2>
 

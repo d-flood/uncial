@@ -9,12 +9,13 @@
 	import Logo from './demo/Logo.svelte';
 	import ThemeSwitcher from '$lib/ui/ThemeSwitcher.svelte';
 
-	const { blocks, schema, attributesController, initialDocument } = buildDemo();
+	const { blocks, schema, attributesController, metaController, initialDocument } = buildDemo();
 	const pageWashBackground =
 		'radial-gradient(1200px 600px at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%), radial-gradient(900px 700px at 10% 90%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%)';
 	const repoUrl = 'https://github.com/d-flood/uncial';
 	const docsUrl = resolve('/docs');
 	let doc = $state(initialDocument);
+	let meta = $state(initialDocument.meta ?? {});
 	let activeTab = $state<'editor' | 'rendered' | 'json'>('editor');
 	let editorRegion = $state<HTMLElement>();
 	let mobilePanelTop = $state(112);
@@ -177,14 +178,27 @@
 			<div class="min-w-0">
 				{#if activeTab === 'editor'}
 					<div class="min-w-0" role="region" aria-label="Editor" bind:this={editorRegion}>
-						<Editor {blocks} {schema} {attributesController} bind:json={doc} />
+						<Editor {blocks} {schema} {attributesController} {metaController} bind:json={doc} bind:meta />
 					</div>
 				{:else if activeTab === 'rendered'}
 					<article role="region" aria-label="Rendered">
 						<p class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-secondary/80">
 							Proof copy · same JSON
 						</p>
-						<Renderer {blocks} {schema} content={doc} />
+						<Renderer {blocks} {schema} content={doc}>
+							{#snippet meta(meta)}
+								{#if meta?.title}
+									<header class="mb-6 border-b border-base-content/15 pb-4">
+										<p class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-primary">
+											{meta.author ?? 'Unknown author'} · {meta.publishedAt ?? 'Unpublished'}
+										</p>
+										<h2 class="mt-2 font-vellum-display text-3xl font-black italic">
+											{meta.title}
+										</h2>
+									</header>
+								{/if}
+							{/snippet}
+						</Renderer>
 					</article>
 				{:else}
 					<pre

@@ -8,6 +8,13 @@ export {
 	serializeBlockAttributes,
 	toAttributeDraftValues
 } from './attributes.js';
+export {
+	normalizeMeta,
+	parseMetaDraftValues,
+	serializeMeta,
+	toMetaDraftValues,
+	validateMeta
+} from './meta.js';
 export { createBlockRegistry, createSchema, resolveRegistry } from './registry.js';
 export { CURRENT_DOCUMENT_VERSION, normalizeDocument } from './normalize.js';
 export { validateDocument } from './validate.js';
@@ -45,6 +52,8 @@ export type {
 	ContentDocument,
 	ContentSchema,
 	CreateSchemaOptions,
+	DocumentMetaSchema,
+	MetaFieldSpec,
 	RichTextFeature,
 	RichTextFeatureSelection,
 	RuntimeBlockConfig,

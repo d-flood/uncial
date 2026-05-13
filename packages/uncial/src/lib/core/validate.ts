@@ -8,6 +8,7 @@ import type {
 	ValidationResult
 } from './types.js';
 import { resolveRegistry } from './registry.js';
+import { validateMeta } from './meta.js';
 
 const BUILTIN_NODE_TYPES = new Set([
 	'doc',
@@ -237,6 +238,8 @@ export function validateDocument(
 		});
 		return { ok: false, issues };
 	}
+
+	validateMeta(document.meta, schema.metaFields, issues, options);
 
 	const registryBlocks = new Map<string, BlockDefinition>(
 		registry.blocks.map((block: BlockDefinition) => [block.id, block] as const)

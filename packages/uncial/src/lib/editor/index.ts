@@ -1,10 +1,13 @@
 export { default as Editor } from './Editor.svelte';
 export { default as BlockAttributesPanel } from './BlockAttributesPanel.svelte';
+export { default as AttributeFieldControl } from './AttributeFieldControl.svelte';
+export { default as DocumentMetaPanel } from './DocumentMetaPanel.svelte';
 export { default as Toolbar } from './Toolbar.svelte';
 export { default as BlockMenu } from './BlockMenu.svelte';
 export { bindEditor } from './bindEditor.js';
 export { createEditorExtensions } from './createEditorExtensions.js';
 export { createBlockAttributesController } from './attributesController.js';
+export { createDocumentMetaController } from './metaController.js';
 export {
 	builtinToolbarFeatures,
 	defaultToolbarFeatures,
@@ -26,3 +29,8 @@ export type {
 	LinkAttributes,
 	LinkAttributesState
 } from './attributesController.js';
+export type {
+	DocumentMetaCommitResult,
+	DocumentMetaController,
+	DocumentMetaState
+} from './metaController.js';

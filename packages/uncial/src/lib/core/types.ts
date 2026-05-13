@@ -54,6 +54,8 @@ export interface AttributeSpec<T> {
 }
 
 export type AttributeConfig<T> = AttributeSpec<T> | T;
+export type MetaFieldSpec<T> = AttributeSpec<T>;
+export type DocumentMetaSchema = Record<string, MetaFieldSpec<unknown>>;
 
 export type BlockAttributes = Record<string, unknown>;
 export type BlockIcon = string | unknown;
@@ -147,11 +149,14 @@ export interface BlockRegistry {
 export interface ContentSchema {
 	allowedBlocks: ReadonlySet<string>;
 	allowedMarks: ReadonlySet<string>;
+	metaFields: ReadonlyMap<string, AttributeSpec<unknown>>;
 }
 
 export type ValidationCode =
 	| 'UNKNOWN_BLOCK'
 	| 'INVALID_ATTR'
+	| 'INVALID_META'
+	| 'UNKNOWN_META'
 	| 'INVALID_CONTENT'
 	| 'DISALLOWED_BLOCK'
 	| 'DISALLOWED_MARK'
@@ -173,6 +178,7 @@ export interface ValidationResult {
 export interface CreateSchemaOptions {
 	allowedBlocks?: string[];
 	allowedMarks?: string[];
+	metaFields?: DocumentMetaSchema;
 }
 
 export interface ValidateDocumentOptions {

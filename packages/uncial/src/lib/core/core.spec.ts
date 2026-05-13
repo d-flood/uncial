@@ -22,6 +22,10 @@ import type { Component } from 'svelte';
 
 const Dummy = (() => ({})) as unknown as Component<Record<string, unknown>>;
 
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === 'string' && value.trim().length > 0;
+}
+
 const fakeRuntime: BlockRuntimePlugin<{ name: string }> = {
 	id: 'fake',
 	defineComponent(component) {
@@ -181,6 +185,33 @@ describe('core', () => {
 		expect(result.issues.some((issue: ValidationIssue) => issue.code === 'INVALID_CONTENT')).toBe(
 			true
 		);
+	});
+
+	it('validates document metadata against schema fields', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry, {
+			metaFields: {
+				title: { default: '', required: true, validate: isNonEmptyString },
+				tags: { default: [] as string[], validate: Array.isArray }
+			}
+		});
+		const issues: ValidationIssue[] = [];
+
+		const result = validateDocument(
+			{
+				type: 'doc',
+				meta: { title: '', tags: 'not-array', extra: true },
+				content: []
+			},
+			registry,
+			schema,
+			{ onIssue: (issue) => issues.push(issue) }
+		);
+
+		expect(result.ok).toBe(false);
+		expect(result.issues.some((issue) => issue.code === 'INVALID_META')).toBe(true);
+		expect(result.issues.some((issue) => issue.code === 'UNKNOWN_META')).toBe(true);
+		expect(issues).toHaveLength(result.issues.length);
 	});
 
 	it('coerces rich text documents from common input shapes', () => {
