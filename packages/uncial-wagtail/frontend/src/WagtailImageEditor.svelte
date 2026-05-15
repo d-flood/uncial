@@ -40,6 +40,26 @@
 		width: 100%;
 	}
 
+	:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--left)),
+	:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--right)) {
+		width: min(42%, 22rem);
+		max-width: min(42%, 22rem);
+	}
+
+	:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--left)) {
+		float: left;
+		margin: 1rem 1.25rem 1rem 0;
+	}
+
+	:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--right)) {
+		float: right;
+		margin: 1rem 0 1rem 1.25rem;
+	}
+
+	:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--full-width)) {
+		clear: both;
+	}
+
 	.preview {
 		display: block;
 		max-width: 100%;
@@ -49,8 +69,7 @@
 
 	.uncial-wagtail-image-editor--left .preview,
 	.uncial-wagtail-image-editor--right .preview {
-		width: min(42%, 22rem);
-		max-width: min(100%, 22rem);
+		width: 100%;
 	}
 
 	.uncial-wagtail-image-editor--full-width .preview {
@@ -62,10 +81,17 @@
 	}
 
 	@media (max-width: 40rem) {
+		:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--left)),
+		:global(.uncial-nodeview:has(.uncial-wagtail-image-editor--right)) {
+			float: none;
+			width: 100%;
+			max-width: none;
+			margin-inline: 0;
+		}
+
 		.uncial-wagtail-image-editor--left .preview,
 		.uncial-wagtail-image-editor--right .preview {
 			width: 100%;
-			max-width: none;
 		}
 	}
 
