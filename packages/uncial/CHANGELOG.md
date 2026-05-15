@@ -1,5 +1,12 @@
 # uncial
 
+## 0.0.7
+
+### Patch Changes
+
+- 8849aa9: remove tailwind and daisyui from core editor and make core editor themable
+- 926bc45: Add editable metadata to pm document; improve wagtail integration and demo
+
 ## 0.0.6
 
 ### Patch Changes
