@@ -1,11 +1,14 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), svelte()],
+	plugins: [svelte()],
 	resolve: {
 		alias: [
+			{
+				find: 'uncial/editor',
+				replacement: new URL('../uncial/src/lib/editor/index.ts', import.meta.url).pathname
+			},
 			{
 				find: 'uncial/runtime/svelte',
 				replacement: new URL('../uncial/src/lib/runtime/svelte.ts', import.meta.url).pathname

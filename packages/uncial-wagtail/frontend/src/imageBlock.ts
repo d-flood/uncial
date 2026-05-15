@@ -14,6 +14,7 @@ export interface WagtailImageBlockAttributes extends BlockAttributes {
 	imageId: number | null;
 	alt: string;
 	rendition: string;
+	position: 'left' | 'right' | 'full-width';
 	decorative: boolean;
 	previewUrl: string;
 }
@@ -29,6 +30,15 @@ export function createWagtailImageBlock(options: WagtailImageBlockOptions = {}) 
 			imageId: { default: null, required: true, input: 'wagtail-image' },
 			alt: { default: '', input: 'text' },
 			rendition: { default: defaultRendition, input: 'text' },
+			position: {
+				default: 'full-width',
+				input: 'select',
+				options: [
+					{ value: 'left', label: 'Left' },
+					{ value: 'right', label: 'Right' },
+					{ value: 'full-width', label: 'Full width' }
+				]
+			},
 			decorative: { default: false, input: 'checkbox' },
 			previewUrl: { default: '', input: 'hidden' }
 		},
@@ -40,7 +50,7 @@ export function createWagtailImageBlock(options: WagtailImageBlockOptions = {}) 
 			parseTag: 'figure[data-uncial-wagtail-image]',
 			render: (attrs: BlockAttributes) => [
 				'figure',
-				{ 'data-uncial-wagtail-image': attrs.imageId },
+				{ 'data-uncial-wagtail-image': attrs.imageId, 'data-position': attrs.position },
 				['img', { alt: attrs.decorative ? '' : attrs.alt }]
 			]
 		}

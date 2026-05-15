@@ -25,7 +25,7 @@ class DemoArticlePage(Page):
         UncialPanel(
             "body",
             config=UncialEditorConfig(
-                allowed_blocks=["wagtail.image", "callout"],
+				allowed_blocks=["wagtail.image", "callout", "card"],
                 allowed_marks=["bold", "italic", "link", "code"],
                 toolbar_features=["bold", "italic", "link", "heading", "bulletList", "blockquote"],
                 custom_blocks=["callout"],

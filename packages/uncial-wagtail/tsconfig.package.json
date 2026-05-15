@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "frontend/src",
+		"paths": {
+			"uncial": ["frontend/types/uncial.d.ts"],
+			"uncial/core": ["frontend/types/uncial-core.d.ts"],
+			"uncial/editor": ["frontend/types/uncial-editor.d.ts"],
+			"uncial/runtime/svelte": ["frontend/types/uncial-runtime-svelte.d.ts"]
+		}
+	}
+}

@@ -1,8 +1,9 @@
 import { mount, unmount } from 'svelte';
-import '../../../uncial/src/app.css';
+import '../../../uncial/src/lib/styles/index.css';
 import AdminEditor from './AdminEditor.svelte';
-import { createBlockRegistry } from '../../../uncial/src/lib/core/registry.js';
-import type { ContentSchema } from '../../../uncial/src/lib/core/types.js';
+import { createBlockRegistry, createSchema as createUncialSchema } from 'uncial/core';
+import type { ContentSchema } from 'uncial/core';
+import { createCalloutBlock, createCardBlock } from './demoBlocks.js';
 import { createWagtailImageBlock } from './imageBlock.js';
 
 type WidgetConfig = {
@@ -72,17 +73,35 @@ function parseJson(value: string | undefined | null, fallback: unknown) {
 	}
 }
 
-function createSchema(config: WidgetConfig) {
+function stringArray(value: unknown): string[] {
+	return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function normalizeConfig(config: WidgetConfig): WidgetConfig {
 	return {
-		allowedBlocks: new Set(config.allowedBlocks ?? []),
-		allowedMarks: new Set(config.allowedMarks ?? [])
+		allowedBlocks: stringArray(config.allowedBlocks),
+		allowedMarks: stringArray(config.allowedMarks),
+		toolbarFeatures: stringArray(config.toolbarFeatures)
 	};
+}
+
+function createSchema(config: WidgetConfig, blocks: ReturnType<typeof createBlockRegistry>) {
+	return createUncialSchema(blocks, {
+		allowedBlocks: config.allowedBlocks,
+		allowedMarks: config.allowedMarks
+	});
 }
 
 function createBlocks(config: WidgetConfig) {
 	const blocks = [];
 	if (config.allowedBlocks?.includes('wagtail.image')) {
 		blocks.push(createWagtailImageBlock());
+	}
+	if (config.allowedBlocks?.includes('callout')) {
+		blocks.push(createCalloutBlock());
+	}
+	if (config.allowedBlocks?.includes('card')) {
+		blocks.push(createCardBlock());
 	}
 	return createBlockRegistry(blocks);
 }
@@ -94,7 +113,7 @@ function initWidget(widget: Element) {
 	const mount = widget.querySelector<HTMLElement>('[data-uncial-editor]');
 	if (!input || !mount) return;
 
-	const config = parseJson(widget.dataset.uncialConfig, {}) as WidgetConfig;
+	const config = normalizeConfig(parseJson(widget.dataset.uncialConfig, {}) as WidgetConfig);
 	const editor = document.createElement('uncial-editor') as HTMLElement & {
 		json?: unknown;
 		schema?: unknown;
@@ -103,9 +122,9 @@ function initWidget(widget: Element) {
 	};
 
 	editor.json = parseJson(input.value, emptyDocument);
-	editor.schema = createSchema(config);
-	editor.toolbarFeatures = config.toolbarFeatures;
 	editor.blocks = createBlocks(config);
+	editor.schema = createSchema(config, editor.blocks);
+	editor.toolbarFeatures = config.toolbarFeatures;
 	editor.addEventListener('uncial-change', (event) => {
 		input.value = JSON.stringify((event as CustomEvent).detail ?? emptyDocument);
 	});
