@@ -9,7 +9,7 @@
 		"demo:migrate": "uv run python demo/manage.py migrate",
 		"demo:seed": "uv run python demo/manage.py seed_demo",
 		"test": "vitest --run --passWithNoTests",
-		"build": "svelte-package --input frontend/src --output dist && bun run build:admin",
+		"build": "svelte-package --input frontend/src --output dist --tsconfig ./tsconfig.package.json && bun run build:admin",
 		"build:admin": "vite build --config vite.admin.config.ts"
 	},
 	"exports": {
@@ -31,7 +31,6 @@
 	"devDependencies": {
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"@tailwindcss/vite": "^4.2.4",
 		"svelte": "^5.51.0",
 		"svelte-check": "^4.4.2",
 		"typescript": "^5.9.3",

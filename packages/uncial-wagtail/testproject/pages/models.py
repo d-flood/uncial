@@ -12,7 +12,7 @@ class ArticlePage(Page):
         UncialPanel(
             "body",
             config=UncialEditorConfig(
-                allowed_blocks=["wagtail.image"],
+				allowed_blocks=["wagtail.image", "callout", "card"],
                 allowed_marks=["bold", "italic", "link"],
                 toolbar_features=["bold", "italic", "link", "heading"],
             ),
