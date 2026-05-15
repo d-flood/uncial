@@ -1,6 +1,6 @@
 [project]
 name = "uncial-wagtail"
-version = "0.0.6"
+version = "0.0.7"
 description = "Wagtail integration for Uncial headless page bodies"
 readme = "README.md"
 requires-python = ">=3.14"
