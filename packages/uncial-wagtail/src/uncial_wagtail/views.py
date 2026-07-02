@@ -11,12 +11,28 @@ def page_detail(request, page_id: int):
     return JsonResponse(serialize_page(page))
 
 
-def image_chooser_fallback(request):
-    from wagtail.images import get_image_model
+def _forbidden_response():
+    return JsonResponse({"error": "You do not have permission to choose images."}, status=403)
 
-    image_id = request.GET.get("id")
-    queryset = get_image_model().objects.order_by("title")
-    images = queryset.filter(id=image_id) if image_id else queryset[:50]
+
+def image_chooser_fallback(request):
+    from wagtail.images.permissions import permission_policy
+
+    if not permission_policy.user_has_any_permission(request.user, ["choose"]):
+        return _forbidden_response()
+
+    raw_image_id = request.GET.get("id")
+    image_id = None
+    if raw_image_id not in (None, ""):
+        try:
+            image_id = int(raw_image_id)
+        except ValueError:
+            return JsonResponse({"error": "Invalid image id."}, status=400)
+
+    queryset = permission_policy.instances_user_has_any_permission_for(
+        request.user, ["choose"]
+    ).order_by("title")
+    images = queryset.filter(id=image_id) if image_id is not None else queryset[:50]
 
     def serialize_image(image):
         rendition = image.get_rendition("fill-600x400")
@@ -36,7 +52,11 @@ def image_chooser_fallback(request):
 
 
 def image_preview(request, image_id: int):
-    from wagtail.images import get_image_model
+    from wagtail.images.permissions import permission_policy
 
-    image = get_object_or_404(get_image_model(), id=image_id)
+    if not permission_policy.user_has_any_permission(request.user, ["choose"]):
+        return _forbidden_response()
+
+    queryset = permission_policy.instances_user_has_any_permission_for(request.user, ["choose"])
+    image = get_object_or_404(queryset, id=image_id)
     return redirect(image.get_rendition("fill-900x600").url)

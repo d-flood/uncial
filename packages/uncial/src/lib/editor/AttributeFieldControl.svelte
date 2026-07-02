@@ -22,6 +22,14 @@
 		return String(value);
 	});
 	const customLabel = $derived(value ? `Change ${name}: ${value}` : `Choose ${name}`);
+	// A stored value outside the declared options (e.g. a legacy value from before the
+	// options list changed) must stay visible and re-selectable instead of being silently
+	// remapped to the first option on the next commit.
+	const selectOptions = $derived.by(() => {
+		if (stringValue === '') return options;
+		if (options.some((option) => String(option.value) === stringValue)) return options;
+		return [{ value: stringValue, label: `${stringValue} (current)` }, ...options];
+	});
 
 	function isBuiltInInputKind(kind: string): boolean {
 		return ['checkbox', 'number', 'richtext', 'select', 'textarea', 'json', 'text', 'hidden'].includes(
@@ -79,7 +87,7 @@
 					onChange(target.value);
 				}}
 			>
-				{#each options as option (String(option.value))}
+				{#each selectOptions as option (String(option.value))}
 					<option value={String(option.value)}>{option.label ?? String(option.value)}</option>
 				{/each}
 			</select>
