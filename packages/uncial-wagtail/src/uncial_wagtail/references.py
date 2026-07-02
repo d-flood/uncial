@@ -1,5 +1,10 @@
+import logging
 from dataclasses import dataclass
 from typing import Any
+
+from .schema import DEFAULT_IMAGE_RENDITION, get_image_rendition_allowlist
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, order=True)
@@ -28,20 +33,35 @@ def collect_references(document: Any) -> list[UncialReference]:
     for node in _walk(document):
         if node.get("type") != "wagtail.image":
             continue
-        attrs = node.get("attrs") or {}
+        attrs = node.get("attrs")
+        if not isinstance(attrs, dict):
+            continue
         image_id = attrs.get("imageId")
         if image_id in (None, ""):
             continue
-        references.add(
-            UncialReference("wagtail.image", int(image_id), attrs.get("rendition") or "width-1200")
-        )
+        try:
+            image_id = int(image_id)
+        except (TypeError, ValueError):
+            logger.warning("Skipping wagtail.image reference with non-integer imageId %r", image_id)
+            continue
+        rendition = attrs.get("rendition")
+        if not isinstance(rendition, str) or not rendition:
+            rendition = DEFAULT_IMAGE_RENDITION
+        references.add(UncialReference("wagtail.image", image_id, rendition))
     return sorted(references)
 
 
 def resolve_references(references: list[UncialReference]) -> dict[str, dict[str, Any]]:
     from wagtail.images import get_image_model
+    from wagtail.images.exceptions import InvalidFilterSpecError
 
     image_model = get_image_model()
+    allowlist = get_image_rendition_allowlist()
+    fallback = (
+        DEFAULT_IMAGE_RENDITION
+        if DEFAULT_IMAGE_RENDITION in allowlist or not allowlist
+        else allowlist[0]
+    )
     image_ids = [reference.id for reference in references if reference.kind == "wagtail.image"]
     images = image_model.objects.in_bulk(image_ids)
     resolved: dict[str, dict[str, Any]] = {}
@@ -52,11 +72,45 @@ def resolve_references(references: list[UncialReference]) -> dict[str, dict[str,
         image = images.get(reference.id)
         if image is None:
             continue
-        rendition = image.get_rendition(reference.variant)
+        variant = reference.variant
+        if variant not in allowlist:
+            logger.warning(
+                "Rendition spec %r for image %s is not in the allowlist; falling back to %r",
+                variant,
+                reference.id,
+                fallback,
+            )
+            variant = fallback
+        try:
+            rendition = image.get_rendition(variant)
+        except InvalidFilterSpecError:
+            if variant == fallback:
+                logger.warning(
+                    "Skipping image %s: fallback rendition spec %r is invalid",
+                    reference.id,
+                    variant,
+                )
+                continue
+            logger.warning(
+                "Invalid rendition spec %r for image %s; falling back to %r",
+                variant,
+                reference.id,
+                fallback,
+            )
+            variant = fallback
+            try:
+                rendition = image.get_rendition(variant)
+            except InvalidFilterSpecError:
+                logger.warning(
+                    "Skipping image %s: fallback rendition spec %r is invalid",
+                    reference.id,
+                    variant,
+                )
+                continue
         resolved[reference.key] = {
             "kind": reference.kind,
             "id": reference.id,
-            "rendition": reference.variant,
+            "rendition": variant,
             "url": rendition.url,
             "width": rendition.width,
             "height": rendition.height,

@@ -1,6 +1,25 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from django.conf import settings
+
+DEFAULT_IMAGE_RENDITION = "width-1200"
+DEFAULT_IMAGE_RENDITIONS = [
+    "width-400",
+    "width-800",
+    "width-1200",
+    "fill-600x400",
+    "fill-900x600",
+    "original",
+]
+
+
+def get_image_rendition_allowlist() -> list[str]:
+    renditions = getattr(settings, "UNCIAL_IMAGE_RENDITIONS", None)
+    if renditions is None:
+        return list(DEFAULT_IMAGE_RENDITIONS)
+    return list(renditions)
+
 
 @dataclass(frozen=True)
 class UncialEditorConfig:
@@ -9,6 +28,7 @@ class UncialEditorConfig:
     toolbar_features: list[str] = field(default_factory=list)
     toolbar_extensions: list[dict[str, Any]] = field(default_factory=list)
     custom_blocks: list[str] = field(default_factory=list)
+    image_renditions: list[str] = field(default_factory=get_image_rendition_allowlist)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -17,4 +37,5 @@ class UncialEditorConfig:
             "toolbarFeatures": self.toolbar_features,
             "toolbarExtensions": self.toolbar_extensions,
             "customBlocks": self.custom_blocks,
+            "imageRenditions": self.image_renditions,
         }

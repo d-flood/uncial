@@ -5,9 +5,19 @@ import WagtailImage from './WagtailImage.svelte';
 import WagtailImageEditor from './WagtailImageEditor.svelte';
 import type { UncialReferenceMap } from './references.js';
 
+export const DEFAULT_IMAGE_RENDITIONS = [
+	'width-400',
+	'width-800',
+	'width-1200',
+	'fill-600x400',
+	'fill-900x600',
+	'original'
+] as const;
+
 export interface WagtailImageBlockOptions {
 	references?: UncialReferenceMap;
 	defaultRendition?: string;
+	renditions?: string[];
 }
 
 export interface WagtailImageBlockAttributes extends BlockAttributes {
@@ -20,7 +30,13 @@ export interface WagtailImageBlockAttributes extends BlockAttributes {
 }
 
 export function createWagtailImageBlock(options: WagtailImageBlockOptions = {}) {
-	const defaultRendition = options.defaultRendition ?? 'width-1200';
+	const renditions = options.renditions?.length
+		? options.renditions
+		: [...DEFAULT_IMAGE_RENDITIONS];
+	const requestedRendition = options.defaultRendition ?? 'width-1200';
+	const defaultRendition = renditions.includes(requestedRendition)
+		? requestedRendition
+		: renditions[0];
 
 	const block = defineSvelteBlock<WagtailImageBlockAttributes>({
 		id: 'wagtail.image',
@@ -29,7 +45,11 @@ export function createWagtailImageBlock(options: WagtailImageBlockOptions = {}) 
 		attributes: {
 			imageId: { default: null, required: true, input: 'wagtail-image' },
 			alt: { default: '', input: 'text' },
-			rendition: { default: defaultRendition, input: 'text' },
+			rendition: {
+				default: defaultRendition,
+				input: 'select',
+				options: renditions.map((value) => ({ value, label: value }))
+			},
 			position: {
 				default: 'full-width',
 				input: 'select',

@@ -5,27 +5,15 @@ import { createBlockRegistry, createSchema as createUncialSchema } from 'uncial/
 import type { ContentSchema } from 'uncial/core';
 import { createCalloutBlock, createCardBlock } from './demoBlocks.js';
 import { createWagtailImageBlock } from './imageBlock.js';
+import { openImageBrowser } from './imageBrowser.js';
+import type { ChooseAttributeEvent } from './imageBrowser.js';
 
 type WidgetConfig = {
 	allowedBlocks?: string[];
 	allowedMarks?: string[];
 	toolbarFeatures?: string[];
+	imageRenditions?: string[];
 };
-
-type WagtailImage = {
-	id: number;
-	title: string;
-	previewUrl?: string;
-	width?: number;
-	height?: number;
-};
-
-type ChooseAttributeEvent = CustomEvent<{
-	inputKind: string;
-	name: string;
-	attrs: Record<string, unknown>;
-	setAttrs: (attrs: Record<string, unknown>) => void;
-}>;
 
 const emptyDocument = { type: 'doc', content: [] };
 
@@ -81,7 +69,8 @@ function normalizeConfig(config: WidgetConfig): WidgetConfig {
 	return {
 		allowedBlocks: stringArray(config.allowedBlocks),
 		allowedMarks: stringArray(config.allowedMarks),
-		toolbarFeatures: stringArray(config.toolbarFeatures)
+		toolbarFeatures: stringArray(config.toolbarFeatures),
+		imageRenditions: stringArray(config.imageRenditions)
 	};
 }
 
@@ -95,7 +84,11 @@ function createSchema(config: WidgetConfig, blocks: ReturnType<typeof createBloc
 function createBlocks(config: WidgetConfig) {
 	const blocks = [];
 	if (config.allowedBlocks?.includes('wagtail.image')) {
-		blocks.push(createWagtailImageBlock());
+		blocks.push(
+			createWagtailImageBlock(
+				config.imageRenditions?.length ? { renditions: config.imageRenditions } : {}
+			)
+		);
 	}
 	if (config.allowedBlocks?.includes('callout')) {
 		blocks.push(createCalloutBlock());
@@ -135,69 +128,6 @@ function initWidget(widget: Element) {
 
 function initAll(root: ParentNode = document) {
 	root.querySelectorAll('.uncial-wagtail-widget').forEach(initWidget);
-}
-
-async function fetchImages(): Promise<WagtailImage[]> {
-	const response = await fetch('/api/uncial/images/');
-	if (!response.ok) return [];
-	const payload = (await response.json()) as { images?: WagtailImage[] };
-	return payload.images ?? [];
-}
-
-function closeImageBrowser(dialog: HTMLDialogElement) {
-	dialog.close();
-	dialog.remove();
-}
-
-function createImageButton(image: WagtailImage, onChoose: (image: WagtailImage) => void) {
-	const button = document.createElement('button');
-	button.type = 'button';
-	button.className = 'uncial-wagtail-image-choice';
-	button.innerHTML = `
-		${image.previewUrl ? `<img src="${image.previewUrl}" alt="">` : '<span>No preview</span>'}
-		<strong>${image.title}</strong>
-		<small>#${image.id}${image.width && image.height ? ` · ${image.width}x${image.height}` : ''}</small>
-	`;
-	button.addEventListener('click', () => onChoose(image));
-	return button;
-}
-
-async function openImageBrowser(event: ChooseAttributeEvent) {
-	const dialog = document.createElement('dialog');
-	dialog.className = 'uncial-wagtail-image-browser';
-	dialog.innerHTML = `
-		<form method="dialog" class="uncial-wagtail-image-browser__header">
-			<h2>Choose Wagtail image</h2>
-			<button type="button" data-close>Close</button>
-		</form>
-		<div class="uncial-wagtail-image-browser__grid">Loading images...</div>
-	`;
-	document.body.append(dialog);
-	dialog.querySelector('[data-close]')?.addEventListener('click', () => closeImageBrowser(dialog));
-	dialog.showModal();
-
-	const grid = dialog.querySelector('.uncial-wagtail-image-browser__grid');
-	const images = await fetchImages();
-	if (!grid) return;
-	grid.replaceChildren();
-
-	if (images.length === 0) {
-		grid.textContent = 'No Wagtail images are available. Upload one in Images first.';
-		return;
-	}
-
-	for (const image of images) {
-		grid.append(
-			createImageButton(image, (chosen) => {
-				event.detail.setAttrs({
-					[event.detail.name]: chosen.id,
-					previewUrl: chosen.previewUrl ?? '',
-					alt: event.detail.attrs.alt || chosen.title
-				});
-				closeImageBrowser(dialog);
-			})
-		);
-	}
 }
 
 window.addEventListener('uncial:choose-attribute', (event) => {
