@@ -57,6 +57,25 @@
         "svelte": "^5.0.0",
       },
     },
+    "packages/uncial-cms": {
+      "name": "uncial-cms",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "@sveltejs/package": "^2.5.7",
+        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "publint": "^0.3.17",
+        "svelte": "^5.51.0",
+        "svelte-check": "^4.4.2",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1",
+        "vitest": "^4.0.18",
+      },
+      "peerDependencies": {
+        "svelte": "^5.0.0",
+        "uncial": "workspace:^",
+      },
+    },
     "packages/uncial-wagtail": {
       "name": "uncial-wagtail",
       "version": "0.0.6",
@@ -916,6 +935,8 @@
     "uc.micro": ["uc.micro@2.1.0", "", {}, "sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A=="],
 
     "uncial": ["uncial@workspace:packages/uncial"],
+
+    "uncial-cms": ["uncial-cms@workspace:packages/uncial-cms"],
 
     "uncial-wagtail": ["uncial-wagtail@workspace:packages/uncial-wagtail"],
 

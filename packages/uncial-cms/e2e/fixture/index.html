@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>uncial-cms PAT fixture</title>
+		<style>
+			body {
+				font-family: system-ui, sans-serif;
+				max-width: 48rem;
+				margin: 2rem auto;
+				padding: 0 1rem;
+			}
+			.uncial-cms-chrome {
+				display: flex;
+				gap: 0.75rem;
+				align-items: center;
+				margin-bottom: 1rem;
+			}
+			.uncial-cms-banner {
+				border: 1px solid #b91c1c;
+				color: #b91c1c;
+				padding: 0.5rem 0.75rem;
+				margin-bottom: 1rem;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>uncial-cms fixture</h1>
+		<p>
+			Plain HTML page (no framework). Pass <code>?repo=owner/name&amp;branch=main&amp;path=content/about.json</code>
+			to point it at a real repository and edit with a personal access token.
+		</p>
+		<div id="editor-page"></div>
+		<script type="module" src="./main.ts"></script>
+	</body>
+</html>
