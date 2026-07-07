@@ -1,0 +1,63 @@
+{
+	"name": "uncial-cms",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/d-flood/uncial.git"
+	},
+	"bugs": {
+		"url": "https://github.com/d-flood/uncial/issues"
+	},
+	"homepage": "https://d-flood.github.io/uncial/",
+	"scripts": {
+		"build": "bun run package",
+		"package": "svelte-package --input src/lib --output dist",
+		"prepack": "bun run package && bunx publint",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"test:unit": "vitest --project server",
+		"test": "bun run test:unit -- --run && bun run test:e2e",
+		"test:e2e": "playwright test"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*"
+	],
+	"type": "module",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./github": {
+			"types": "./dist/github/index.d.ts",
+			"default": "./dist/github/index.js"
+		}
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0",
+		"uncial": "workspace:^"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.58.2",
+		"@sveltejs/package": "^2.5.7",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"publint": "^0.3.17",
+		"svelte": "^5.51.0",
+		"svelte-check": "^4.4.2",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1",
+		"vitest": "^4.0.18"
+	},
+	"keywords": [
+		"svelte",
+		"cms",
+		"github"
+	]
+}
