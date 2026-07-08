@@ -26,7 +26,10 @@ class UncialEditorConfig:
     allowed_blocks: list[str] = field(default_factory=list)
     allowed_marks: list[str] = field(default_factory=list)
     toolbar_features: list[str] = field(default_factory=list)
-    toolbar_extensions: list[dict[str, Any]] = field(default_factory=list)
+    # Keys into the window.uncialWagtail.toolbarExtensions registry populated by
+    # consumer scripts before the admin bundle initializes.
+    toolbar_extensions: list[str] = field(default_factory=list)
+    # Keys into the window.uncialWagtail.customBlocks registry (block ids).
     custom_blocks: list[str] = field(default_factory=list)
     image_renditions: list[str] = field(default_factory=get_image_rendition_allowlist)
 

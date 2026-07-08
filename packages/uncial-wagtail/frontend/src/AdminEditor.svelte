@@ -1,7 +1,15 @@
 <script lang="ts">
-	import { BlockAttributesPanel, Editor, createBlockAttributesController } from 'uncial/editor';
-	import type { ToolbarFeatureSelection } from 'uncial/editor';
+	import {
+		BlockAttributesPanel,
+		Editor,
+		createBlockAttributesController,
+		CHOOSE_ATTRIBUTE_EVENT,
+		type ChooseAttributeRequest
+	} from 'uncial/editor';
+	import type { ToolbarFeature, ToolbarFeatureSelection } from 'uncial/editor';
 	import type { BlockRegistry, ContentSchema } from 'uncial/core';
+	import { chooseImageForAttribute } from './chooser.js';
+	import type { ChooseAttributeEvent } from './imageBrowser.js';
 
 	type JSONContent = Record<string, unknown>;
 
@@ -10,11 +18,18 @@
 		schema?: ContentSchema;
 		blocks?: BlockRegistry;
 		toolbarFeatures?: ToolbarFeatureSelection;
+		toolbarExtensions?: ToolbarFeature[];
 		onChange?: (document: JSONContent) => void;
 	}
 
-	let { json = $bindable({ type: 'doc', content: [] }), schema, blocks, toolbarFeatures, onChange }: Props =
-		$props();
+	let {
+		json = $bindable({ type: 'doc', content: [] }),
+		schema,
+		blocks,
+		toolbarFeatures,
+		toolbarExtensions,
+		onChange
+	}: Props = $props();
 
 	const attributesController = createBlockAttributesController();
 
@@ -22,18 +37,53 @@
 		json = document;
 		onChange?.(document);
 	}
+
+	// Threaded callback replaces the old window-level `uncial:choose-attribute`
+	// event so multiple editors on one Wagtail form never cross-talk. Only the
+	// Wagtail image chooser is handled; other custom input kinds are ignored.
+	function handleChooseAttribute(request: ChooseAttributeRequest) {
+		if (request.inputKind !== 'wagtail-image') return;
+		const event = new CustomEvent(CHOOSE_ATTRIBUTE_EVENT, {
+			detail: request
+		}) as ChooseAttributeEvent;
+		void chooseImageForAttribute(event);
+	}
 </script>
 
 <div class="uncial-wagtail-admin-editor">
 	<div class="uncial-wagtail-admin-canvas">
-		<Editor bind:json={() => json, setJson} {schema} {blocks} {toolbarFeatures} {attributesController} />
+		<Editor
+			bind:json={() => json, setJson}
+			{schema}
+			{blocks}
+			{toolbarFeatures}
+			{toolbarExtensions}
+			{attributesController}
+		/>
 	</div>
 	<aside class="uncial-wagtail-admin-attrs" aria-label="Block attributes">
-		<BlockAttributesPanel controller={attributesController} {blocks} />
+		<BlockAttributesPanel
+			controller={attributesController}
+			{blocks}
+			onChooseAttribute={handleChooseAttribute}
+		/>
 	</aside>
 </div>
 
 <style>
+	/* Wagtail caps form content at an ~840px reading measure via .w-form-width
+	   (the tab's form column) and each field's .w-field__wrapper. That leaves the
+	   editor's two-column canvas + attributes layout badly cramped. Lift the cap
+	   on just the containers that hold an Uncial widget: the :has() selectors keep
+	   this scoped so sibling fields (title, slug, …) keep their own wrapper cap
+	   and stay at the normal measure. */
+	:global(.w-form-width:has(.uncial-wagtail-widget)),
+	:global(.w-panel__wrapper:has(.uncial-wagtail-widget)),
+	:global(.w-field-row:has(.uncial-wagtail-widget)),
+	:global(.w-field__wrapper:has(.uncial-wagtail-widget)) {
+		max-width: none;
+	}
+
 	.uncial-wagtail-admin-editor {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);

@@ -71,10 +71,10 @@ export function buildDemo() {
 			title: { default: 'Heads up', required: true, validate: isNonEmptyString },
 			body: {
 				default: richTextDocument(
-					'Callouts share the same rich text stack — bold, italic, and links all work.'
+					'Callouts share the same rich text stack — bold and italic both work.'
 				),
 				input: 'richtext',
-				richText: { features: ['bold', 'italic', 'link'] },
+				richText: { features: ['bold', 'italic'] },
 				validate: hasRichTextContent
 			},
 			showIcon: true

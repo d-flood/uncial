@@ -14,6 +14,7 @@
 	import { emptyDocument } from '../shared/content.js';
 	import {
 		createBlockAttributesController,
+		createInitialState,
 		type BlockAttributesController,
 		type BlockAttributesState
 	} from './attributesController.js';
@@ -25,6 +26,7 @@
 	} from './metaController.js';
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import Toolbar from './Toolbar.svelte';
+	import { dropdownDismiss } from './dropdownDismiss.js';
 	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
 	interface Props {
@@ -58,20 +60,7 @@
 	let editorHost: HTMLDivElement;
 	let editor = $state<TiptapEditor | null>(null);
 	let interactedNodeView = $state<HTMLElement | null>(null);
-	let controllerState = $state<BlockAttributesState>({
-		open: false,
-		mode: null,
-		selectedBlockId: '',
-		draftAttrs: {},
-		validationErrors: {},
-		activeBlock: null,
-		allowedBlockIds: [],
-		containerChildren: [],
-		link: {
-			open: false,
-			attrs: {}
-		}
-	});
+	let controllerState = $state<BlockAttributesState>(createInitialState());
 	let attrsTriggerEl = $state<HTMLElement | null>(null);
 	let metaTriggerEl = $state<HTMLElement | null>(null);
 	const internalController = createBlockAttributesController();
@@ -278,7 +267,7 @@
 		{#if hasMetaFields || activeBlocks.length > 0}
 			<div class="uncial-toolbar__actions">
 				{#if hasMetaFields}
-					<details class="uncial-dropdown uncial-dropdown--end">
+					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
 						<summary
 							bind:this={metaTriggerEl}
 							aria-label="Edit document metadata"
@@ -297,7 +286,7 @@
 					</details>
 				{/if}
 				{#if activeBlocks.length > 0}
-					<details class="uncial-dropdown uncial-dropdown--end">
+					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
 						<summary
 							bind:this={attrsTriggerEl}
 							aria-label="Insert block"

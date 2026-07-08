@@ -8,9 +8,10 @@
 		"demo": "uv run python demo/manage.py runserver 0.0.0.0:8000",
 		"demo:migrate": "uv run python demo/manage.py migrate",
 		"demo:seed": "uv run python demo/manage.py seed_demo",
-		"test": "vitest --run --passWithNoTests",
-		"build": "svelte-package --input frontend/src --output dist --tsconfig ./tsconfig.package.json && bun run build:admin",
-		"build:admin": "vite build --config vite.admin.config.ts"
+		"test": "vitest --run",
+		"build": "svelte-package --input frontend/src --output dist --tsconfig ./tsconfig.package.json && bun run build:admin && bun run build:demo-blocks",
+		"build:admin": "vite build --config vite.admin.config.ts",
+		"build:demo-blocks": "vite build --config vite.demo-blocks.config.ts"
 	},
 	"exports": {
 		".": {

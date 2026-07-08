@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -10,7 +11,13 @@ ROOT_URLCONF = "demo.urls"
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
+# UNCIAL_DEMO_DB lets scripts/CI point the demo at a throwaway database file.
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("UNCIAL_DEMO_DB", BASE_DIR / "db.sqlite3"),
+    }
+}
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

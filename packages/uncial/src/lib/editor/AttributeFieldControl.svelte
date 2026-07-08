@@ -1,3 +1,10 @@
+<script lang="ts" module>
+	// Per-instance id so each rendered field can associate its <label> with its
+	// control, even when several fields share the same attribute name across
+	// blocks. A module counter keeps ids unique and stable without crypto.
+	let nextFieldId = 0;
+</script>
+
 <script lang="ts">
 	import { inferAttributeInputKind, normalizeAttributeOptions } from '../core/attributes.js';
 	import type { AttributeSpec } from '../core/types.js';
@@ -14,7 +21,12 @@
 
 	let { name, spec, value = undefined, error = '', onChange, onCustom }: Props = $props();
 
+	const fieldId = `uncial-field-${nextFieldId++}`;
 	const inputKind = $derived(inferAttributeInputKind(spec));
+	// The rich-text editor and custom choosers render a component / <button>,
+	// neither of which a <label for> can address, so only native form controls
+	// get an associated <label>.
+	const hasLabelableControl = $derived(isBuiltInInputKind(inputKind) && inputKind !== 'richtext');
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
 	const stringValue = $derived.by(() => {
 		if (typeof value === 'string') return value;
@@ -40,7 +52,11 @@
 
 {#if inputKind !== 'hidden'}
 	<div class="uncial-field">
-		<span class="uncial-field__label">{name}</span>
+		{#if hasLabelableControl}
+			<label class="uncial-field__label" for={fieldId}>{name}</label>
+		{:else}
+			<span class="uncial-field__label">{name}</span>
+		{/if}
 		{#if !isBuiltInInputKind(inputKind)}
 			<button
 				type="button"
@@ -51,6 +67,7 @@
 			</button>
 		{:else if inputKind === 'checkbox'}
 			<input
+				id={fieldId}
 				class="uncial-checkbox uncial-checkbox--sm"
 				type="checkbox"
 				checked={Boolean(value)}
@@ -61,6 +78,7 @@
 			/>
 		{:else if inputKind === 'number'}
 			<input
+				id={fieldId}
 				class="uncial-input uncial-input--sm"
 				type="number"
 				placeholder={spec.placeholder ?? name}
@@ -79,8 +97,8 @@
 			/>
 		{:else if inputKind === 'select'}
 			<select
+				id={fieldId}
 				class="uncial-select uncial-select--sm"
-				aria-label={name}
 				value={stringValue}
 				onchange={(event) => {
 					const target = event.currentTarget as HTMLSelectElement;
@@ -93,6 +111,7 @@
 			</select>
 		{:else if inputKind === 'textarea' || inputKind === 'json'}
 			<textarea
+				id={fieldId}
 				class="uncial-textarea uncial-textarea--tall"
 				placeholder={spec.placeholder ?? name}
 				spellcheck={inputKind !== 'json'}
@@ -104,6 +123,7 @@
 			></textarea>
 		{:else}
 			<input
+				id={fieldId}
 				class="uncial-input uncial-input--sm"
 				type="text"
 				placeholder={spec.placeholder ?? name}

@@ -6,8 +6,10 @@ export { default as Toolbar } from './Toolbar.svelte';
 export { default as BlockMenu } from './BlockMenu.svelte';
 export { bindEditor } from './bindEditor.js';
 export { createEditorExtensions } from './createEditorExtensions.js';
-export { createBlockAttributesController } from './attributesController.js';
+export { createBlockAttributesController, createInitialState } from './attributesController.js';
 export { createDocumentMetaController } from './metaController.js';
+export { CHOOSE_ATTRIBUTE_EVENT } from './chooseAttribute.js';
+export type { ChooseAttributeRequest } from './chooseAttribute.js';
 export {
 	builtinToolbarFeatures,
 	defaultToolbarFeatures,

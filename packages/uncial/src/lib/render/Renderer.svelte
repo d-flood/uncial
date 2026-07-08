@@ -12,7 +12,7 @@
 	import type { PMDoc, PMNode } from '../shared/document.js';
 	import { resolveRegistry } from '../core/registry.js';
 	import { emptyDocument } from '../shared/content.js';
-	import { SVELTE_RUNTIME_ID } from '../runtime/svelte.js';
+	import { SVELTE_RUNTIME_ID } from '../shared/runtimeId.js';
 	import RichContent from './RichContent.svelte';
 
 	interface Props {

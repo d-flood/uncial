@@ -1,3 +1,6 @@
+import { imagesListUrl } from './apiUrls.js';
+import type { UncialApiUrls } from './apiUrls.js';
+
 export type WagtailImage = {
 	id: number;
 	title: string;
@@ -13,11 +16,23 @@ export type ChooseAttributeEvent = CustomEvent<{
 	setAttrs: (attrs: Record<string, unknown>) => void;
 }>;
 
-export async function fetchImages(): Promise<WagtailImage[]> {
-	const response = await fetch('/api/uncial/images/');
+export async function fetchImages(apiUrls?: UncialApiUrls): Promise<WagtailImage[]> {
+	const response = await fetch(imagesListUrl(apiUrls));
 	if (!response.ok) return [];
 	const payload = (await response.json()) as { images?: WagtailImage[] };
 	return payload.images ?? [];
+}
+
+/**
+ * Write a chosen image back to the block's attributes. Shared by the Wagtail
+ * modal bridge path and the fallback dialog so both apply identical attrs.
+ */
+export function applyImageChoice(event: ChooseAttributeEvent, chosen: WagtailImage): void {
+	event.detail.setAttrs({
+		[event.detail.name]: chosen.id,
+		previewUrl: chosen.previewUrl ?? '',
+		alt: event.detail.attrs.alt || chosen.title
+	});
 }
 
 export function closeImageBrowser(dialog: HTMLDialogElement) {
@@ -53,7 +68,7 @@ export function createImageButton(image: WagtailImage, onChoose: (image: Wagtail
 	return button;
 }
 
-export async function openImageBrowser(event: ChooseAttributeEvent) {
+export async function openImageBrowser(event: ChooseAttributeEvent, apiUrls?: UncialApiUrls) {
 	const dialog = document.createElement('dialog');
 	dialog.className = 'uncial-wagtail-image-browser';
 	dialog.innerHTML = `
@@ -68,7 +83,7 @@ export async function openImageBrowser(event: ChooseAttributeEvent) {
 	dialog.showModal();
 
 	const grid = dialog.querySelector('.uncial-wagtail-image-browser__grid');
-	const images = await fetchImages();
+	const images = await fetchImages(apiUrls);
 	if (!grid) return;
 	grid.replaceChildren();
 
@@ -80,11 +95,7 @@ export async function openImageBrowser(event: ChooseAttributeEvent) {
 	for (const image of images) {
 		grid.append(
 			createImageButton(image, (chosen) => {
-				event.detail.setAttrs({
-					[event.detail.name]: chosen.id,
-					previewUrl: chosen.previewUrl ?? '',
-					alt: event.detail.attrs.alt || chosen.title
-				});
+				applyImageChoice(event, chosen);
 				closeImageBrowser(dialog);
 			})
 		);

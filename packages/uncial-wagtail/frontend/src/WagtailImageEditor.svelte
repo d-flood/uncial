@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { imagePreviewUrl } from './apiUrls.js';
+
 	interface Props {
 		imageId?: number | null;
 		alt?: string;
@@ -17,7 +19,7 @@
 		previewUrl = ''
 	}: Props = $props();
 
-	let editorPreviewUrl = $derived(previewUrl || (imageId ? `/api/uncial/images/${imageId}/preview/` : ''));
+	let editorPreviewUrl = $derived(previewUrl || (imageId ? imagePreviewUrl(imageId) : ''));
 </script>
 
 <div

@@ -90,9 +90,8 @@
 
 	function runFeature(feature: ToolbarFeature): void {
 		if (feature.id === 'link' && onEditLink) {
-			if (editor && !editor.isActive('link')) {
-				feature.run({ editor, schema });
-			}
+			// Only open the link panel; the link mark is applied when the panel
+			// commits, so cancelling never leaves a dangling placeholder link.
 			onEditLink();
 			return;
 		}

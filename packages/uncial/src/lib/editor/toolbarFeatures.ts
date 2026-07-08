@@ -174,6 +174,44 @@ export const builtinToolbarFeatures: readonly ToolbarFeature[] = [
 	}
 ];
 
+/**
+ * A single generic heading toggle (level 3) whose active state matches any
+ * heading level. Used by editors that expose one heading control instead of
+ * the per-level `heading2`..`heading6` buttons.
+ */
+export const genericHeadingToolbarFeature: ToolbarFeature = {
+	id: 'heading',
+	label: 'Heading',
+	group: 'heading',
+	isActive: ({ editor }) => editor.isActive('heading'),
+	canRun: ({ editor }) => editor.can().chain().focus().toggleHeading({ level: 3 }).run(),
+	run: ({ editor }) => editor.chain().focus().toggleHeading({ level: 3 }).run()
+};
+
+function builtinFeature(id: ToolbarFeatureId): ToolbarFeature {
+	const feature = builtinToolbarFeatures.find((entry) => entry.id === id);
+	if (!feature) throw new Error(`Unknown builtin toolbar feature: ${id}`);
+	return feature;
+}
+
+/**
+ * Toolbar descriptors for the rich text attribute editor. Ids line up with
+ * `RichTextFeature` names so the list can be filtered by a resolved rich text
+ * feature set; labels match that editor's existing button labels.
+ */
+export const richTextAttributeToolbarFeatures: readonly ToolbarFeature[] = [
+	builtinFeature('bold'),
+	builtinFeature('italic'),
+	{ ...builtinFeature('strike'), label: 'Strikethrough' },
+	{ ...builtinFeature('code'), label: 'Inline code' },
+	genericHeadingToolbarFeature,
+	builtinFeature('bulletList'),
+	builtinFeature('orderedList'),
+	builtinFeature('blockquote'),
+	builtinFeature('codeBlock'),
+	builtinFeature('horizontalRule')
+];
+
 export function resolveToolbarFeatures({
 	editor,
 	schema,

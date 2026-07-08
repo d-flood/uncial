@@ -7,13 +7,6 @@ from wagtail.models import Collection
 from uncial_wagtail.references import UncialReference, collect_references, resolve_references
 
 
-@pytest.fixture(scope="session")
-def django_db_use_migrations():
-    # The test project's apps ship without migration files; build tables
-    # directly from the current model state instead.
-    return False
-
-
 @pytest.fixture
 def image(db):
     if not Collection.objects.exists():
@@ -75,6 +68,38 @@ def test_resolve_references_respects_setting_override(image):
     # The fallback must itself come from the configured allowlist, not the
     # built-in default (which is excluded here).
     assert resolved[disallowed.key]["rendition"] == "width-100"
+
+
+def test_resolve_references_query_count_is_flat_in_reference_count(db, django_assert_num_queries):
+    # The rendition cache survives test transactions; clear it so the
+    # pre-generation below reliably creates real database rows.
+    get_image_model().get_rendition_model().cache_backend.clear()
+    if not Collection.objects.exists():
+        Collection.add_root(name="Root")
+    image_model = get_image_model()
+    images = [
+        image_model.objects.create(title=f"Image {index}", file=get_test_image_file())
+        for index in range(4)
+    ]
+    # Pre-generate the renditions so we measure lookup cost, not creation cost.
+    for image in images:
+        image.get_rendition("width-400")
+    references = [UncialReference("wagtail.image", image.id, "width-400") for image in images]
+
+    # One query for the images plus one prefetch query for all renditions,
+    # regardless of how many references are resolved.
+    with django_assert_num_queries(2):
+        resolved = resolve_references(references)
+    with django_assert_num_queries(2):
+        resolve_references(references[:1])
+
+    assert len(resolved) == len(images)
+    assert {entry["id"] for entry in resolved.values()} == {image.id for image in images}
+
+
+def test_resolve_references_returns_empty_dict_without_queries(db, django_assert_num_queries):
+    with django_assert_num_queries(0):
+        assert resolve_references([]) == {}
 
 
 def test_collect_references_skips_malformed_nodes():

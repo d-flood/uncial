@@ -1,19 +1,13 @@
 import { mount, unmount } from 'svelte';
-import '../../../uncial/src/lib/styles/index.css';
+import 'uncial/styles';
 import AdminEditor from './AdminEditor.svelte';
 import { createBlockRegistry, createSchema as createUncialSchema } from 'uncial/core';
 import type { ContentSchema } from 'uncial/core';
-import { createCalloutBlock, createCardBlock } from './demoBlocks.js';
-import { createWagtailImageBlock } from './imageBlock.js';
-import { openImageBrowser } from './imageBrowser.js';
-import type { ChooseAttributeEvent } from './imageBrowser.js';
-
-type WidgetConfig = {
-	allowedBlocks?: string[];
-	allowedMarks?: string[];
-	toolbarFeatures?: string[];
-	imageRenditions?: string[];
-};
+import type { ToolbarFeature } from 'uncial/editor';
+import { setActiveApiUrls } from './apiUrls.js';
+import { createBlocks, normalizeConfig, resolveToolbarExtensions } from './config.js';
+import type { UncialWidgetConfig } from './config.js';
+import { ensureUncialWagtailGlobal } from './uncialGlobal.js';
 
 const emptyDocument = { type: 'doc', content: [] };
 
@@ -21,6 +15,7 @@ class UncialEditorElement extends HTMLElement {
 	json?: Record<string, unknown>;
 	schema?: ContentSchema;
 	toolbarFeatures?: string[];
+	toolbarExtensions?: ToolbarFeature[];
 	blocks?: ReturnType<typeof createBlockRegistry>;
 	#mounted: Record<string, unknown> | null = null;
 
@@ -32,6 +27,7 @@ class UncialEditorElement extends HTMLElement {
 				json: this.json,
 				schema: this.schema,
 				toolbarFeatures: this.toolbarFeatures,
+				toolbarExtensions: this.toolbarExtensions,
 				onChange: (document: unknown) => {
 					this.json = document as Record<string, unknown>;
 					this.dispatchEvent(
@@ -61,63 +57,40 @@ function parseJson(value: string | undefined | null, fallback: unknown) {
 	}
 }
 
-function stringArray(value: unknown): string[] {
-	return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
-}
-
-function normalizeConfig(config: WidgetConfig): WidgetConfig {
-	return {
-		allowedBlocks: stringArray(config.allowedBlocks),
-		allowedMarks: stringArray(config.allowedMarks),
-		toolbarFeatures: stringArray(config.toolbarFeatures),
-		imageRenditions: stringArray(config.imageRenditions)
-	};
-}
-
-function createSchema(config: WidgetConfig, blocks: ReturnType<typeof createBlockRegistry>) {
+function createSchema(config: UncialWidgetConfig, blocks: ReturnType<typeof createBlockRegistry>) {
 	return createUncialSchema(blocks, {
 		allowedBlocks: config.allowedBlocks,
 		allowedMarks: config.allowedMarks
 	});
 }
 
-function createBlocks(config: WidgetConfig) {
-	const blocks = [];
-	if (config.allowedBlocks?.includes('wagtail.image')) {
-		blocks.push(
-			createWagtailImageBlock(
-				config.imageRenditions?.length ? { renditions: config.imageRenditions } : {}
-			)
-		);
+function applyGlobalConfig(config: UncialWidgetConfig) {
+	setActiveApiUrls(config.apiUrls);
+	if (config.apiUrls.chooserModal) {
+		// chooser-bridge.js reads this at call time; merge, never overwrite.
+		ensureUncialWagtailGlobal().imageChooserUrl = config.apiUrls.chooserModal;
 	}
-	if (config.allowedBlocks?.includes('callout')) {
-		blocks.push(createCalloutBlock());
-	}
-	if (config.allowedBlocks?.includes('card')) {
-		blocks.push(createCardBlock());
-	}
-	return createBlockRegistry(blocks);
 }
 
 function initWidget(widget: Element) {
 	if (!(widget instanceof HTMLElement) || widget.dataset.uncialMounted === 'true') return;
 
-	const input = widget.querySelector<HTMLInputElement>('input[type="hidden"]');
+	const input =
+		widget.querySelector<HTMLTextAreaElement | HTMLInputElement>('[data-uncial-input]') ??
+		widget.querySelector<HTMLInputElement>('input[type="hidden"]');
 	const mount = widget.querySelector<HTMLElement>('[data-uncial-editor]');
 	if (!input || !mount) return;
 
-	const config = normalizeConfig(parseJson(widget.dataset.uncialConfig, {}) as WidgetConfig);
-	const editor = document.createElement('uncial-editor') as HTMLElement & {
-		json?: unknown;
-		schema?: unknown;
-		toolbarFeatures?: string[];
-		blocks?: ReturnType<typeof createBlockRegistry>;
-	};
+	const config = normalizeConfig(parseJson(widget.dataset.uncialConfig, {}));
+	applyGlobalConfig(config);
 
-	editor.json = parseJson(input.value, emptyDocument);
+	const editor = document.createElement('uncial-editor') as UncialEditorElement;
+
+	editor.json = parseJson(input.value, emptyDocument) as Record<string, unknown>;
 	editor.blocks = createBlocks(config);
 	editor.schema = createSchema(config, editor.blocks);
 	editor.toolbarFeatures = config.toolbarFeatures;
+	editor.toolbarExtensions = resolveToolbarExtensions(config.toolbarExtensions);
 	editor.addEventListener('uncial-change', (event) => {
 		input.value = JSON.stringify((event as CustomEvent).detail ?? emptyDocument);
 	});
@@ -129,12 +102,6 @@ function initWidget(widget: Element) {
 function initAll(root: ParentNode = document) {
 	root.querySelectorAll('.uncial-wagtail-widget').forEach(initWidget);
 }
-
-window.addEventListener('uncial:choose-attribute', (event) => {
-	const customEvent = event as ChooseAttributeEvent;
-	if (customEvent.detail.inputKind !== 'wagtail-image') return;
-	void openImageBrowser(customEvent);
-});
 
 if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', () => initAll(), { once: true });

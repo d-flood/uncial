@@ -4,7 +4,7 @@
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
 	import RichContent from './RichContent.svelte';
-	import { sanitizeHref } from './sanitize.js';
+	import { resolveLinkRel, sanitizeHref } from './sanitize.js';
 
 	interface Props {
 		node: PMNode;
@@ -33,6 +33,20 @@
 	function getSvelteRenderComponent(component: unknown): Component<Record<string, unknown>> {
 		return component as Component<Record<string, unknown>>;
 	}
+
+	function getLinkAttrs(attrs: Record<string, unknown> | undefined): Record<string, string> {
+		const result: Record<string, string> = {};
+		if (attrs) {
+			if (typeof attrs.title === 'string' && attrs.title) result.title = attrs.title;
+			if (typeof attrs.class === 'string' && attrs.class) result.class = attrs.class;
+			const target =
+				typeof attrs.target === 'string' && attrs.target.trim() ? attrs.target.trim() : undefined;
+			if (target) result.target = target;
+			const rel = resolveLinkRel(attrs.rel, target);
+			if (rel) result.rel = rel;
+		}
+		return result;
+	}
 </script>
 
 {#snippet blockChildren()}
@@ -56,7 +70,7 @@
 			{@const href = sanitizeHref(mark.attrs?.href)}
 			{#if href}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sanitized rich-text links may be external, app-relative, mailto, tel, or hash URLs -->
-				<a {href}>{@render renderMarkedText(text, rest)}</a>
+				<a {href} {...getLinkAttrs(mark.attrs)}>{@render renderMarkedText(text, rest)}</a>
 			{:else}
 				{@render renderMarkedText(text, rest)}
 			{/if}

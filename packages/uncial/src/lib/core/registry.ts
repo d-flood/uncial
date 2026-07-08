@@ -6,7 +6,13 @@ import type {
 	CreateSchemaOptions
 } from './types.js';
 
-const DEFAULT_MARKS = ['bold', 'italic', 'strike', 'code', 'link'] as const;
+/**
+ * The default mark universe a schema allows when the host does not pass an
+ * explicit `allowedMarks`. This is the single source of truth for the default
+ * marks — the editor's base extensions (`shared/tiptap.ts`) consume it too, so
+ * the fallback schema and the fallback extension set never drift apart.
+ */
+export const DEFAULT_MARKS = ['bold', 'italic', 'strike', 'code', 'link'] as const;
 
 export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	const byId = new Map<string, BlockDefinition>();
@@ -49,9 +55,22 @@ export function createSchema(
 	registry: BlockRegistry,
 	options: CreateSchemaOptions = {}
 ): ContentSchema {
-	const allowedBlocks = options.allowedBlocks
-		? new Set(options.allowedBlocks.filter((id: string) => registry.has(id)))
-		: new Set(registry.blocks.map((block: BlockDefinition) => block.id));
+	let allowedBlocks: Set<string>;
+	if (options.allowedBlocks) {
+		const unknown = options.allowedBlocks.filter((id: string) => !registry.has(id));
+		if (unknown.length > 0) {
+			console.warn(
+				`createSchema: ignoring unknown block id(s) in allowedBlocks: ${unknown
+					.map((id) => `"${id}"`)
+					.join(', ')}. Known ids: ${registry.blocks
+					.map((block: BlockDefinition) => `"${block.id}"`)
+					.join(', ')}.`
+			);
+		}
+		allowedBlocks = new Set(options.allowedBlocks.filter((id: string) => registry.has(id)));
+	} else {
+		allowedBlocks = new Set(registry.blocks.map((block: BlockDefinition) => block.id));
+	}
 
 	const allowedMarks = new Set(options.allowedMarks ?? DEFAULT_MARKS);
 	const metaFields = new Map(Object.entries(options.metaFields ?? {}));

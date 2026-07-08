@@ -7,9 +7,11 @@ from .widgets import UncialWidget
 
 
 class UncialPanel(FieldPanel):
-    def __init__(self, field_name: str, *args: Any, config: UncialEditorConfig | None = None, **kwargs: Any):
+    def __init__(
+        self, field_name: str, *args: Any, config: UncialEditorConfig | None = None, **kwargs: Any
+    ):
         super().__init__(field_name, *args, **kwargs)
-        self.config = config or UncialEditorConfig()
+        self.config = config
 
     def clone_kwargs(self) -> dict[str, Any]:
         kwargs = super().clone_kwargs()
@@ -18,6 +20,8 @@ class UncialPanel(FieldPanel):
 
     def get_form_options(self) -> dict[str, Any]:
         options = super().get_form_options()
+        if self.config is None:
+            return options
         widgets = options.setdefault("widgets", {})  # pyright: ignore[reportArgumentType]
         widgets[self.field_name] = UncialWidget(config=self.config)
         return options

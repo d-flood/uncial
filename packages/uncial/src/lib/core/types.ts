@@ -1,3 +1,4 @@
+import type { Component, Snippet } from 'svelte';
 import type { PMDoc, PMPath } from '../shared/document.js';
 import type { NormalizedBlockComponentDefinition } from './runtime.js';
 
@@ -58,7 +59,12 @@ export type MetaFieldSpec<T> = AttributeSpec<T>;
 export type DocumentMetaSchema = Record<string, MetaFieldSpec<unknown>>;
 
 export type BlockAttributes = Record<string, unknown>;
-export type BlockIcon = string | unknown;
+/**
+ * A block's icon for editor UI (toolbar / insert menu). Either an icon name or
+ * inline markup as a string, or a Svelte component/snippet that renders the
+ * icon. (`string | unknown` collapsed to `unknown`, disabling type checking.)
+ */
+export type BlockIcon = string | Component | Snippet;
 export type HtmlSpecValue = string | number | boolean | null | undefined;
 export type HtmlSpec = [string, Record<string, unknown>?, ...(HtmlSpec | HtmlSpecValue)[]];
 export type BlockHtmlRenderer = (attrs: BlockAttributes) => HtmlSpec;
@@ -160,7 +166,8 @@ export type ValidationCode =
 	| 'INVALID_CONTENT'
 	| 'DISALLOWED_BLOCK'
 	| 'DISALLOWED_MARK'
-	| 'MALFORMED_NODE';
+	| 'MALFORMED_NODE'
+	| 'UNSUPPORTED_VERSION';
 
 export interface ValidationIssue {
 	code: ValidationCode;

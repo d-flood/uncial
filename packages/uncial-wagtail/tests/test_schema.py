@@ -14,6 +14,15 @@ def test_config_serializes_frontend_keys():
     assert config.as_dict()["allowedMarks"] == ["bold"]
 
 
+def test_config_serializes_registry_keys_as_strings():
+    config = UncialEditorConfig(
+        toolbar_extensions=["highlight", "smallcaps"], custom_blocks=["callout", "card"]
+    )
+
+    assert config.as_dict()["toolbarExtensions"] == ["highlight", "smallcaps"]
+    assert config.as_dict()["customBlocks"] == ["callout", "card"]
+
+
 def test_config_serializes_default_image_renditions():
     config = UncialEditorConfig()
 

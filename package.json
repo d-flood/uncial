@@ -6,8 +6,13 @@
 		"check": "bun --filter=uncial run check && bun --filter=uncial-wagtail run check && bun --filter=uncial-cms run check",
 		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test && bun --filter=uncial-cms run test",
 		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build && bun --filter=uncial-cms run build",
+		"dev": "bun --filter=uncial run dev",
+		"build:wagtail": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build",
+		"wagtail:setup": "uv sync --project packages/uncial-wagtail && bun --filter=uncial-wagtail run demo:migrate && bun --filter=uncial-wagtail run demo:seed",
+		"wagtail:serve": "echo '>> Wagtail demo admin → http://localhost:8000/admin/  (login: admin / admin)' && bun --filter=uncial-wagtail run demo",
+		"dev:wagtail": "bun run build:wagtail && bun run wagtail:setup && bun run wagtail:serve",
 		"prepack": "bun --filter=uncial run prepack",
-		"version": "changeset version && bun run scripts/sync-py-versions.ts",
+		"version": "changeset version && bun run scripts/sync-py-versions.ts && uv lock --project packages/uncial-wagtail",
 		"release": "bun --filter=uncial run prepack && changeset publish"
 	},
 	"devDependencies": {

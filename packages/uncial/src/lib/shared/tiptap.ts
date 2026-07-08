@@ -5,11 +5,13 @@ import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type {
 	AttributeSpec,
+	BlockContentDefinition,
 	BlockDefinition,
 	BlockRegistry,
 	ContentSchema
 } from '../core/types.js';
-import { resolveRegistry } from '../core/registry.js';
+import { DEFAULT_MARKS, resolveRegistry } from '../core/registry.js';
+import type { BlockEditorMountHandle } from '../core/runtime.js';
 import {
 	coerceAttributeValue,
 	normalizeBlockAttributes,
@@ -32,10 +34,41 @@ function safeParseJSON(raw: string | null): Record<string, unknown> {
 	}
 }
 
-type MountedComponent = { destroy(): void };
+type MountedComponent = BlockEditorMountHandle;
 
 export function getBlockDefaultAttrs(block: BlockDefinition): Record<string, unknown> {
 	return normalizeBlockAttributes(block, {});
+}
+
+function buildBlockEditorProps(
+	block: BlockDefinition,
+	node: ProseMirrorNode,
+	editor?: TiptapEditor,
+	onActivate?: BlockActivationCallback,
+	getPos?: () => number | undefined
+): Record<string, unknown> {
+	return {
+		attrs: node.attrs ?? {},
+		content: (node.content?.toJSON() ?? []) as PMNode[],
+		blockId: block.id,
+		label: block.label,
+		draggable: block.behaviors.draggable ?? true,
+		// Deliberately no `.focus()` here: updates often originate from form
+		// controls inside the block component, and refocusing the editor view
+		// would steal focus from them on every keystroke.
+		updateAttributes: (attrs: Record<string, unknown>) =>
+			editor?.chain().updateAttributes(block.id, attrs).run(),
+		// ProseMirror's getPos can return undefined when the node is not currently
+		// in the document (e.g. mid-transaction); skip activation in that case
+		// rather than reporting a bogus position.
+		onActivate:
+			getPos && onActivate
+				? () => {
+						const pos = getPos();
+						if (pos !== undefined) onActivate(pos);
+					}
+				: undefined
+	};
 }
 
 function mountBlockEditorComponent(
@@ -46,7 +79,7 @@ function mountBlockEditorComponent(
 	mounted: MountedComponent | null,
 	editor?: TiptapEditor,
 	onActivate?: BlockActivationCallback,
-	getPos?: () => number
+	getPos?: () => number | undefined
 ): MountedComponent {
 	mounted?.destroy();
 	const createEditorMount = block.components.editor.plugin.createEditorMount;
@@ -58,17 +91,8 @@ function mountBlockEditorComponent(
 		target: container,
 		inline: block.behaviors.inline ?? false,
 		component: block.components.editor,
-		props: {
-			attrs: node.attrs ?? {},
-			content: (node.content?.toJSON() ?? []) as PMNode[],
-			contentDOM,
-			blockId: block.id,
-			label: block.label,
-			draggable: block.behaviors.draggable ?? true,
-			updateAttributes: (attrs: Record<string, unknown>) =>
-				editor?.chain().focus().updateAttributes(block.id, attrs).run(),
-			onActivate: getPos && onActivate ? () => onActivate(getPos()) : undefined
-		}
+		contentDOM,
+		props: buildBlockEditorProps(block, node, editor, onActivate, getPos)
 	});
 }
 
@@ -88,7 +112,7 @@ function isInteractiveNodeViewEvent(event: Event): boolean {
 function createBlockNodeView(
 	block: BlockDefinition,
 	node: ProseMirrorNode,
-	getPos?: () => number,
+	getPos?: () => number | undefined,
 	onActivate?: BlockActivationCallback,
 	editor?: TiptapEditor
 ): ProseMirrorNodeView {
@@ -104,6 +128,7 @@ function createBlockNodeView(
 	function syncBlockPosition(): void {
 		if (!getPos) return;
 		const pos = getPos();
+		if (pos === undefined) return;
 		dom.dataset.uncialBlockPos = String(pos);
 	}
 
@@ -128,16 +153,23 @@ function createBlockNodeView(
 			}
 
 			lastAttrs = nextAttrs;
-			mounted = mountBlockEditorComponent(
-				block,
-				nextNode,
-				dom,
-				contentDOM,
-				mounted,
-				editor,
-				onActivate,
-				getPos
-			);
+			if (mounted?.update) {
+				// Update the mounted component's props in place so DOM state (focus,
+				// selection, scroll position) inside the block component survives.
+				mounted.update(buildBlockEditorProps(block, nextNode, editor, onActivate, getPos));
+			} else {
+				// Fall back to a full remount for runtimes without update support.
+				mounted = mountBlockEditorComponent(
+					block,
+					nextNode,
+					dom,
+					contentDOM,
+					mounted,
+					editor,
+					onActivate,
+					getPos
+				);
+			}
 			return true;
 		},
 		stopEvent(event) {
@@ -160,9 +192,23 @@ function createBlockNodeView(
 	};
 }
 
+function containerContentExpression(content: BlockContentDefinition): string {
+	// Core "flow" semantics (see core/normalize.ts) preserve any block-level
+	// children inside a container: paragraphs, headings, lists, code blocks,
+	// blockquotes, and custom blocks alike. Every non-inline node in the editor
+	// schema (StarterKit nodes and custom blocks) belongs to the "block" group,
+	// so "block*" mirrors what core considers valid flow content. Zero-or-more
+	// (not one-or-more) is deliberate: persisted documents commonly contain
+	// empty containers (`"content": []`), and those must stay schema-valid.
+	switch (content.kind) {
+		case 'flow':
+		default:
+			return 'block*';
+	}
+}
+
 function createBlockNodeExtension(
 	block: BlockDefinition,
-	containerContentExpression: string,
 	onActivate?: BlockActivationCallback
 ): AnyExtension {
 	const isContainer = Boolean(block.content);
@@ -171,7 +217,7 @@ function createBlockNodeExtension(
 		name: block.id,
 		group: block.behaviors.inline ? 'inline' : 'block',
 		inline: block.behaviors.inline ?? false,
-		content: isContainer ? containerContentExpression : undefined,
+		content: block.content ? containerContentExpression(block.content) : undefined,
 		atom: !isContainer,
 		defining: isContainer,
 		isolating: isContainer,
@@ -206,7 +252,7 @@ function createBlockNodeExtension(
 		},
 		addNodeView() {
 			return ({ node, getPos, editor }) =>
-				createBlockNodeView(block, node, getPos as () => number, onActivate, editor);
+				createBlockNodeView(block, node, getPos, onActivate, editor);
 		},
 		renderHTML({ HTMLAttributes, node }) {
 			const normalizedAttrs = normalizeBlockAttributes(block, node.attrs ?? {});
@@ -237,7 +283,9 @@ const LinkMark = Mark.create({
 				parseHTML: (element: HTMLElement) => sanitizeHref(element.getAttribute('href'))
 			},
 			target: { default: null },
-			rel: { default: null }
+			rel: { default: null },
+			title: { default: null },
+			class: { default: null }
 		};
 	},
 	parseHTML() {
@@ -278,7 +326,7 @@ function createBaseExtensions(
 	schema?: ContentSchema,
 	extensions: AnyExtension[] = []
 ): AnyExtension[] {
-	const marks = schema?.allowedMarks ?? new Set(['bold', 'italic', 'strike', 'code', 'link']);
+	const marks = schema?.allowedMarks ?? new Set<string>(DEFAULT_MARKS);
 	const includeBold = marks.has('bold');
 	const includeItalic = marks.has('italic');
 	const includeStrike = marks.has('strike');
@@ -333,17 +381,9 @@ export function createEditorExtensions(
 	extensions: AnyExtension[] = []
 ): AnyExtension[] {
 	const registry = resolveRegistry(blocks);
-	const allowedBlockNames = registry.blocks
-		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
-		.map((block: BlockDefinition) => block.id);
-	const containerContentExpression = allowedBlockNames.length
-		? `(${allowedBlockNames.join(' | ')})*`
-		: '';
 	const blockExtensions = registry.blocks
 		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
-		.map((block: BlockDefinition) =>
-			createBlockNodeExtension(block, containerContentExpression, onActivateBlock)
-		);
+		.map((block: BlockDefinition) => createBlockNodeExtension(block, onActivateBlock));
 
 	return [...createBaseExtensions(schema), ...blockExtensions, ...extensions];
 }
