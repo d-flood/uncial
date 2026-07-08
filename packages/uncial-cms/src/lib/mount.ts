@@ -3,13 +3,16 @@ import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core'
 import type { UncialEditorElement } from 'uncial/web-components';
 import { parseDocument, serializeDocument } from './document.js';
 import { ConflictError } from './errors.js';
-import { createGitHubAdapter, patSessionProvider } from './github/index.js';
+import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
 export interface MountEditorPageOptions {
 	config: UncialCmsSiteConfig;
 	sourcePath: string; // repo-root-relative JSON path
+	/** Site-relative page path, used in the deterministic commit message
+	 * `uncial-cms: edit <path>`. Falls back to sourcePath. */
+	pagePath?: string;
 	blocks: unknown; // site registry, passed through to the element
 	schema: unknown; // site schema, passed through to the element
 	sessionProvider?: SessionProvider;
@@ -45,8 +48,8 @@ function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 export function mountEditorPage(
 	target: HTMLElement,
 	opts: MountEditorPageOptions
-): { destroy(): void } {
-	const { config, sourcePath, sessionProvider = patSessionProvider } = opts;
+): { destroy(): void; isDirty(): boolean } {
+	const { config, sourcePath, sessionProvider = popupSessionProvider } = opts;
 	const blocks = opts.blocks as BlockRegistry;
 	const schema = opts.schema as ContentSchema;
 
@@ -84,6 +87,7 @@ export function mountEditorPage(
 	let session: ForgeSession | null = null;
 	let sha: string | null = null;
 	let currentDocument: ContentDocument | null = null;
+	let dirty = false;
 
 	const setStatus = (text: string) => {
 		status.textContent = text;
@@ -98,6 +102,7 @@ export function mountEditorPage(
 
 	const onChange = (event: Event) => {
 		currentDocument = (event as CustomEvent<ContentDocument>).detail;
+		dirty = true;
 	};
 	editor.addEventListener('uncial-change', onChange);
 
@@ -128,11 +133,12 @@ export function mountEditorPage(
 		try {
 			const content = serializeDocument(currentDocument, blocks, schema);
 			const result = await adapter.writeFile(sourcePath, content, {
-				message: `Update ${sourcePath} via uncial-cms`,
+				message: `uncial-cms: edit ${opts.pagePath ?? sourcePath}`,
 				sha: sha ?? undefined,
 				author: { name: session.user.name, email: session.user.email }
 			});
 			sha = result.sha;
+			dirty = false;
 			setStatus(`Saved as commit ${result.commitSha.slice(0, 7)}`);
 		} catch (error) {
 			if (error instanceof ConflictError) {
@@ -157,6 +163,9 @@ export function mountEditorPage(
 			destroyed = true;
 			editor.removeEventListener('uncial-change', onChange);
 			root.remove();
+		},
+		isDirty() {
+			return dirty;
 		}
 	};
 }

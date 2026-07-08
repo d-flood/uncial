@@ -1,4 +1,8 @@
-import { mountEditorPage, type UncialCmsSiteConfig } from '../../src/lib/index.js';
+import {
+	mountEditorPage,
+	patSessionProvider,
+	type UncialCmsSiteConfig
+} from '../../src/lib/index.js';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 
 const params = new URLSearchParams(location.search);
@@ -19,5 +23,7 @@ mountEditorPage(document.getElementById('editor-page')!, {
 	config,
 	sourcePath: params.get('path') ?? 'content/fixture.json',
 	blocks: registry,
-	schema
+	schema,
+	// The fixture exercises the PAT flow; popup auth is covered by unit tests.
+	sessionProvider: patSessionProvider
 });

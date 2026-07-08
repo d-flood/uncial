@@ -5,3 +5,11 @@ export class ConflictError extends Error {
 		this.name = 'ConflictError';
 	}
 }
+
+/** Thrown when a forge read targets a path that does not exist (404). */
+export class NotFoundError extends Error {
+	constructor(message = 'The requested file does not exist.') {
+		super(message);
+		this.name = 'NotFoundError';
+	}
+}

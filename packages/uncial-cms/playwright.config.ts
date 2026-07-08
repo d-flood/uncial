@@ -32,7 +32,7 @@ export default defineConfig({
 		},
 		{
 			name: 'demo',
-			testMatch: /demo-editor\.test\.ts/,
+			testMatch: /demo-(editor|index)\.test\.ts/,
 			use: { baseURL: 'http://localhost:4319' }
 		},
 		{

@@ -1,0 +1,37 @@
+{
+	"name": "uncial-cms-auth",
+	"version": "0.0.0",
+	"license": "MIT",
+	"description": "Stateless Cloudflare Worker that exchanges a GitHub OAuth dance for a single-repo-scoped GitHub App installation token, for uncial-cms.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/d-flood/uncial.git"
+	},
+	"bugs": {
+		"url": "https://github.com/d-flood/uncial/issues"
+	},
+	"homepage": "https://d-flood.github.io/uncial/",
+	"type": "module",
+	"files": [
+		"src",
+		"wrangler.jsonc",
+		"!src/**/*.spec.*"
+	],
+	"scripts": {
+		"check": "tsc --noEmit",
+		"test": "vitest",
+		"deploy": "wrangler deploy"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250620.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18",
+		"wrangler": "^4.0.0"
+	},
+	"keywords": [
+		"cloudflare-worker",
+		"github-app",
+		"oauth",
+		"cms"
+	]
+}
