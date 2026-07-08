@@ -18,9 +18,15 @@ export const siteConfig: UncialCmsSiteConfig = {
 // Built-in blocks only for now; Callout/Image custom blocks arrive in ticket 04.
 export const blocks = createBlockRegistry([]);
 
+// Docs meta fields drive the sidebar (buildDocsNav): `navGroup` sections a page
+// and `navOrder` sorts it within that section. Declared here so the CMS editor
+// renders them in its "Edit document metadata" panel — a page's place in the nav
+// is editable content, not code.
 export const schema = createSchema(blocks, {
 	metaFields: {
-		title: { default: 'Untitled page', required: true }
+		title: { default: 'Untitled page', required: true },
+		navGroup: { default: '', input: 'text', placeholder: 'Sidebar section, e.g. Getting started' },
+		navOrder: { default: 0, input: 'number', placeholder: 'Sort order within the section' }
 	}
 });
 

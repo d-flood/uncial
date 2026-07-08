@@ -1,7 +1,7 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Getting started" },
+	"meta": { "title": "Getting started", "navGroup": "Introduction", "navOrder": 1 },
 	"content": [
 		{
 			"type": "heading",

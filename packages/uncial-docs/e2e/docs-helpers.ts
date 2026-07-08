@@ -49,12 +49,27 @@ export async function seedDocsSession(page: Page): Promise<void> {
 	}, DOCS_REPO);
 }
 
-function toBase64(text: string): string {
+export function toBase64(text: string): string {
 	return Buffer.from(text, 'utf-8').toString('base64');
 }
 
-/** Intercepts api.github.com for the docs site, serving the getting-started doc. */
-export async function interceptDocsGitHub(page: Page): Promise<void> {
+export function fromBase64(base64: string): string {
+	return Buffer.from(base64, 'base64').toString('utf-8');
+}
+
+export interface RecordedPut {
+	path: string;
+	body: Record<string, unknown>;
+}
+
+/**
+ * Intercepts api.github.com for the docs site: GET serves the getting-started
+ * doc, PUT records the committed body (and returns a fresh sha), so tests can
+ * assert what a save persists. Mirrors uncial-cms's `interceptDemoGitHub`.
+ */
+export async function interceptDocsGitHub(page: Page): Promise<{ puts: RecordedPut[] }> {
+	const puts: RecordedPut[] = [];
+
 	await page.route('https://api.github.com/**', async (route: Route) => {
 		const request = route.request();
 		const url = new URL(request.url());
@@ -72,8 +87,20 @@ export async function interceptDocsGitHub(page: Page): Promise<void> {
 				});
 				return;
 			}
+			if (request.method() === 'PUT') {
+				puts.push({
+					path: url.pathname.replace('/repos/d-flood/uncial/contents/', ''),
+					body: request.postDataJSON() as Record<string, unknown>
+				});
+				await route.fulfill({
+					json: { content: { sha: 'sha-updated' }, commit: { sha: '1234567deadbeef' } }
+				});
+				return;
+			}
 		}
 
 		await route.fulfill({ status: 404, json: { message: 'Not Found' } });
 	});
+
+	return { puts };
 }

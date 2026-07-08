@@ -119,6 +119,10 @@ export function mountEditorPage(
 	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
 	editor.blocks = blocks;
 	editor.schema = schema;
+	// Forward the schema's declared meta fields so the editor renders (and edits)
+	// them in its "Edit document metadata" panel. Without this a consumer whose
+	// schema declares metaFields gets no metadata UI.
+	editor.metaFields = schema.metaFields;
 
 	chrome.append(saveButton, status);
 	root.append(chrome, banner, editor);
@@ -142,6 +146,10 @@ export function mountEditorPage(
 		},
 		setDocument(doc: ContentDocument) {
 			editor.json = doc;
+			// Seed the metadata panel from the loaded document's meta. Without this
+			// the panel shows schema defaults, so committing metadata would clobber
+			// the document's existing meta (e.g. reset title to its default).
+			editor.meta = doc.meta ?? {};
 		},
 		saveEnabled(enabled: boolean) {
 			saveButton.disabled = !enabled;
