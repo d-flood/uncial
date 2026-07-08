@@ -11,6 +11,13 @@ test('editor variant loads, edits, and commits to the mapped source path', async
 	await expect(editor).toContainText('Hello from the demo repo');
 	await expect(page.getByRole('status')).toContainText(`Editing ${ABOUT_SOURCE} as octocat`);
 
+	// The editor renders in a shadow root: the page's stylesheets must be
+	// mirrored inside it or the editor UI renders unstyled.
+	const shadowStylesheets = await page
+		.locator('uncial-editor')
+		.evaluate((el) => el.shadowRoot?.querySelectorAll('link[rel="stylesheet"]').length ?? 0);
+	expect(shadowStylesheets).toBeGreaterThan(0);
+
 	await editor.click();
 	await page.keyboard.press('End');
 	await page.keyboard.type(' — edited in e2e');
