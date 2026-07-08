@@ -4,6 +4,7 @@ import type { UncialEditorElement } from 'uncial/web-components';
 import { parseDocument, serializeDocument } from './document.js';
 import { ConflictError } from './errors.js';
 import { createGitHubAdapter, patSessionProvider } from './github/index.js';
+import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
 export interface MountEditorPageOptions {
@@ -29,6 +30,7 @@ export function mountEditorPage(
 
 	const root = document.createElement('div');
 	root.className = 'uncial-cms-editor-page';
+	root.dataset.uncialCmsRuntime = UNCIAL_CMS_RUNTIME_SENTINEL;
 
 	const chrome = document.createElement('div');
 	chrome.className = 'uncial-cms-chrome';

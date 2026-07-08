@@ -14,6 +14,9 @@
 		'radial-gradient(1200px 600px at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%), radial-gradient(900px 700px at 10% 90%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%)';
 	const repoUrl = 'https://github.com/d-flood/uncial';
 	const docsUrl = resolve('/docs');
+	// The uncial-cms demo is merged into this Pages artifact under /cms-demo/
+	// by pages.yml; it is a separate build, not a route of this app.
+	const cmsDemoUrl = `${resolve('/')}cms-demo/`;
 	let doc = $state(initialDocument);
 	let meta = $state(initialDocument.meta ?? {});
 	let activeTab = $state<'editor' | 'rendered' | 'json'>('editor');
@@ -137,6 +140,8 @@
 					GitHub repo
 				</a>
 				<a href={docsUrl} class="btn btn-outline btn-secondary btn-sm"> Docs </a>
+				<!-- rel="external": not a route of this app, so the prerender crawler must skip it -->
+				<a href={cmsDemoUrl} rel="external" class="btn btn-outline btn-accent btn-sm"> CMS demo </a>
 				<ThemeSwitcher />
 			</nav>
 		</div>
