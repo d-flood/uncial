@@ -92,6 +92,29 @@
         "wrangler": "^4.0.0",
       },
     },
+    "packages/uncial-docs": {
+      "name": "uncial-docs",
+      "version": "0.0.0",
+      "dependencies": {
+        "uncial": "workspace:^",
+        "uncial-cms": "workspace:^",
+      },
+      "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "@sveltejs/adapter-static": "^3.0.10",
+        "@sveltejs/kit": "^2.50.2",
+        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "@tailwindcss/vite": "^4.2.4",
+        "daisyui": "^5.5.19",
+        "phosphor-svelte": "^3.1.0",
+        "svelte": "^5.51.0",
+        "svelte-check": "^4.4.2",
+        "tailwindcss": "^4.2.4",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1",
+        "vitest": "^4.0.18",
+      },
+    },
     "packages/uncial-wagtail": {
       "name": "uncial-wagtail",
       "version": "0.0.7",
@@ -1047,6 +1070,8 @@
     "uncial-cms": ["uncial-cms@workspace:packages/uncial-cms"],
 
     "uncial-cms-auth": ["uncial-cms-auth@workspace:packages/uncial-cms-auth"],
+
+    "uncial-docs": ["uncial-docs@workspace:packages/uncial-docs"],
 
     "uncial-wagtail": ["uncial-wagtail@workspace:packages/uncial-wagtail"],
 

@@ -1,0 +1,185 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "Getting started" },
+	"content": [
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Your presentation layer is the editor" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "If you've built a site on a headless CMS, you know the failure mode. The CMS generates its editing UI from your data model, so a page becomes a wall of stacked form fields. Nest a few blocks — a section containing columns containing cards containing rich text — and editing turns into an archaeology dig: endless vertical scrolling through collapsed panels that look nothing like the page they produce."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [{ "type": "text", "text": "You have two bad options from there:" }]
+		},
+		{
+			"type": "orderedList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "Live with the generated forms.", "marks": [{ "type": "bold" }] },
+								{
+									"type": "text",
+									"text": " Editors lose all sense of what they're building."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "Customize the admin.", "marks": [{ "type": "bold" }] },
+								{
+									"type": "text",
+									"text": " Now you maintain two frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Uncial removes the fork. You write a block once, as an ordinary frontend component — the same component your site renders in production. Uncial mounts that component inside the editor as a live, editable block, and mounts it again (SSR-capable) in your frontend. The editor is not a form that approximates the page; it is the page, with editing chrome around it."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [{ "type": "text", "text": "Concretely, one block definition gives you:" }]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "a WYSIWYG editing experience where nested content looks nested, not stacked,"
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "an SSR-capable renderer for your public frontend," }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "typed attribute editing UI derived from the component's props," }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "and a plain ProseMirror-compatible JSON document your backend can store anywhere."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Add Uncial to a Svelte 5 app" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{ "type": "text", "text": "Install the package in your application. Uncial expects " },
+				{ "type": "text", "text": "svelte@^5", "marks": [{ "type": "code" }] },
+				{ "type": "text", "text": " as a peer dependency." }
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "bash" },
+			"content": [{ "type": "text", "text": "npm install uncial\npnpm add uncial\nbun add uncial" }]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Define a custom block once" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "This is the core move: a block starts life as a plain Svelte component — no editor imports, no CMS awareness. "
+				},
+				{ "type": "text", "text": "defineSvelteBlock", "marks": [{ "type": "code" }] },
+				{
+					"type": "text",
+					"text": " then wraps it with a stable id, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor and the SSR-capable renderer."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "svelte" },
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/lib/blocks/PromoCard.svelte -->\n<script lang=\"ts\">\n\tinterface Props {\n\t\ttitle?: string;\n\t\tbody?: string;\n\t}\n\n\tlet { title = 'Spring launch', body = 'Save 20% on featured plans.' }: Props = $props();\n</script>\n\n<article class=\"promo-card\">\n\t<h3>{title}</h3>\n\t<p>{body}</p>\n</article>"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/blocks/promoCard.ts\nimport { defineSvelteBlock } from 'uncial';\nimport PromoCard from './PromoCard.svelte';\n\nexport const promoCard = defineSvelteBlock({\n\tid: 'promoCard',\n\tlabel: 'Promo Card',\n\tdescription: 'A reusable promotional card block',\n\tattributes: {\n\t\ttitle: '',\n\t\tbody: { default: '', input: 'textarea' }\n\t},\n\tcomponent: PromoCard\n});"
+				}
+			]
+		}
+	]
+}

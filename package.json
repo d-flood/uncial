@@ -3,9 +3,9 @@
 	"packageManager": "bun@1.3.10",
 	"workspaces": ["packages/*"],
 	"scripts": {
-		"check": "bun --filter=uncial run check && bun --filter=uncial-wagtail run check && bun --filter=uncial-cms run check",
-		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test && bun --filter=uncial-cms run test",
-		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build && bun --filter=uncial-cms run build",
+		"check": "bun --filter=uncial run check && bun --filter=uncial-wagtail run check && bun --filter=uncial-cms run check && bun --filter=uncial-docs run check",
+		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test && bun --filter=uncial-cms run test && bun --filter=uncial-docs run test",
+		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build && bun --filter=uncial-cms run build && bun --filter=uncial-docs run build",
 		"dev": "bun --filter=uncial run dev",
 		"build:wagtail": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build",
 		"wagtail:setup": "uv sync --project packages/uncial-wagtail && bun --filter=uncial-wagtail run demo:migrate && bun --filter=uncial-wagtail run demo:seed",

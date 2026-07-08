@@ -1,0 +1,40 @@
+{
+	"name": "uncial-docs",
+	"version": "0.0.0",
+	"private": true,
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/d-flood/uncial.git"
+	},
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "bunx svelte-kit sync || true",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"test:unit": "vitest --project server",
+		"test": "bun run test:unit -- --run && bun run test:e2e",
+		"test:e2e": "playwright test"
+	},
+	"dependencies": {
+		"uncial": "workspace:^",
+		"uncial-cms": "workspace:^"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.58.2",
+		"@sveltejs/adapter-static": "^3.0.10",
+		"@sveltejs/kit": "^2.50.2",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@tailwindcss/vite": "^4.2.4",
+		"daisyui": "^5.5.19",
+		"phosphor-svelte": "^3.1.0",
+		"svelte": "^5.51.0",
+		"svelte-check": "^4.4.2",
+		"tailwindcss": "^4.2.4",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1",
+		"vitest": "^4.0.18"
+	}
+}
