@@ -13,6 +13,28 @@ export interface MountEditorPageOptions {
 	blocks: unknown; // site registry, passed through to the element
 	schema: unknown; // site schema, passed through to the element
 	sessionProvider?: SessionProvider;
+	/**
+	 * Stylesheet URLs to load inside the editor's shadow root. Defaults to
+	 * mirroring every stylesheet of the host page (WYSIWYG parity: the editor
+	 * renders behind a shadow boundary, which page styles do not cross).
+	 */
+	editorStylesheets?: string[];
+}
+
+function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: string[]): void {
+	if (explicit) {
+		editor.stylesheet = explicit.join(' ');
+		return;
+	}
+	const links = Array.from(
+		document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+		(link) => link.href
+	);
+	if (links.length > 0) editor.stylesheet = links.join(' ');
+	// Dev servers inject <style> tags instead of links; clone those too.
+	for (const style of document.querySelectorAll('style')) {
+		editor.shadowRoot?.append(style.cloneNode(true));
+	}
 }
 
 function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
@@ -51,6 +73,7 @@ export function mountEditorPage(
 	banner.hidden = true;
 
 	const editor = document.createElement('uncial-editor') as UncialEditorElement;
+	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
 
 	chrome.append(saveButton, status);
 	root.append(chrome, banner, editor);
