@@ -11,10 +11,14 @@
 	},
 	"homepage": "https://d-flood.github.io/uncial/",
 	"scripts": {
-		"build": "bun run package",
-		"package": "svelte-package --input src/lib --output dist",
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "bunx svelte-kit sync || true",
+		"package": "svelte-kit sync && svelte-package --input src/lib --output dist",
 		"prepack": "bun run package && bunx publint",
-		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
 		"test:unit": "vitest --project server",
 		"test": "bun run test:unit -- --run && bun run test:e2e",
 		"test:e2e": "playwright test"
@@ -38,14 +42,26 @@
 		"./github": {
 			"types": "./dist/github/index.d.ts",
 			"default": "./dist/github/index.js"
+		},
+		"./sveltekit": {
+			"types": "./dist/sveltekit/index.d.ts",
+			"default": "./dist/sveltekit/index.js"
 		}
 	},
 	"peerDependencies": {
+		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0",
 		"uncial": "workspace:^"
 	},
+	"peerDependenciesMeta": {
+		"@sveltejs/kit": {
+			"optional": true
+		}
+	},
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
+		"@sveltejs/adapter-static": "^3.0.10",
+		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"publint": "^0.3.17",

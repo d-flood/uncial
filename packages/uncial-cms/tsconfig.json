@@ -1,11 +1,7 @@
 {
+	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
-		"target": "ES2022",
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
 		"rewriteRelativeImportExtensions": true,
-		"verbatimModuleSyntax": true,
 		"allowJs": true,
 		"checkJs": true,
 		"forceConsistentCasingInFileNames": true,
@@ -13,8 +9,7 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"noEmit": true,
-		"isolatedModules": true
-	},
-	"include": ["src/**/*.ts", "e2e/**/*.ts", "*.ts", "svelte.config.js"]
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext"
+	}
 }

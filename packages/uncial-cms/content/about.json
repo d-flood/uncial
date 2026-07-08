@@ -1,0 +1,25 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "About this demo" },
+	"content": [
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "This page is backed by packages/uncial-cms/content/about.json in the uncial repository. Visit /about/edit/, paste a GitHub personal access token with write access, make a change, and save — the commit triggers the Pages workflow and the change goes live here."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "There is no CMS server and no database: the git repository is the single source of truth."
+				}
+			]
+		}
+	]
+}
