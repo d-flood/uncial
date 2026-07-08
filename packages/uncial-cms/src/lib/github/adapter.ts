@@ -1,5 +1,5 @@
 import { decodeBase64, encodeBase64 } from '../base64.js';
-import { ConflictError } from '../errors.js';
+import { ConflictError, NotFoundError } from '../errors.js';
 import { clearCachedSession, readCachedSession, writeCachedSession } from '../session.js';
 import type {
 	ForgeAdapter,
@@ -31,7 +31,9 @@ class GitHubAdapter implements ForgeAdapter {
 	async readFile(path: string): Promise<{ content: string; sha: string }> {
 		const response = await this.#request(`${this.#contentsUrl(path)}?ref=${this.#config!.branch}`);
 		if (response.status === 404) {
-			throw new Error(`File not found in ${this.#config!.repo}@${this.#config!.branch}: ${path}`);
+			throw new NotFoundError(
+				`File not found in ${this.#config!.repo}@${this.#config!.branch}: ${path}`
+			);
 		}
 		await this.#assertOk(response, `read ${path}`);
 

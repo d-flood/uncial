@@ -1,0 +1,9 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "uncial-cms-auth",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-06-01"
+	// Secrets (set with `wrangler secret put <NAME>`):
+	//   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_CLIENT_ID,
+	//   GITHUB_CLIENT_SECRET, STATE_SIGNING_SECRET
+}

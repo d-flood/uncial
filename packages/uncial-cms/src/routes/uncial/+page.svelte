@@ -1,7 +1,26 @@
 <script lang="ts">
-	// '/uncial/' site-index shell. Create/delete and the fallback editor are a
-	// later slice (issue 04); this page renders the stub and its mount points.
+	// '/uncial/' site index: list/create/delete pages and the hash-routed
+	// fallback editor, all provided by the framework-agnostic runtime.
+	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
+	import { mountIndexPage, patSessionProvider } from '$lib/index.js';
+	import { blocks, schema, siteConfig } from '../site.js';
+
 	let { data } = $props();
+	let target: HTMLElement;
+
+	onMount(() => {
+		const handle = mountIndexPage(target, {
+			config: siteConfig,
+			blocks,
+			schema,
+			basePath: base,
+			// The demo stays on PAT until the canonical worker is deployed and
+			// authWorkerUrl is set (issue 03 human-validation step flips this).
+			sessionProvider: patSessionProvider
+		});
+		return () => handle.destroy();
+	});
 </script>
 
 <svelte:head>
@@ -13,7 +32,5 @@
 	This site edits <code>{data.config.repo}</code> on branch
 	<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
 </p>
-<p>Page creation, deletion, and the fallback editor are coming in a later release.</p>
 
-<div id="uncial-cms-index-actions" hidden></div>
-<div id="uncial-cms-fallback-editor" hidden></div>
+<div bind:this={target}></div>

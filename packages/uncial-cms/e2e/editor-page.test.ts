@@ -78,7 +78,7 @@ test('loads a document with a PAT, edits it, and saves the edit as a commit', as
 	const put = puts[0]!;
 	expect(put.sha).toBe('sha-original');
 	expect(put.branch).toBe('main');
-	expect(put.message).toBe('Update content/fixture.json via uncial-cms');
+	expect(put.message).toBe('uncial-cms: edit content/fixture.json');
 	expect(put.author).toEqual({
 		name: 'Octo Cat',
 		email: '583231+octocat@users.noreply.github.com'
