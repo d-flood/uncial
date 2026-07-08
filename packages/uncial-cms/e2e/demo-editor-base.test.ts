@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ABOUT_SOURCE, interceptDemoGitHub } from './demo-helpers.js';
+import { ABOUT_SOURCE, interceptDemoGitHub, seedDemoSession } from './demo-helpers.js';
 
 // Regression test for PRD §6.1: with the site served under a base path
 // (GitHub Pages project-site style), the URL→source mapping must still
@@ -8,7 +8,7 @@ test('base-path build maps /uncial/cms-demo/about/edit/ to the same source path'
 	page
 }) => {
 	const { puts } = await interceptDemoGitHub(page);
-	page.on('dialog', (dialog) => void dialog.accept('ghp_e2e_test_token'));
+	await seedDemoSession(page);
 
 	await page.goto('/uncial/cms-demo/about/edit/');
 

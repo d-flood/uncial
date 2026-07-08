@@ -5,7 +5,8 @@ import {
 	ABOUT_SOURCE,
 	CONTENT_DIR,
 	fromBase64,
-	interceptDemoGitHubWithStore
+	interceptDemoGitHubWithStore,
+	seedDemoSession
 } from './demo-helpers.js';
 
 const INITIAL_FILES = {
@@ -14,15 +15,15 @@ const INITIAL_FILES = {
 };
 
 function autoAcceptDialogs(page: Page): void {
-	page.on('dialog', (dialog) => {
-		// prompt = PAT sign-in; confirm = delete / unsaved-changes guard.
-		void dialog.accept(dialog.type() === 'prompt' ? 'ghp_e2e_test_token' : undefined);
-	});
+	// Sign-in is seeded via seedDemoSession (popup default, no prompt); the only
+	// dialogs the index raises are confirms: delete and the unsaved-changes guard.
+	page.on('dialog', (dialog) => void dialog.accept());
 }
 
 test('create → fallback edit → delete round-trip from /uncial/', async ({ page }) => {
 	const { puts, deletes } = await interceptDemoGitHubWithStore(page, { ...INITIAL_FILES });
 	autoAcceptDialogs(page);
+	await seedDemoSession(page);
 
 	await page.goto('/uncial/');
 	await expect(page.getByRole('status')).toContainText('as octocat');
@@ -73,6 +74,7 @@ test('create → fallback edit → delete round-trip from /uncial/', async ({ pa
 test('create on an existing path is rejected before any commit', async ({ page }) => {
 	const { puts } = await interceptDemoGitHubWithStore(page, { ...INITIAL_FILES });
 	autoAcceptDialogs(page);
+	await seedDemoSession(page);
 
 	await page.goto('/uncial/');
 	await expect(page.getByRole('status')).toContainText('as octocat');
@@ -93,6 +95,7 @@ test('fallback editor at #/about/ commits to the same source as /about/edit/', a
 }) => {
 	const { puts } = await interceptDemoGitHubWithStore(page, { ...INITIAL_FILES });
 	autoAcceptDialogs(page);
+	await seedDemoSession(page);
 
 	await page.goto('/uncial/#/about/');
 	const editor = page.locator('uncial-editor .ProseMirror');
