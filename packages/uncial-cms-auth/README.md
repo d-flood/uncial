@@ -5,6 +5,11 @@ A stateless Cloudflare Worker that turns a GitHub OAuth sign-in into a
 [uncial-cms](../uncial-cms). No KV, no database, no sessions: all
 cross-request state rides in an HMAC-signed `state` value.
 
+The project runs a **canonical hosted instance** at
+`https://uncial-cms-auth.dflood.workers.dev` — point your site config's
+`authWorkerUrl` at it and no deployment is needed. Self-hosting is equally
+first-class (see below); the `uncial-cms` runtime accepts any `authWorkerUrl`.
+
 ## What it guarantees
 
 - The user's OAuth token is used server-side only and is never sent to the
@@ -17,6 +22,10 @@ cross-request state rides in an HMAC-signed `state` value.
   expiry).
 
 ## Endpoints
+
+The canonical instance serves these at
+`https://uncial-cms-auth.dflood.workers.dev`; a self-hosted worker serves them
+at its own `*.workers.dev` (or custom) domain.
 
 - `GET /auth?repo=<owner/name>&origin=<origin>&challenge=<S256-challenge>` —
   validates the parameters, issues a signed `state`, and redirects to GitHub's

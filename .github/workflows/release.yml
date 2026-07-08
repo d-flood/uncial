@@ -52,6 +52,14 @@ jobs:
       - name: JS tests (uncial-wagtail)
         run: bun --filter=uncial-wagtail run test
 
+      # uncial-cms/-auth unit suites are fully mocked and fast; the uncial-cms
+      # Playwright e2e (three build servers) runs locally per its README.
+      - name: Unit tests (uncial-cms)
+        run: bun --filter=uncial-cms run test:unit -- --run
+
+      - name: Tests (uncial-cms-auth)
+        run: bun --filter=uncial-cms-auth run test -- --run
+
       - name: Sync Python dependencies
         run: uv sync --locked
         working-directory: packages/uncial-wagtail

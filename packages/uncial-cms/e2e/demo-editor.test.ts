@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { ABOUT_SOURCE, fromBase64, interceptDemoGitHub } from './demo-helpers.js';
+import { ABOUT_SOURCE, fromBase64, interceptDemoGitHub, seedDemoSession } from './demo-helpers.js';
 
 test('editor variant loads, edits, and commits to the mapped source path', async ({ page }) => {
 	const { puts } = await interceptDemoGitHub(page);
-	page.on('dialog', (dialog) => void dialog.accept('ghp_e2e_test_token'));
+	await seedDemoSession(page);
 
 	await page.goto('/about/edit/');
 
@@ -35,7 +35,7 @@ test('editor variant loads, edits, and commits to the mapped source path', async
 
 test('deploy status polls pending → success and shows building… then live', async ({ page }) => {
 	await interceptDemoGitHub(page, { commitStatuses: ['pending', 'success'] });
-	page.on('dialog', (dialog) => void dialog.accept('ghp_e2e_test_token'));
+	await seedDemoSession(page);
 
 	await page.goto('/about/edit/');
 	await expect(page.locator('uncial-editor .ProseMirror')).toContainText('Hello from the demo repo');
@@ -56,7 +56,7 @@ test('deploy status polls pending → success and shows building… then live', 
 
 test('a 409 on save opens the conflict banner and never loses the edit', async ({ page }) => {
 	await interceptDemoGitHub(page, { conflictOnPut: true });
-	page.on('dialog', (dialog) => void dialog.accept('ghp_e2e_test_token'));
+	await seedDemoSession(page);
 
 	await page.goto('/about/edit/');
 	const editor = page.locator('uncial-editor .ProseMirror');
@@ -87,8 +87,9 @@ test('a 409 on save opens the conflict banner and never loses the edit', async (
 
 test('conflict banner reload replaces the editor content after confirm', async ({ page }) => {
 	await interceptDemoGitHub(page, { conflictOnPut: true });
-	// Accept every dialog: the PAT prompt (with a token) and the reload confirm.
-	page.on('dialog', (dialog) => void dialog.accept('ghp_e2e_test_token'));
+	await seedDemoSession(page);
+	// The reload-latest confirm dialog must be accepted to replace the content.
+	page.on('dialog', (dialog) => void dialog.accept());
 
 	await page.goto('/about/edit/');
 	const editor = page.locator('uncial-editor .ProseMirror');

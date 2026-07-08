@@ -446,6 +446,22 @@ importing from the root **does** pull the editor graph into your bundle. For SSR
 > TODO: a future major may drop `./editor` from the root barrel so `import 'uncial'` is
 > SSR-lean by default. Until then, use the granular entry points on the server.
 
+## Related packages
+
+This repository is a workspace that also ships:
+
+- **[`uncial-cms`](packages/uncial-cms)** — a git-forge-backed static CMS
+  runtime. Every content page gets a generated editor variant; editors sign in
+  with GitHub and save edits as commits, with the repository as the single
+  source of truth. Includes SvelteKit route factories and a framework-agnostic
+  web-component runtime. [Live demo](https://d-flood.github.io/uncial/cms-demo/).
+- **[`uncial-cms-auth`](packages/uncial-cms-auth)** — the stateless Cloudflare
+  Worker behind uncial-cms's default auth, releasing single-repo-scoped GitHub
+  App tokens to the browser. A canonical instance is hosted by the project;
+  self-hosting is first-class.
+- **[`uncial-wagtail`](packages/uncial-wagtail)** — Wagtail integration storing
+  an Uncial document in a `JSONField` and serving it as a headless JSON payload.
+
 ## Development
 
 ```sh

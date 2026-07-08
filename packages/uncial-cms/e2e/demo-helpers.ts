@@ -1,5 +1,32 @@
 import type { Page, Route } from '@playwright/test';
 
+export const DEMO_REPO = 'd-flood/uncial';
+
+/**
+ * Seed a cached forge session in sessionStorage before the app loads, so the
+ * GitHub adapter's `authenticate` returns it without ever invoking the popup
+ * provider (the shipped default). This is the e2e stand-in for a completed
+ * popup sign-in: the runtime keys sessions by repo and skips renewal while one
+ * is present and unexpired. The `octocat` identity matches the mocked `/user`.
+ */
+export async function seedDemoSession(page: Page): Promise<void> {
+	await page.addInitScript((repo) => {
+		sessionStorage.setItem(
+			`uncial-cms:session:${repo}`,
+			JSON.stringify({
+				token: 'ghs_e2e_installation_token',
+				expiresAt: null,
+				repo,
+				user: {
+					login: 'octocat',
+					name: 'Octo Cat',
+					email: '583231+octocat@users.noreply.github.com'
+				}
+			})
+		);
+	}, DEMO_REPO);
+}
+
 export const ABOUT_SOURCE = 'packages/uncial-cms/content/about.json';
 
 export const ABOUT_DOC = {
