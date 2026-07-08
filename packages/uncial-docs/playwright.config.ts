@@ -15,7 +15,7 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'docs',
-			testMatch: /docs-smoke\.test\.ts/,
+			testMatch: /\.test\.ts$/,
 			use: { baseURL: 'http://localhost:4331' }
 		}
 	]

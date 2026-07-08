@@ -31,6 +31,13 @@ const config = {
 		}),
 		paths: {
 			base: process.argv.includes('dev') ? '' : (process.env.BASE_PATH ?? '')
+		},
+		prerender: {
+			// In-page TOC anchors target heading ids that the reader page assigns on
+			// hydration (uncial's SSR renderer emits headings without ids, and reader
+			// pages carry no editor JS to change that at build time). The prerenderer
+			// can't see those ids in the static HTML, so don't fail the build on them.
+			handleMissingId: 'ignore'
 		}
 	}
 };

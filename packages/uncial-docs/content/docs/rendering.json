@@ -1,0 +1,35 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "Rendering content", "navGroup": "Guides", "navOrder": 1 },
+	"content": [
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Server-side rendering" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Uncial's renderer turns a stored document into static HTML on the server, so readers get fast pages with no editor JavaScript. This placeholder page exists to exercise content-driven grouping; the full content port lands in ticket 05."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Custom blocks in the frontend" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The same block definition powers both the editor and the SSR renderer, so what an author sees is what a reader gets."
+				}
+			]
+		}
+	]
+}
