@@ -1,15 +1,16 @@
 import type { Editor } from '@tiptap/core';
 import { get, writable, type Readable } from 'svelte/store';
-import { NodeSelection } from '@tiptap/pm/state';
+import { NodeSelection, type Transaction } from '@tiptap/pm/state';
 import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
-import { getBlockDefaultAttrs } from '../shared/tiptap.js';
 import {
 	parseBlockDraftAttributes,
 	toAttributeDraftValues,
 	type AttributeDefinition
 } from '../core/attributes.js';
-import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
-import { sanitizeHref } from '../render/sanitize.js';
+import { CODE_BLOCK_ID } from '../shared/codeBlockAttributes.js';
+import { createAttributeTargets, type AttributeTargets } from './attributeTargets.js';
+import { createLinkController, getActiveLinkAttrs } from './linkController.js';
+import { createContainerChildOps } from './containerChildOps.js';
 
 export type BlockAttributeMode = 'insert' | 'edit' | null;
 
@@ -83,31 +84,34 @@ interface ParsedDraftAttributes {
 	validationErrors: Record<string, string>;
 }
 
-const INITIAL_STATE: BlockAttributesState = {
-	open: false,
-	mode: null,
-	selectedBlockId: '',
-	draftAttrs: {},
-	validationErrors: {},
-	activeBlock: null,
-	allowedBlockIds: [],
-	containerChildren: [],
-	link: {
+/**
+ * The single source of truth for a fresh controller state snapshot. Every
+ * consumer that needs an initial `BlockAttributesState` (the controller store,
+ * `bindEditor`, and the Svelte panels) imports this factory rather than
+ * duplicating the literal, so the shape can never drift between them.
+ */
+export function createInitialState(): BlockAttributesState {
+	return {
 		open: false,
-		attrs: {}
-	}
-};
-
-function getActiveLinkAttrs(editor: Editor | null): LinkAttributes | null {
-	if (!editor?.isActive('link')) return null;
-	return editor.getAttributes('link') as LinkAttributes;
+		mode: null,
+		selectedBlockId: '',
+		draftAttrs: {},
+		validationErrors: {},
+		activeBlock: null,
+		allowedBlockIds: [],
+		containerChildren: [],
+		link: {
+			open: false,
+			attrs: {}
+		}
+	};
 }
 
 function findActiveBlock(
 	editor: Editor | null,
-	registry: BlockRegistry | null
+	targets: AttributeTargets
 ): ActiveBlockSelection | null {
-	if (!editor || !registry) return null;
+	if (!editor) return null;
 
 	const selection = editor.state.selection as Editor['state']['selection'] & {
 		node?: { type?: { name?: string }; attrs?: Record<string, unknown> };
@@ -115,7 +119,7 @@ function findActiveBlock(
 
 	const selectedNode = selection.node;
 	const selectedType = selectedNode?.type?.name;
-	if (selectedType && (registry.has(selectedType) || selectedType === CODE_BLOCK_ID)) {
+	if (selectedType && targets.has(selectedType)) {
 		return {
 			id: selectedType,
 			attrs: selectedNode?.attrs ?? {},
@@ -126,7 +130,7 @@ function findActiveBlock(
 	for (let depth = selection.$from.depth; depth > 0; depth -= 1) {
 		const node = selection.$from.node(depth);
 		const nodeType = node.type.name;
-		if (!registry.has(nodeType) && nodeType !== CODE_BLOCK_ID) {
+		if (!targets.has(nodeType)) {
 			continue;
 		}
 
@@ -141,7 +145,7 @@ function findActiveBlock(
 
 	const adjacentNode = selection.$from.nodeAfter ?? selection.$from.nodeBefore ?? null;
 	const adjacentType = adjacentNode?.type?.name;
-	if (!adjacentType || (!registry.has(adjacentType) && adjacentType !== CODE_BLOCK_ID)) return null;
+	if (!adjacentType || !targets.has(adjacentType)) return null;
 
 	return {
 		id: adjacentType,
@@ -152,12 +156,12 @@ function findActiveBlock(
 
 function findBlockAt(
 	editor: Editor | null,
-	registry: BlockRegistry | null,
+	targets: AttributeTargets,
 	pos: number
 ): ActiveBlockSelection | null {
-	if (!editor || !registry || pos < 0 || pos > editor.state.doc.content.size) return null;
+	if (!editor || pos < 0 || pos > editor.state.doc.content.size) return null;
 	const node = editor.state.doc.nodeAt(pos);
-	if (!node || (!registry.has(node.type.name) && node.type.name !== CODE_BLOCK_ID)) return null;
+	if (!node || !targets.has(node.type.name)) return null;
 
 	return {
 		id: node.type.name,
@@ -167,13 +171,43 @@ function findBlockAt(
 }
 
 export function createBlockAttributesController(): BlockAttributesController {
-	const state = writable<BlockAttributesState>(INITIAL_STATE);
+	const state = writable<BlockAttributesState>(createInitialState());
 
 	let editor: Editor | null = null;
 	let registry: BlockRegistry | null = null;
 	let schema: ContentSchema | undefined = undefined;
-	let explicitContainerOpenUntil = 0;
+	// Attribute-metadata resolver over the current registry plus the virtual code
+	// block; rebuilt whenever the registry changes (attach/detach).
+	let targets: AttributeTargets = createAttributeTargets(null);
+	// One-shot suppression of `bindEditor`'s auto-open behavior. The controller
+	// dispatches its own transactions (selecting a block, mutating a container's
+	// children); Tiptap fires the resulting `selectionUpdate`/`update` events
+	// SYNCHRONOUSLY inside `view.dispatch`, so a flag that is raised for the
+	// duration of the dispatch and lowered immediately after covers exactly those
+	// self-triggered echo events and cannot wedge (the `finally` always clears it).
+	let suppressAutoOpen = false;
 	let applyingDraftAttrs = false;
+
+	const link = createLinkController(() => editor, state);
+	const containerOps = createContainerChildOps({
+		getEditor: () => editor,
+		getRegistry: () => registry,
+		getSchema: () => schema,
+		resolveActiveBlock: () => resolveActiveBlock(get(state)),
+		dispatch: (tr) => dispatchSuppressingAutoOpen(tr),
+		sync: () => syncFromSelection('update')
+	});
+
+	function dispatchSuppressingAutoOpen(tr: Transaction): void {
+		if (!editor) return;
+		const previous = suppressAutoOpen;
+		suppressAutoOpen = true;
+		try {
+			editor.view.dispatch(tr);
+		} finally {
+			suppressAutoOpen = previous;
+		}
+	}
 
 	function allowedBlocks(): string[] {
 		if (!registry) return [];
@@ -182,9 +216,8 @@ export function createBlockAttributesController(): BlockAttributesController {
 			.filter((id: string) => !schema || schema.allowedBlocks.has(id));
 	}
 
-	function getAttributeTarget(id: string): (AttributeDefinition & { content?: unknown }) | null {
-		if (id === CODE_BLOCK_ID) return codeBlockAttributeTarget;
-		return registry?.get(id) ?? null;
+	function resolveActiveBlock(current: BlockAttributesState): ActiveBlockSelection | null {
+		return current.activeBlock ? findBlockAt(editor, targets, current.activeBlock.pos) : null;
 	}
 
 	function resetDraftForBlock(blockId: string): void {
@@ -193,15 +226,10 @@ export function createBlockAttributesController(): BlockAttributesController {
 			return;
 		}
 
-		const block = getAttributeTarget(blockId);
+		const block = targets.get(blockId);
 		state.update((current) => ({
 			...current,
-			draftAttrs: block
-				? toAttributeDraftValues(
-						block,
-						blockId === CODE_BLOCK_ID ? {} : getBlockDefaultAttrs(block as BlockDefinition)
-					)
-				: {},
+			draftAttrs: block ? toAttributeDraftValues(block, targets.defaultAttrs(blockId)) : {},
 			validationErrors: {}
 		}));
 	}
@@ -210,7 +238,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		activeOverride?: ActiveBlockSelection | null
 	): ContainerChildInfo[] {
 		if (!editor || !registry) return [];
-		const active = activeOverride ?? findActiveBlock(editor, registry);
+		const active = activeOverride ?? findActiveBlock(editor, targets);
 		if (!active) return [];
 		const block = registry.get(active.id);
 		if (!block || !block.content) return [];
@@ -247,10 +275,10 @@ export function createBlockAttributesController(): BlockAttributesController {
 	}
 
 	function syncFromSelection(source: 'selection' | 'update' = 'selection'): void {
-		const active = findActiveBlock(editor, registry);
+		const active = findActiveBlock(editor, targets);
 		const activeLinkAttrs = getActiveLinkAttrs(editor);
 		state.update((current) => {
-			const activeBlock = active ? getAttributeTarget(active.id) : undefined;
+			const activeBlock = active ? targets.get(active.id) : undefined;
 			const activeIsCodeBlock = active?.id === CODE_BLOCK_ID;
 			const shouldCloseOnSelection = Boolean(
 				source === 'selection' &&
@@ -270,11 +298,9 @@ export function createBlockAttributesController(): BlockAttributesController {
 				};
 			}
 
-			const currentActive = current.activeBlock
-				? findBlockAt(editor, registry, current.activeBlock.pos)
-				: null;
+			const currentActive = resolveActiveBlock(current);
 			const currentActiveIsContainer = Boolean(
-				currentActive && getAttributeTarget(currentActive.id)?.content
+				currentActive && targets.get(currentActive.id)?.content
 			);
 			const shouldPreserveContainerOnUpdate = Boolean(
 				source === 'update' && current.open && current.mode === 'edit' && currentActiveIsContainer
@@ -290,9 +316,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 				current.open &&
 				current.mode === 'edit' &&
 				currentActiveIsContainer &&
-				(!shouldEditActiveAtom ||
-					shouldPreserveContainerOnUpdate ||
-					Date.now() < explicitContainerOpenUntil)
+				(!shouldEditActiveAtom || shouldPreserveContainerOnUpdate)
 			);
 			const selectedBlockId = explicitContainerOpen
 				? currentActive!.id
@@ -316,8 +340,8 @@ export function createBlockAttributesController(): BlockAttributesController {
 				? current.draftAttrs
 				: nextMode === 'edit' && active && activeBlock && active.id === selectedBlockId
 					? toAttributeDraftValues(activeBlock, active.attrs)
-					: explicitContainerOpen && currentActive && getAttributeTarget(currentActive.id)
-						? toAttributeDraftValues(getAttributeTarget(currentActive.id)!, currentActive.attrs)
+					: explicitContainerOpen && currentActive && targets.get(currentActive.id)
+						? toAttributeDraftValues(targets.get(currentActive.id)!, currentActive.attrs)
 						: current.draftAttrs;
 
 			return {
@@ -327,7 +351,11 @@ export function createBlockAttributesController(): BlockAttributesController {
 				activeBlock: nextActive,
 				mode: nextMode,
 				draftAttrs: nextDraft,
-				validationErrors: nextMode === 'edit' ? {} : current.validationErrors,
+				// A write-through from setDraftAttr echoes back here as an 'update';
+				// wiping errors then would hide a still-invalid sibling field's error
+				// right after a valid edit to another field.
+				validationErrors:
+					nextMode === 'edit' && !shouldPreserveDraftAttrs ? {} : current.validationErrors,
 				containerChildren: getContainerChildrenInfo(nextActive),
 				link: activeLinkAttrs ? { open: true, attrs: activeLinkAttrs } : { open: false, attrs: {} }
 			};
@@ -354,7 +382,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		}
 
 		const current = get(state);
-		const active = findActiveBlock(editor, registry);
+		const active = findActiveBlock(editor, targets);
 		let selectedBlockId = blockId ?? active?.id ?? current.selectedBlockId;
 
 		if (!selectedBlockId && current.activeBlock?.id) {
@@ -365,7 +393,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		if (!selectedBlockId) return;
 
 		const mode: BlockAttributeMode = active?.id === selectedBlockId ? 'edit' : 'insert';
-		const activeTarget = active ? getAttributeTarget(active.id) : null;
+		const activeTarget = active ? targets.get(active.id) : null;
 		const draftAttrs =
 			mode === 'edit' && active && activeTarget
 				? toAttributeDraftValues(activeTarget, active.attrs)
@@ -382,15 +410,15 @@ export function createBlockAttributesController(): BlockAttributesController {
 	}
 
 	function openAttributesAt(pos: number): void {
-		const active = findBlockAt(editor, registry, pos);
+		const active = findBlockAt(editor, targets, pos);
 		if (!active || !registry) return;
-		const block = getAttributeTarget(active.id);
+		const block = targets.get(active.id);
 		if (!block) return;
-		explicitContainerOpenUntil = block.content ? Date.now() + 300 : 0;
 
 		if (editor) {
-			const tr = editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, active.pos));
-			editor.view.dispatch(tr);
+			dispatchSuppressingAutoOpen(
+				editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, active.pos))
+			);
 		}
 
 		state.update((current) => ({
@@ -412,63 +440,6 @@ export function createBlockAttributesController(): BlockAttributesController {
 			mode: null,
 			validationErrors: {}
 		}));
-	}
-
-	function openLinkAttributes(): void {
-		if (!editor) return;
-		const attrs = getActiveLinkAttrs(editor) ?? { href: '' };
-		state.update((current) => ({
-			...current,
-			link: { open: true, attrs }
-		}));
-	}
-
-	function closeLinkAttributes(): void {
-		state.update((current) => ({
-			...current,
-			link: { open: false, attrs: {} }
-		}));
-	}
-
-	function setLinkAttr(name: keyof LinkAttributes, value: string | null): void {
-		state.update((current) => ({
-			...current,
-			link: {
-				open: true,
-				attrs: {
-					...current.link.attrs,
-					[name]: value
-				}
-			}
-		}));
-	}
-
-	function commitLinkAttributes(): boolean {
-		if (!editor) return false;
-		const attrs = get(state).link.attrs;
-		const href = sanitizeHref(attrs.href);
-		if (!href) return false;
-
-		return editor
-			.chain()
-			.focus()
-			.extendMarkRange('link')
-			.setMark('link', {
-				...attrs,
-				href,
-				target: attrs.target || null,
-				rel: attrs.rel || null,
-				title: attrs.title?.trim() || null,
-				class: attrs.class?.trim() || null
-			})
-			.run();
-	}
-
-	function removeLink(): boolean {
-		if (!editor) return false;
-		const ok = editor.chain().focus().extendMarkRange('link').unsetLink().run();
-		if (ok) closeLinkAttributes();
-		return ok;
 	}
 
 	function parseAndValidateDraft(
@@ -510,24 +481,33 @@ export function createBlockAttributesController(): BlockAttributesController {
 
 		if (current.mode !== 'edit' || !current.activeBlock || !current.selectedBlockId) return;
 
-		const block = getAttributeTarget(current.selectedBlockId);
+		const block = targets.get(current.selectedBlockId);
 		if (!block) return;
 
 		const { attrs, validationErrors } = parseAndValidateDraft(block, nextDraftAttrs);
-		if (Object.keys(validationErrors).length > 0) {
-			state.update((draft) => ({ ...draft, validationErrors }));
-			return;
-		}
+		state.update((draft) => ({ ...draft, validationErrors: { [name]: '', ...validationErrors } }));
+		// Only the EDITED field gates its own write-through. An invalid sibling
+		// field (a cleared required title, an image block whose required image is
+		// not chosen yet) must not silently block live edits to other fields —
+		// that reads as "the attribute editor stopped working".
+		if (validationErrors[name]) return;
 
-		const active = findBlockAt(editor, registry, current.activeBlock.pos);
+		const active = findBlockAt(editor, targets, current.activeBlock.pos);
 		if (!editor || active?.id !== current.selectedBlockId) return;
 
 		const node = editor.state.doc.nodeAt(active.pos);
 		if (!node) return;
 
+		// Write valid fields through; fields whose draft is invalid keep the
+		// node's current (last valid) values.
+		const appliedAttrs = { ...attrs };
+		for (const invalidName of Object.keys(validationErrors)) {
+			appliedAttrs[invalidName] = node.attrs?.[invalidName];
+		}
+
 		applyingDraftAttrs = true;
 		try {
-			editor.view.dispatch(editor.state.tr.setNodeMarkup(active.pos, undefined, attrs));
+			editor.view.dispatch(editor.state.tr.setNodeMarkup(active.pos, undefined, appliedAttrs));
 		} finally {
 			applyingDraftAttrs = false;
 		}
@@ -535,10 +515,8 @@ export function createBlockAttributesController(): BlockAttributesController {
 
 	function canEditSelectedBlock(blockId: string): boolean {
 		const current = get(state);
-		const explicitActive = current.activeBlock
-			? findBlockAt(editor, registry, current.activeBlock.pos)
-			: null;
-		return (explicitActive ?? findActiveBlock(editor, registry))?.id === blockId;
+		const explicitActive = resolveActiveBlock(current);
+		return (explicitActive ?? findActiveBlock(editor, targets))?.id === blockId;
 	}
 
 	function insertBlock(blockId: string, attrs: Record<string, unknown> = {}): boolean {
@@ -567,7 +545,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 	function commit(): boolean {
 		const current = get(state);
 		if (!current.selectedBlockId) return false;
-		const block = getAttributeTarget(current.selectedBlockId);
+		const block = targets.get(current.selectedBlockId);
 		if (!block) return false;
 
 		const { attrs, validationErrors } = parseAndValidateDraft(block, current.draftAttrs);
@@ -579,7 +557,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 
 		let ok = false;
 		if (current.mode === 'edit' && current.activeBlock) {
-			const active = findBlockAt(editor, registry, current.activeBlock.pos);
+			const active = findBlockAt(editor, targets, current.activeBlock.pos);
 			if (editor && active?.id === current.selectedBlockId) {
 				const node = editor.state.doc.nodeAt(active.pos);
 				if (node) {
@@ -606,6 +584,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		editor = nextEditor;
 		registry = nextRegistry;
 		schema = nextSchema;
+		targets = createAttributeTargets(nextRegistry);
 		state.update((current) => ({
 			...current,
 			allowedBlockIds: allowedBlocks()
@@ -617,123 +596,28 @@ export function createBlockAttributesController(): BlockAttributesController {
 		editor = null;
 		registry = null;
 		schema = undefined;
-		state.set(INITIAL_STATE);
+		targets = createAttributeTargets(null);
+		state.set(createInitialState());
 	}
 
 	function getActiveBlock(): ActiveBlockSelection | null {
-		return findActiveBlock(editor, registry);
+		return findActiveBlock(editor, targets);
 	}
 
 	function isSelectionAutoOpenSuppressed(): boolean {
-		return Date.now() < explicitContainerOpenUntil;
-	}
-
-	function moveContainerChild(fromIndex: number, toIndex: number): boolean {
-		if (!editor || !registry || fromIndex === toIndex) return false;
-		const current = get(state);
-		const active = current.activeBlock
-			? findBlockAt(editor, registry, current.activeBlock.pos)
-			: null;
-		if (!active) return false;
-		const block = registry.get(active.id);
-		if (!block || !block.content) return false;
-
-		const node = editor.state.doc.nodeAt(active.pos);
-		if (!node) return false;
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const children: any[] = [];
-		node.forEach((child) => children.push(child));
-
-		if (
-			fromIndex < 0 ||
-			fromIndex >= children.length ||
-			toIndex < 0 ||
-			toIndex >= children.length
-		) {
-			return false;
-		}
-
-		const [moved] = children.splice(fromIndex, 1);
-		children.splice(toIndex, 0, moved);
-
-		const { tr } = editor.state;
-		const contentStart = active.pos + 1;
-		const contentEnd = active.pos + node.nodeSize - 1;
-
-		explicitContainerOpenUntil = Date.now() + 1000;
-		tr.replaceWith(contentStart, contentEnd, children);
-		editor.view.dispatch(tr);
-		syncFromSelection('update');
-		return true;
-	}
-
-	function insertContainerChild(blockId: string, attrs?: Record<string, unknown>): boolean {
-		if (!editor || !registry?.has(blockId)) return false;
-		if (schema && !schema.allowedBlocks.has(blockId)) return false;
-
-		const current = get(state);
-		const active = current.activeBlock
-			? findBlockAt(editor, registry, current.activeBlock.pos)
-			: null;
-		if (!active) return false;
-
-		const containerBlock = registry.get(active.id);
-		if (!containerBlock?.content) return false;
-
-		const containerNode = editor.state.doc.nodeAt(active.pos);
-		if (!containerNode) return false;
-
-		const childBlock = registry.get(blockId);
-		const childNodeType = editor.schema.nodes[blockId];
-		if (!childBlock || !childNodeType) return false;
-
-		const childNode = childNodeType.createAndFill(attrs ?? getBlockDefaultAttrs(childBlock));
-		if (!childNode) return false;
-
-		explicitContainerOpenUntil = Date.now() + 1000;
-		editor.view.dispatch(
-			editor.state.tr.insert(active.pos + containerNode.nodeSize - 1, childNode)
-		);
-		syncFromSelection('update');
-		return true;
+		return suppressAutoOpen;
 	}
 
 	function removeActiveBlock(): boolean {
 		if (!editor || !registry) return false;
 		const current = get(state);
-		const active = current.activeBlock
-			? findBlockAt(editor, registry, current.activeBlock.pos)
-			: null;
+		const active = resolveActiveBlock(current);
 		if (!active) return false;
 		const node = editor.state.doc.nodeAt(active.pos);
 		if (!node) return false;
 
 		editor.view.dispatch(editor.state.tr.delete(active.pos, active.pos + node.nodeSize));
 		closeAttributes();
-		syncFromSelection('update');
-		return true;
-	}
-
-	function removeContainerChild(index: number): boolean {
-		if (!editor || !registry) return false;
-		const current = get(state);
-		const active = current.activeBlock
-			? findBlockAt(editor, registry, current.activeBlock.pos)
-			: null;
-		if (!active) return false;
-		const block = registry.get(active.id);
-		if (!block?.content) return false;
-		const node = editor.state.doc.nodeAt(active.pos);
-		if (!node || node.childCount <= 1 || index < 0 || index >= node.childCount) return false;
-
-		let childStart = active.pos + 1;
-		for (let i = 0; i < index; i += 1) {
-			childStart += node.child(i).nodeSize;
-		}
-		const child = node.child(index);
-		explicitContainerOpenUntil = Date.now() + 1000;
-		editor.view.dispatch(editor.state.tr.delete(childStart, childStart + child.nodeSize));
 		syncFromSelection('update');
 		return true;
 	}
@@ -745,11 +629,11 @@ export function createBlockAttributesController(): BlockAttributesController {
 		openAttributes,
 		openAttributesAt,
 		closeAttributes,
-		openLinkAttributes,
-		closeLinkAttributes,
-		setLinkAttr,
-		commitLinkAttributes,
-		removeLink,
+		openLinkAttributes: link.open,
+		closeLinkAttributes: link.close,
+		setLinkAttr: link.setAttr,
+		commitLinkAttributes: link.commit,
+		removeLink: link.remove,
 		selectBlock,
 		setDraftAttr,
 		commit,
@@ -759,9 +643,9 @@ export function createBlockAttributesController(): BlockAttributesController {
 		getActiveBlock,
 		syncFromSelection,
 		isSelectionAutoOpenSuppressed,
-		moveContainerChild,
-		insertContainerChild,
+		moveContainerChild: containerOps.move,
+		insertContainerChild: containerOps.insert,
 		removeActiveBlock,
-		removeContainerChild
+		removeContainerChild: containerOps.remove
 	};
 }

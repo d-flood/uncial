@@ -1,5 +1,6 @@
 import type { RichTextFeature, RichTextFeatureSelection } from '../core/types.js';
 import type { PMDoc, PMNode } from './document.js';
+import { isPlainObject as isRecord } from './guards.js';
 
 export const supportedRichTextFeatures = [
 	'bold',
@@ -30,9 +31,10 @@ const defaultRichTextFeatures = [
 
 const supportedFeatureSet = new Set<string>(supportedRichTextFeatures);
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+// `resolveRichTextFeatures` runs inside reactive `$derived`s, so an unsupported
+// feature would otherwise warn on every re-render. Warn once per process per
+// feature instead.
+const warnedUnsupportedFeatures = new Set<string>();
 
 function isPMNode(value: unknown): value is PMNode {
 	if (!isRecord(value) || typeof value.type !== 'string') return false;
@@ -88,7 +90,11 @@ function hasNodeText(nodes: PMNode[] = []): boolean {
 }
 
 export function hasRichTextContent(value: unknown): value is PMDoc {
-	return hasNodeText(coerceRichTextDocument(value).content ?? []);
+	// Sound narrowing: only report `true` (and narrow to `PMDoc`) when the value
+	// really is a rich-text document that contains visible text. A bare string
+	// has visible text but is NOT a `PMDoc`, so narrowing it to `PMDoc` was
+	// unsound; such inputs now return `false`.
+	return isRichTextDocument(value) && hasNodeText(value.content ?? []);
 }
 
 export function resolveRichTextFeatures(
@@ -96,6 +102,19 @@ export function resolveRichTextFeatures(
 ): ReadonlySet<RichTextFeature> {
 	if (features === '*' || features === '__all__') return new Set(runtimeRichTextFeatures);
 	if (!Array.isArray(features)) return new Set(defaultRichTextFeatures);
+
+	// `link` is not a rich-text attribute feature: the rich-text runtime
+	// (`createRichTextExtensions`) intentionally ships no link mark or link UI.
+	// Rather than dropping an explicitly-requested `'link'` silently, warn so the
+	// misconfiguration is visible instead of a link that never appears.
+	if (features.includes('link') && !warnedUnsupportedFeatures.has('link')) {
+		warnedUnsupportedFeatures.add('link');
+		console.warn(
+			"resolveRichTextFeatures: the 'link' feature is not supported in rich-text " +
+				'attribute editors and was ignored. Remove it from the feature list, or use a ' +
+				'full block/link mark for linkable content.'
+		);
+	}
 
 	return new Set(
 		features.filter(

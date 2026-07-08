@@ -9,19 +9,8 @@ import type {
 	ValidateDocumentOptions,
 	ValidationIssue
 } from './types.js';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function pushIssue(
-	issues: ValidationIssue[],
-	options: ValidateDocumentOptions | undefined,
-	issue: ValidationIssue
-): void {
-	issues.push(issue);
-	options?.onIssue?.(issue);
-}
+import { pushIssue } from './issues.js';
+import { isPlainObject as isRecord } from '../shared/guards.js';
 
 export function normalizeMeta(
 	meta: unknown,

@@ -24,9 +24,9 @@ export function createCalloutBlock() {
 			},
 			title: { default: 'Heads up', required: true, validate: isNonEmptyString },
 			body: {
-				default: richTextDocument('Callouts support bold, italic, and links.'),
+				default: richTextDocument('Callouts support bold and italic.'),
 				input: 'richtext',
-				richText: { features: ['bold', 'italic', 'link'] },
+				richText: { features: ['bold', 'italic'] },
 				validate: hasRichTextContent
 			},
 			showIcon: true

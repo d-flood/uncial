@@ -2,7 +2,11 @@
 	import { resolveRegistry } from '../core/registry.js';
 	import type { AttributeSpec, BlockDefinition, BlockRegistry } from '../core/types.js';
 	import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
-	import type { BlockAttributesController, BlockAttributesState } from './attributesController.js';
+	import {
+		createInitialState,
+		type BlockAttributesController,
+		type BlockAttributesState
+	} from './attributesController.js';
 	import { flip } from 'svelte/animate';
 	import ArrowUpIcon from 'phosphor-svelte/lib/ArrowUpIcon';
 	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
@@ -12,28 +16,24 @@
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import LinkAttributesPanel from './LinkAttributesPanel.svelte';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
+	import { dropdownDismiss } from './dropdownDismiss.js';
+	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
 
 	interface Props {
 		controller: BlockAttributesController;
 		blocks?: BlockRegistry | BlockDefinition[];
+		/**
+		 * Resolve a custom attribute value through host-provided UI. Preferred
+		 * over the deprecated `window`-level `uncial:choose-attribute` event,
+		 * which cross-talks between multiple editors on one page. When omitted,
+		 * the panel falls back to dispatching that window event for back-compat.
+		 */
+		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 	}
 
-	let { controller, blocks = [] }: Props = $props();
+	let { controller, blocks = [], onChooseAttribute }: Props = $props();
 
-	let controllerState = $state<BlockAttributesState>({
-		open: false,
-		mode: null,
-		selectedBlockId: '',
-		draftAttrs: {},
-		validationErrors: {},
-		activeBlock: null,
-		allowedBlockIds: [],
-		containerChildren: [],
-		link: {
-			open: false,
-			attrs: {}
-		}
-	});
+	let controllerState = $state<BlockAttributesState>(createInitialState());
 
 	const registry = $derived(resolveRegistry(blocks));
 	const selectedBlock = $derived.by(() => {
@@ -86,20 +86,25 @@
 	}
 
 	function chooseCustomAttribute(name: string, inputKind: string): void {
-		window.dispatchEvent(
-			new CustomEvent('uncial:choose-attribute', {
-				detail: {
-					inputKind,
-					name,
-					attrs: controllerState.draftAttrs,
-					setAttrs: (attrs: Record<string, unknown>) => {
-						for (const [key, value] of Object.entries(attrs)) {
-							controller.setDraftAttr(key, value);
-						}
-					}
+		const request: ChooseAttributeRequest = {
+			inputKind,
+			name,
+			attrs: controllerState.draftAttrs,
+			setAttrs: (attrs: Record<string, unknown>) => {
+				for (const [key, value] of Object.entries(attrs)) {
+					controller.setDraftAttr(key, value);
 				}
-			})
-		);
+			}
+		};
+
+		if (onChooseAttribute) {
+			onChooseAttribute(request);
+			return;
+		}
+
+		// Deprecated fallback: a window-global channel that cross-talks between
+		// editors. Retained for one release for hosts not yet passing the prop.
+		window.dispatchEvent(new CustomEvent(CHOOSE_ATTRIBUTE_EVENT, { detail: request }));
 	}
 
 	function startChildDrag(event: PointerEvent, index: number): void {
@@ -196,7 +201,7 @@
 			<div class="uncial-children-section__header">
 				<p class="uncial-section-label">Nested blocks</p>
 				{#if activeBlocks.length > 0}
-					<details class="uncial-dropdown uncial-dropdown--end">
+					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
 						<summary class="uncial-btn uncial-btn--primary uncial-btn--xs">
 							<PlusIcon size={12} weight="bold" />
 							<span>Add block</span>

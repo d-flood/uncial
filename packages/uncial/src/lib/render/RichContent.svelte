@@ -14,11 +14,11 @@
 	function getNodeKey(node: PMNode, index: number): string {
 		const id = node.attrs?.id;
 		if (typeof id === 'string' || typeof id === 'number') {
-			return `${node.type}:${id}`;
+			return `${node.type}:${id}:${index}`;
 		}
 
 		if (typeof node.text === 'string' && node.text.length > 0) {
-			return `${node.type}:${node.text}`;
+			return `${node.type}:${node.text}:${index}`;
 		}
 
 		return `${node.type}:${JSON.stringify(node.attrs ?? {})}:${index}`;

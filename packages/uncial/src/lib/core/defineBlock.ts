@@ -10,13 +10,33 @@ import type {
 	RuntimeBlockConfig
 } from './types.js';
 import type { BlockRuntimePlugin } from './runtime.js';
+import { isAttributeOption, isPlainObject } from '../shared/guards.js';
 
-function isAttributeSpec<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
-	return typeof value === 'object' && value !== null && 'default' in value;
-}
+// The keys that mark an object as an AttributeSpec *configuration* rather than a
+// shorthand object default. An object carrying any of these is treated as a
+// config object; to use an object literal AS the default value, wrap it
+// explicitly: `{ default: { ... } }`.
+const CONFIG_KEYS = [
+	'default',
+	'required',
+	'validate',
+	'parse',
+	'serialize',
+	'input',
+	'placeholder',
+	'options',
+	'richText'
+] as const;
 
-function isAttributeOption<T>(value: unknown): value is AttributeOption<T> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value) && 'value' in value;
+/**
+ * Distinguishes a spec/config object (`{ default, input, ... }`) from a bare
+ * object used directly as the default value. Any plain object carrying a known
+ * config key is a config; everything else is a shorthand default. This makes a
+ * config object that forgot its `default` detectable (see {@link validateConfig})
+ * instead of being silently misparsed as an object-valued default.
+ */
+function looksLikeConfig<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
+	return isPlainObject(value) && CONFIG_KEYS.some((key) => key in value);
 }
 
 function optionValues<T>(options: ReadonlyArray<T | AttributeOption<T>>): T[] {
@@ -24,7 +44,9 @@ function optionValues<T>(options: ReadonlyArray<T | AttributeOption<T>>): T[] {
 }
 
 function normalizeAttribute<T>(value: AttributeConfig<T>): AttributeSpec<T> {
-	const spec: AttributeSpec<T> = isAttributeSpec(value) ? { ...value } : { default: value };
+	const spec: AttributeSpec<T> = looksLikeConfig(value)
+		? { ...(value as AttributeSpec<T>) }
+		: ({ default: value } as AttributeSpec<T>);
 
 	if (spec.options && spec.options.length > 0 && !spec.validate) {
 		const allowed = optionValues(spec.options);
@@ -59,9 +81,16 @@ function validateConfig<Attrs extends BlockAttributes, Component>(
 	}
 
 	for (const [name, attr] of Object.entries(config.attributes)) {
-		const normalized = normalizeAttribute(attr);
-		if (!('default' in normalized)) {
-			throw new Error(`Attribute "${name}" in block "${config.id}" must define a default value`);
+		// A plain object that carries config keys but no `default` is a config
+		// object that forgot its default (previously misparsed as an object-valued
+		// default, making this check unreachable). Objects with no config keys are
+		// valid shorthand object defaults and pass through.
+		if (looksLikeConfig(attr) && !('default' in attr)) {
+			throw new Error(
+				`Attribute "${name}" in block "${config.id}" is a configuration object but does not ` +
+					`define a "default" value. If you meant an object as the default value, wrap it ` +
+					`explicitly as { default: { ... } }.`
+			);
 		}
 	}
 

@@ -8,6 +8,7 @@
 			"uncial/editor": ["../uncial/src/lib/editor/index.ts"],
 			"uncial/render": ["../uncial/src/lib/render/index.ts"],
 			"uncial/runtime/svelte": ["../uncial/src/lib/runtime/svelte.ts"],
+			"uncial/styles": ["../uncial/src/lib/styles/index.css"],
 			"uncial/web-components": ["../uncial/src/lib/web-components/index.ts"],
 			"uncial/*": ["../uncial/src/lib/*"]
 		}

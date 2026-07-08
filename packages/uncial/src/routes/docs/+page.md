@@ -1,34 +1,69 @@
+<script lang="ts">
+	import DocsToc from '$lib/ui/DocsToc.svelte';
+
+	const tocItems = [
+		{ id: 'why', label: 'Why Uncial' },
+		{ id: 'install', label: 'Install' },
+		{ id: 'blocks', label: 'Define blocks' },
+		{ id: 'setup', label: 'Registry and schema' },
+		{ id: 'usage', label: 'Editor and Renderer' },
+		{ id: 'metadata', label: 'Document metadata' },
+		{ id: 'theming', label: 'Custom theming' },
+		{ id: 'attributes', label: 'Attributes' },
+		{ id: 'runtime-plugins', label: 'Runtime plugins' },
+		{ id: 'containers', label: 'Container blocks' },
+		{ id: 'validation', label: 'Validation' },
+		{ id: 'ssr', label: 'Server rendering' },
+		{ id: 'web-components', label: 'Web components' },
+		{ id: 'wagtail', label: 'Wagtail' },
+		{ id: 'security', label: 'Security' }
+	];
+</script>
+
 <svelte:head>
 
 <title>Uncial Documentation</title>
 <meta
 		name="description"
-		content="Single-page guide for installing Uncial, defining blocks, editing JSON documents, rendering output, and validating content."
+		content="Why Uncial exists and how to use it: write blocks once as components and use your real presentation layer as the CMS editor — install, define blocks, edit and render JSON documents, and validate content."
 	/>
 </svelte:head>
 
 <main class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
 	<div class="grid gap-10 lg:grid-cols-[16rem_1fr]">
 		<aside class="hidden lg:block">
-			<nav class="sticky top-6" aria-label="On this page">
-				<ul class="menu border border-base-300 bg-base-100 p-2">
-					<li class="menu-title">On this page</li>
-					<li><a href="#install">Install</a></li>
-					<li><a href="#blocks">Define blocks</a></li>
-					<li><a href="#setup">Registry and schema</a></li>
-					<li><a href="#usage">Editor and Renderer</a></li>
-					<li><a href="#metadata">Document metadata</a></li>
-					<li><a href="#theming">Custom theming</a></li>
-					<li><a href="#attributes">Attributes</a></li>
-					<li><a href="#runtime-plugins">Runtime plugins</a></li>
-					<li><a href="#containers">Container blocks</a></li>
-					<li><a href="#validation">Validation</a></li>
-					<li><a href="#security">Security</a></li>
-				</ul>
-			</nav>
+			<DocsToc items={tocItems} />
 		</aside>
 
     	<div class="uncial-rich-content space-y-12">
+    		<section id="why" class="space-y-4 scroll-mt-6">
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Why Uncial</p>
+    			<h2 class="text-3xl font-bold">Your presentation layer is the editor</h2>
+
+If you've built a site on a headless CMS, you know the failure mode. The CMS generates its editing UI from your data model, so a page becomes a wall of stacked form fields. Nest a few blocks — a section containing columns containing cards containing rich text — and editing turns into an archaeology dig: endless vertical scrolling through collapsed panels that look nothing like the page they produce. Wagtail's deeply nested StreamFields are the canonical example, but every schema-driven admin has this shape.
+
+You have two bad options from there:
+
+1. **Live with the generated forms.** Editors lose all sense of what they're building. "Which of these five identical `Section` panels is the one above the fold?" becomes a daily question.
+2. **Customize the admin.** Now you maintain *two* frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output. Every new block means writing it twice and keeping the two in sync forever.
+
+Uncial removes the fork. You write a block **once**, as an ordinary frontend component — the same component your site renders in production. Uncial mounts that component *inside* the editor as a live, editable block, and mounts it again (SSR-capable) in your frontend. The editor is not a form that approximates the page; it **is** the page, with editing chrome around it.
+
+Uncial isn't tied to one framework. **Svelte is the bundled, first-class runtime today**, but the core block model is runtime-neutral: [runtime plugins](#runtime-plugins) let React, Vue, or vanilla components become blocks the same way, and [web components](#web-components) let any app host the editor and renderer right now.
+
+This also dissolves the other classic headless problem: **preview**. When the editing surface renders the same components with the same document JSON as production, preview isn't a feature you bolt on with draft APIs and iframe round-trips — it's just what the editor looks like. What the editor sees is what the reader gets, because it's literally the same code.
+
+Concretely, one block definition gives you:
+
+- a WYSIWYG editing experience where nested content looks nested, not stacked,
+- an SSR-capable renderer for your public frontend,
+- typed attribute editing UI derived from the component's props,
+- and a plain ProseMirror-compatible JSON document your backend can store anywhere — including, via [`uncial-wagtail`](#wagtail), a regular Wagtail page field.
+
+The rest of this page walks that path: install, define a block, wire up the editor and renderer, then go as deep as containers, theming, SSR, and web components.
+
+    		</section>
+
     		<section id="install" class="space-y-4 scroll-mt-6">
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Install</p>
     			<h2 class="text-3xl font-bold">Add Uncial to a Svelte 5 app</h2>
@@ -45,10 +80,10 @@ bun add uncial
     		</section>
 
     		<section id="blocks" class="space-y-4 scroll-mt-6">
-    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Blocks</p>
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Define blocks</p>
     			<h2 class="text-3xl font-bold">Define a custom block once</h2>
 
-A Svelte block definition gives Uncial a stable `id`, an editor label, normalized attribute defaults, and the Svelte component used by both the editor and SSR-capable renderer.
+This is the core move: a block starts life as a plain Svelte component — no editor imports, no CMS awareness. `defineSvelteBlock` then wraps it with a stable `id`, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor *and* the SSR-capable renderer, so there is no second "admin widget" to write and no translation layer to keep in sync.
 
         			<div class="space-y-4">
 
@@ -80,9 +115,7 @@ export const promoCard = defineSvelteBlock({
 	description: 'A reusable promotional card block',
 	attributes: {
 		title: '',
-		featured: false,
-		priority: { default: 0, input: 'number' },
-		metadata: { default: { theme: 'sand' }, input: 'json' }
+		body: { default: '', input: 'textarea' }
 	},
 	component: PromoCard
 });
@@ -92,7 +125,7 @@ export const promoCard = defineSvelteBlock({
     		</section>
 
     		<section id="setup" class="space-y-4 scroll-mt-6">
-    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Setup</p>
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Registry and schema</p>
     			<h2 class="text-3xl font-bold">Create the registry, schema, and controller</h2>
 
 The registry is the shared block catalog. The schema controls allowed blocks and marks. The attributes controller powers block and link editing UI.
@@ -110,10 +143,10 @@ export const attributesController = createBlockAttributesController();
     		</section>
 
     		<section id="usage" class="space-y-4 scroll-mt-6">
-    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Usage</p>
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Editor and Renderer</p>
     			<h2 class="text-3xl font-bold">Edit and render the same JSON</h2>
 
-Bind your document to `Editor` with `bind:json`. Later, pass the saved document to `Renderer` as `content` with the same blocks and schema.
+Editor and renderer share one document and one block registry. Bind your document to `Editor` with `bind:json`; pass the saved document to `Renderer` as `content` with the same blocks and schema. Because both sides render your actual components, the editor doubles as a live preview — there's no separate preview pipeline to build.
 
 ```svelte
 <!-- src/routes/editor/+page.svelte -->
@@ -135,7 +168,7 @@ Bind your document to `Editor` with `bind:json`. Later, pass the saved document 
      		</section>
 
      		<section id="metadata" class="space-y-4 scroll-mt-6">
-     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Metadata</p>
+     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Document metadata</p>
      			<h2 class="text-3xl font-bold">Edit document-level metadata</h2>
 
 Add typed `metaFields` to your schema for frontmatter-style data such as title, author, publish date, or tags. Metadata is stored as JSON on the top-level document `meta` field and is not serialized to YAML.
@@ -186,7 +219,7 @@ The renderer normalizes the same metadata and exposes it as an optional snippet 
      		</section>
 
      	<section id="theming" class="space-y-4 scroll-mt-6">
-    		<p class="text-sm font-semibold uppercase tracking-wide text-primary">Theming</p>
+    		<p class="text-sm font-semibold uppercase tracking-wide text-primary">Custom theming</p>
     		<h2 class="text-3xl font-bold">Match Uncial to your site</h2>
 
 Uncial's editor and renderer chrome are plain CSS. Tailwind and DaisyUI are not required by the library. Import the default styles once, then override `--uncial-*` custom properties anywhere above the editor in the cascade.
@@ -282,6 +315,8 @@ Rich text uses a stable `.uncial-rich-content` hook. If your site already has ar
     			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Attributes</p>
     			<h2 class="text-3xl font-bold">Describe editable block data</h2>
 
+Attribute specs are how Uncial derives the editing UI you'd otherwise hand-build: each spec maps a component prop to a typed, validated control in the block attributes panel.
+
     			<div class="overflow-x-auto border border-base-300">
     				<table class="table">
     					<thead>
@@ -340,10 +375,10 @@ export function defineReactBlock(config) {
     	</section>
 
     	<section id="containers" class="space-y-4 scroll-mt-6">
-    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Containers</p>
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Container blocks</p>
     			<h2 class="text-3xl font-bold">Allow nested document flow</h2>
 
-Atomic blocks have no child content. Add `content: { kind: 'flow' }` when a block should own one default child region. The block component receives attribute props plus a `children` snippet for that region.
+Nesting is where form-driven admins fall apart — and where in-place editing pays off most. Atomic blocks have no child content. Add `content: { kind: 'flow' }` when a block should own one default child region, and editors write that nested content *inside* the rendered block, exactly where it will appear — not in a collapsed sub-form three scroll-screens away. The block component receives attribute props plus a `children` snippet for that region.
 
         			<div class="space-y-4">
 
@@ -409,6 +444,82 @@ if (!result.ok) {
 	throw new Error('Document is not publishable');
 }
 ```
+
+    		</section>
+
+    		<section id="ssr" class="space-y-4 scroll-mt-6">
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Server rendering</p>
+    			<h2 class="text-3xl font-bold">Render on the server without the editor</h2>
+
+"Same component in editor and frontend" only works if the frontend half stays lean. The `Renderer` is safe to import in a server bundle. Use the granular entry points so the browser-only editor stack (Tiptap, node views, `mount()`) never reaches your server.
+
+```ts
+// Server-safe: no editor mount code enters your bundle.
+import { Renderer } from 'uncial/render';
+import { createBlockRegistry, createSchema, defineSvelteBlock } from 'uncial/core';
+```
+
+`uncial/render` and `uncial/core` are free of editor machinery, and a regression test walks the `render/` import graph to keep it that way. The package root (`import ... from 'uncial'`) also re-exports the editor, so prefer these entry points on the server.
+
+    		</section>
+
+    		<section id="web-components" class="space-y-4 scroll-mt-6">
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Web components</p>
+    			<h2 class="text-3xl font-bold">Use Uncial from React, Vue, or vanilla JS</h2>
+
+React, Vue, and vanilla apps can use Uncial through browser-native custom elements. Register them once on the client, then drop the tags into your markup.
+
+```ts
+import 'uncial/web-components';
+```
+
+```html
+<uncial-editor></uncial-editor>
+<uncial-renderer></uncial-renderer>
+```
+
+Configure the elements with JS **properties**, not HTML attributes: the inputs are structured objects and components that do not round-trip through strings. Editor document updates arrive as a bubbling `uncial-change` event, because non-Svelte hosts cannot use `bind:json`.
+
+```ts
+const editor = document.querySelector('uncial-editor');
+Object.assign(editor, { blocks, schema, json: document, attributesController });
+editor.addEventListener('uncial-change', (event) => {
+	document = event.detail;
+});
+
+const renderer = document.querySelector('uncial-renderer');
+Object.assign(renderer, { blocks, schema, content: document });
+```
+
+Both elements render into an open shadow root, so page styles do not reach them. Pass Uncial's default CSS through the one reflected attribute, `stylesheet` (a whitespace-separated list of stylesheet URLs).
+
+```ts
+import uncialStylesHref from 'uncial/styles?url';
+editor.stylesheet = uncialStylesHref;
+```
+
+    		</section>
+
+    		<section id="wagtail" class="space-y-4 scroll-mt-6">
+    			<p class="text-sm font-semibold uppercase tracking-wide text-primary">Wagtail</p>
+    			<h2 class="text-3xl font-bold">Store Uncial documents in Wagtail pages</h2>
+
+Wagtail is the origin story here: deeply nested StreamFields render as towers of stacked form panels, and headless preview requires real plumbing. The companion `uncial-wagtail` package replaces that experience — it stores an Uncial document in an ordinary Wagtail page field and mounts this editor inside the Wagtail admin, so editors work in your actual components instead of generated forms. Because the body is just JSON, the document you edit is the document served headless (with a resolved image sidecar) for your frontend to render: no admin-to-frontend translation layer, and preview comes for free.
+
+```python
+from wagtail.admin.panels import FieldPanel
+from wagtail.models import Page
+
+from uncial_wagtail.fields import UncialField
+from uncial_wagtail.schema import UncialEditorConfig
+
+
+class ArticlePage(Page):
+    body = UncialField(config=UncialEditorConfig(allowed_blocks=["wagtail.image"]))
+    content_panels = Page.content_panels + [FieldPanel("body")]
+```
+
+See the [uncial-wagtail README](https://github.com/d-flood/uncial/tree/main/packages/uncial-wagtail) for the headless API, image reference resolution, and custom block registration.
 
     		</section>
 

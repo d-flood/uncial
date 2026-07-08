@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Editor } from '@tiptap/core';
+	import type { Component } from 'svelte';
+	import { createSubscriber } from 'svelte/reactivity';
 	import CodeIcon from 'phosphor-svelte/lib/CodeIcon';
 	import CodeBlockIcon from 'phosphor-svelte/lib/CodeBlockIcon';
 	import ListBulletsIcon from 'phosphor-svelte/lib/ListBulletsIcon';
@@ -14,7 +16,8 @@
 	import type { PMDoc } from '../shared/document.js';
 	import { coerceRichTextDocument, resolveRichTextFeatures } from '../shared/richText.js';
 	import { createRichTextExtensions } from '../shared/tiptap.js';
-	import type { RichTextFeatureSelection } from '../core/types.js';
+	import type { RichTextFeature, RichTextFeatureSelection } from '../core/types.js';
+	import { richTextAttributeToolbarFeatures, type ToolbarFeature } from './toolbarFeatures.js';
 
 	interface Props {
 		value?: unknown;
@@ -35,17 +38,43 @@
 	let lastJson = '';
 
 	const resolvedFeatures = $derived(resolveRichTextFeatures(features));
-	const activeEditor = $derived(editor);
-	const canBold = $derived(resolvedFeatures.has('bold'));
-	const canItalic = $derived(resolvedFeatures.has('italic'));
-	const canStrike = $derived(resolvedFeatures.has('strike'));
-	const canCode = $derived(resolvedFeatures.has('code'));
-	const canHeading = $derived(resolvedFeatures.has('heading'));
-	const canBulletList = $derived(resolvedFeatures.has('bulletList'));
-	const canOrderedList = $derived(resolvedFeatures.has('orderedList'));
-	const canBlockquote = $derived(resolvedFeatures.has('blockquote'));
-	const canCodeBlock = $derived(resolvedFeatures.has('codeBlock'));
-	const canHorizontalRule = $derived(resolvedFeatures.has('horizontalRule'));
+	const visibleFeatures = $derived(
+		richTextAttributeToolbarFeatures.filter((feature) =>
+			resolvedFeatures.has(feature.id as RichTextFeature)
+		)
+	);
+
+	const getEditorStateVersion = $derived.by(() => {
+		if (!editor) return () => 0;
+		const activeEditor = editor;
+
+		let version = 0;
+		const subscribe = createSubscriber((update) => {
+			const refreshToolbarState = () => {
+				version += 1;
+				update();
+			};
+
+			activeEditor.on('transaction', refreshToolbarState);
+			activeEditor.on('selectionUpdate', refreshToolbarState);
+			activeEditor.on('update', refreshToolbarState);
+
+			return () => {
+				activeEditor.off('transaction', refreshToolbarState);
+				activeEditor.off('selectionUpdate', refreshToolbarState);
+				activeEditor.off('update', refreshToolbarState);
+			};
+		});
+
+		return () => {
+			subscribe();
+			return version;
+		};
+	});
+	const toolbarContext = $derived.by(() => {
+		getEditorStateVersion();
+		return editor ? { editor } : null;
+	});
 
 	function emitChange(nextEditor: Editor): void {
 		const json = nextEditor.getJSON() as PMDoc;
@@ -53,8 +82,26 @@
 		onChange(json);
 	}
 
-	function runCommand(command: () => boolean): void {
-		command();
+	function runFeature(feature: ToolbarFeature): void {
+		if (!editor) return;
+		feature.run({ editor });
+	}
+
+	function iconFor(featureId: string): Component<Record<string, unknown>> | null {
+		return (
+			{
+				bold: TextBIcon,
+				italic: TextItalicIcon,
+				strike: TextStrikethroughIcon,
+				code: CodeIcon,
+				heading: TextHThreeIcon,
+				bulletList: ListBulletsIcon,
+				orderedList: ListNumbersIcon,
+				blockquote: QuotesIcon,
+				codeBlock: CodeBlockIcon,
+				horizontalRule: MinusIcon
+			}[featureId] ?? null
+		);
 	}
 
 	const iconSize = 14;
@@ -99,144 +146,27 @@
 
 <div class="uncial-richtext-wrapper">
 	<div class="uncial-richtext-toolbar">
-		{#if canBold}
+		{#each visibleFeatures as feature (feature.id)}
+			{@const context = toolbarContext}
+			{@const Icon = iconFor(feature.id)}
+			{@const active = context ? (feature.isActive?.(context) ?? false) : false}
 			<button
 				type="button"
 				class={[
 					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('bold') ? 'uncial-btn--active' : 'uncial-btn--ghost'
+					active ? 'uncial-btn--active' : 'uncial-btn--ghost'
 				]}
-				aria-label="Bold"
-				data-tip="Bold"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleBold().run() ?? false)}
+				aria-label={feature.label}
+				data-tip={feature.tooltip ?? feature.label}
+				onclick={() => runFeature(feature)}
 			>
-				<TextBIcon size={iconSize} weight="bold" />
+				{#if Icon}
+					<Icon size={iconSize} weight="bold" />
+				{:else}
+					{feature.label}
+				{/if}
 			</button>
-		{/if}
-		{#if canItalic}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('italic') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Italic"
-				data-tip="Italic"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleItalic().run() ?? false)}
-			>
-				<TextItalicIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canStrike}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('strike') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Strikethrough"
-				data-tip="Strikethrough"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleStrike().run() ?? false)}
-			>
-				<TextStrikethroughIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canCode}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('code') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Inline code"
-				data-tip="Inline code"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleCode().run() ?? false)}
-			>
-				<CodeIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canHeading}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('heading') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Heading"
-				data-tip="Heading"
-				onclick={() =>
-					runCommand(() => editor?.chain().focus().toggleHeading({ level: 3 }).run() ?? false)}
-			>
-				<TextHThreeIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canBulletList}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('bulletList') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Bullet list"
-				data-tip="Bullet list"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleBulletList().run() ?? false)}
-			>
-				<ListBulletsIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canOrderedList}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('orderedList') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Ordered list"
-				data-tip="Ordered list"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleOrderedList().run() ?? false)}
-			>
-				<ListNumbersIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canBlockquote}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('blockquote') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Blockquote"
-				data-tip="Blockquote"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleBlockquote().run() ?? false)}
-			>
-				<QuotesIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canCodeBlock}
-			<button
-				type="button"
-				class={[
-					'uncial-btn uncial-btn--square uncial-btn--xs uncial-tooltip',
-					activeEditor?.isActive('codeBlock') ? 'uncial-btn--active' : 'uncial-btn--ghost'
-				]}
-				aria-label="Code block"
-				data-tip="Code block"
-				onclick={() => runCommand(() => editor?.chain().focus().toggleCodeBlock().run() ?? false)}
-			>
-				<CodeBlockIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
-		{#if canHorizontalRule}
-			<button
-				type="button"
-				class="uncial-btn uncial-btn--ghost uncial-btn--square uncial-btn--xs uncial-tooltip"
-				aria-label="Horizontal rule"
-				data-tip="Horizontal rule"
-				onclick={() => runCommand(() => editor?.chain().focus().setHorizontalRule().run() ?? false)}
-			>
-				<MinusIcon size={iconSize} weight="bold" />
-			</button>
-		{/if}
+		{/each}
 	</div>
 	<div bind:this={element}></div>
 </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeHref } from './sanitize.js';
+import { resolveLinkRel, sanitizeHref } from './sanitize.js';
 
 describe('sanitizeHref', () => {
 	it('allows safe absolute and relative links', () => {
@@ -30,5 +30,36 @@ describe('sanitizeHref', () => {
 		expect(sanitizeHref(null)).toBeNull();
 		expect(sanitizeHref(undefined)).toBeNull();
 		expect(sanitizeHref(123)).toBeNull();
+	});
+
+	it('treats protocol-relative URLs as external, not app-relative', () => {
+		// Resolves to https://evil.example — allowed only because the resolved
+		// protocol is safe, never via the app-relative fast path.
+		expect(sanitizeHref('//evil.example/path')).toBe('//evil.example/path');
+		// A protocol-relative URL that cannot resolve to a safe origin is rejected.
+		expect(sanitizeHref('//javascript:alert(1)')).toBeNull();
+	});
+});
+
+describe('resolveLinkRel', () => {
+	it('adds noopener for _blank in any case variant', () => {
+		expect(resolveLinkRel(undefined, '_blank')).toBe('noopener');
+		expect(resolveLinkRel(undefined, '_BLANK')).toBe('noopener');
+		expect(resolveLinkRel('nofollow', '_Blank')).toBe('nofollow noopener');
+	});
+
+	it('adds noopener for named-window targets', () => {
+		expect(resolveLinkRel(undefined, 'evilwin')).toBe('noopener');
+	});
+
+	it('leaves same-context targets alone', () => {
+		expect(resolveLinkRel(undefined, undefined)).toBeNull();
+		expect(resolveLinkRel(undefined, '_self')).toBeNull();
+		expect(resolveLinkRel(undefined, '_top')).toBeNull();
+		expect(resolveLinkRel('nofollow', '_self')).toBe('nofollow');
+	});
+
+	it('does not duplicate an existing noopener', () => {
+		expect(resolveLinkRel('noopener', '_blank')).toBe('noopener');
 	});
 });

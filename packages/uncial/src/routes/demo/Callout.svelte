@@ -107,7 +107,7 @@
 			<div
 				class="uncial-callout-richtext mt-2 text-[0.95rem] leading-[1.7] opacity-90"
 			>
-				<RichText content={body} features={['bold', 'italic', 'link']} />
+				<RichText content={body} features={['bold', 'italic']} />
 			</div>
 		{/if}
 	</div>

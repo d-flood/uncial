@@ -9,12 +9,6 @@ from wagtail.models import Collection, GroupCollectionPermission
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture(scope="session")
-def django_db_use_migrations():
-    # testproject.pages has no migrations, so build the schema straight from the models.
-    return False
-
-
 def chooser_url():
     return reverse("uncial_wagtail:image_chooser_fallback")
 

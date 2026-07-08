@@ -73,9 +73,7 @@ Then register and use that component as an Uncial block:
 		label: 'Promo Card',
 		attributes: {
 			title: '',
-			featured: false,
-			priority: 0,
-			metadata: { default: { theme: 'sand' }, input: 'json' }
+			body: { default: '', input: 'textarea' }
 		},
 		component: PromoCard
 	});
@@ -110,23 +108,64 @@ Object.assign(renderer, { blocks, schema, content: document });
 
 const editor = document.querySelector('uncial-editor');
 Object.assign(editor, { blocks, schema, json: document, attributesController });
+
+// Document metadata mirrors the document body: set `metaFields` to render the
+// metadata editor and read/write `meta` for the current values.
+Object.assign(editor, { metaFields, meta: document.meta });
 ```
 
 ```html
 <uncial-editor></uncial-editor> <uncial-renderer></uncial-renderer>
 ```
 
+Property assignments update the mounted component in place. Setting `editor.json = nextDocument` syncs the existing Tiptap editor through `setContent` instead of recreating it, so focus, selection, and undo history survive external document updates.
+
+> **Configuration is via JS properties, not HTML attributes — by design.** The
+> element inputs (`blocks`, `schema`, `json`, `meta`, `metaFields`, `extensions`,
+> controllers, …) are structured objects, functions, and Svelte components that
+> do not round-trip through string HTML attributes, so `<uncial-editor json="…">`
+> is intentionally **not** observed. The one exception is `stylesheet` (a plain
+> URL string), which is reflected as an attribute (see below). Set everything else
+> as a property (`el.json = …`) after the element is in the DOM.
+
+### Styling the shadow root
+
+Both elements render into an open shadow root, so page-level stylesheets do not reach them. Pass one or more whitespace-separated stylesheet URLs through the `stylesheet` attribute (or matching DOM property); each URL is rendered as a `<link rel="stylesheet">` inside the shadow root:
+
+```html
+<uncial-editor stylesheet="https://unpkg.com/uncial/dist/styles/index.css"></uncial-editor>
+```
+
+With a bundler such as Vite, resolve the packaged CSS to a URL:
+
+```ts
+import uncialStylesHref from 'uncial/styles?url';
+
+const editor = document.querySelector('uncial-editor');
+editor.stylesheet = uncialStylesHref;
+```
+
+A URL-based hook is used because the package ships its default CSS as plain files (`uncial/styles`, `uncial/styles/chrome`, ...) that any bundler, CDN, or asset pipeline can serve, and the `@import` chains inside them resolve relative to the linked URL — something constructed stylesheets (`adoptedStyleSheets`) do not support. Because the shadow root is open, advanced hosts can still inject constructed stylesheets themselves via `element.shadowRoot.adoptedStyleSheets`. The `--uncial-*` custom properties inherit across the shadow boundary, so token-based theming on a wrapper element keeps working (see [Styling and customization](#styling-and-customization)).
+
+### Events
+
 Validation callbacks are emitted as bubbling, composed DOM events. Editor document updates are emitted as `uncial-change` because non-Svelte hosts cannot use `bind:json`:
 
 ```ts
 editor.addEventListener('uncial-change', (event) => {
-	document = event.detail;
+	document = event.detail; // the normalized document JSON; editor.json reflects the same value
+});
+
+editor.addEventListener('uncial-meta-change', (event) => {
+	meta = event.detail; // the committed document metadata; editor.meta reflects the same value
 });
 
 renderer.addEventListener('uncial-issue', (event) => {
 	console.warn(event.detail.code, event.detail.path);
 });
 ```
+
+`uncial-change` fires for edits made inside the editor, and at most once after an external `editor.json` assignment (only when normalization changes the incoming document, for example by stamping a version). Feeding a previously emitted document back into `editor.json` is a no-op, so hosts can mirror the value into their own state without creating an update loop. `uncial-meta-change` fires when document metadata is committed through the metadata editor and mirrors the value onto `editor.meta`, exactly as `uncial-change` does for `editor.json`. `uncial-issue` fires on both elements whenever normalization or validation reports a problem.
 
 For SSR frameworks, import `uncial/web-components` on the client only. Svelte blocks still render through the Svelte renderer for SSR; non-Svelte block runtimes should provide their own full-document renderer rather than relying on mixed component islands.
 
@@ -284,26 +323,34 @@ Use `component` when the same Svelte component should render in both the editor 
 const hero = defineSvelteBlock({
 	id: 'hero',
 	label: 'Hero',
+	description: 'Full-width intro banner', // optional; shown in the insert menu
 	attributes: {
 		title: '',
 		subtitle: { default: '', input: 'textarea' },
 		featured: false,
 		priority: 1,
+		align: { default: 'left', options: ['left', 'center', 'right'] },
 		settings: { default: { align: 'left' }, input: 'json' }
 	},
 	component: Hero
 });
 ```
 
-Attribute specs support:
+A bare value (`title: ''`) is shorthand for `{ default: '' }`. The full attribute
+spec supports:
 
 - `default`: required default value
 - `required`: require a value at validation time
 - `validate`: custom validation predicate
 - `parse`: custom coercion from editor or serialized input
 - `serialize`: custom serialization for HTML persistence
-- `input`: one of `text`, `textarea`, `number`, `checkbox`, or `json`
+- `input`: editor control hint — `text`, `textarea`, `number`, `checkbox`, `json`, `select`, `richtext`, or `hidden`. When omitted it is inferred from the default value (and from `options`, which implies `select`).
+- `options`: allowed values for `select` inputs, either plain values or `{ value, label, description }` objects
+- `richText`: for `richtext` inputs, a `{ features, placeholder }` object controlling the nested rich-text feature allowlist
 - `placeholder`: optional editor placeholder
+
+Blocks themselves also accept an optional `description` and `icon` (an icon name,
+inline markup, or a Svelte component) that surface in the editor's insert menu.
 
 Blocks can also opt into child content:
 
@@ -368,8 +415,7 @@ Use `validateDocument(...)` directly or pass `onIssue` into `Editor` or `Rendere
 	{schema}
 	bind:json={document}
 	onIssue={(issue) => console.warn(issue.code, issue.path)}
-/
->
+/>
 ```
 
 ## Rendering and security
@@ -378,6 +424,27 @@ Use `validateDocument(...)` directly or pass `onIssue` into `Editor` or `Rendere
 - Built-in rich text rendering supports headings, lists, blockquotes, code blocks, inline code, strike, bold, italic, and links
 - Links are sanitized to allow only `http`, `https`, `mailto`, `tel`, relative paths, and hash links
 - Custom block components and `html.render` hooks are trusted application code; sanitize any raw HTML or navigation attributes they emit
+
+## SSR usage
+
+The renderer is safe to import in a server bundle. Import from the granular entry points so
+the editor mount stack (Tiptap, `BlockNodeView`, `mount()`/`unmount()`) never reaches your
+server:
+
+```ts
+import { Renderer } from 'uncial/render';
+import { defineSvelteBlock, createBlockRegistry, createSchema } from 'uncial/core';
+```
+
+`uncial/render` and `uncial/core` are free of browser-only editor machinery — a regression
+test walks the `render/` import graph and fails if an editor/runtime import creeps back in.
+
+The package root barrel (`import … from 'uncial'`) re-exports `uncial/editor` as well, so
+importing from the root **does** pull the editor graph into your bundle. For SSR, prefer the
+`uncial/render` + `uncial/core` entry points over the root barrel.
+
+> TODO: a future major may drop `./editor` from the root barrel so `import 'uncial'` is
+> SSR-lean by default. Until then, use the granular entry points on the server.
 
 ## Development
 

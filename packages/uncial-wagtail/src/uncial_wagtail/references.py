@@ -62,16 +62,12 @@ def resolve_references(references: list[UncialReference]) -> dict[str, dict[str,
         if DEFAULT_IMAGE_RENDITION in allowlist or not allowlist
         else allowlist[0]
     )
-    image_ids = [reference.id for reference in references if reference.kind == "wagtail.image"]
-    images = image_model.objects.in_bulk(image_ids)
-    resolved: dict[str, dict[str, Any]] = {}
+    image_references = [reference for reference in references if reference.kind == "wagtail.image"]
+    if not image_references:
+        return {}
 
-    for reference in references:
-        if reference.kind != "wagtail.image":
-            continue
-        image = images.get(reference.id)
-        if image is None:
-            continue
+    variants: dict[UncialReference, str] = {}
+    for reference in image_references:
         variant = reference.variant
         if variant not in allowlist:
             logger.warning(
@@ -81,6 +77,22 @@ def resolve_references(references: list[UncialReference]) -> dict[str, dict[str,
                 fallback,
             )
             variant = fallback
+        variants[reference] = variant
+
+    # Prefetch every rendition we may need in a single query so that resolving
+    # N references does not issue N rendition lookups.
+    specs = set(variants.values()) | {fallback}
+    queryset = image_model.objects.filter(
+        pk__in={reference.id for reference in image_references}
+    ).prefetch_renditions(*specs)
+    images = {image.pk: image for image in queryset}
+    resolved: dict[str, dict[str, Any]] = {}
+
+    for reference in image_references:
+        image = images.get(reference.id)
+        if image is None:
+            continue
+        variant = variants[reference]
         try:
             rendition = image.get_rendition(variant)
         except InvalidFilterSpecError:

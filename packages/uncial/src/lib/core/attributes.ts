@@ -5,12 +5,9 @@ import type {
 	BlockDefinition
 } from './types.js';
 import { coerceRichTextDocument } from '../shared/richText.js';
+import { isPlainObject, isAttributeOption } from '../shared/guards.js';
 
 export type AttributeDefinition = Pick<BlockDefinition, 'attributes'>;
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function parseJsonValue(raw: string): unknown {
 	try {
@@ -20,8 +17,17 @@ function parseJsonValue(raw: string): unknown {
 	}
 }
 
-function isAttributeOption<T>(value: unknown): value is AttributeOption<T> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value) && 'value' in value;
+/**
+ * Returns a fresh copy of an attribute default before handing it out, so two
+ * block instances that both fall back to an object/array default never share one
+ * mutable reference (mutating one block's attrs would otherwise leak into every
+ * other block using the same spec). Primitive defaults are returned as-is.
+ */
+function cloneDefault<T>(value: T): T {
+	if (value !== null && typeof value === 'object') {
+		return structuredClone(value);
+	}
+	return value;
 }
 
 export function normalizeAttributeOptions<T>(
@@ -58,13 +64,24 @@ export function inferAttributeInputKind(spec: AttributeSpec<unknown>): Attribute
 }
 
 export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown): T {
-	if (value === undefined || value === null || value === '') {
-		return spec.default;
+	// Only `undefined`/`null` are "missing" and fall back to the default. An empty
+	// string is a real value (e.g. a text attribute cleared by the author), so it
+	// must NOT be treated as missing — otherwise string attrs could never be
+	// cleared back to "". Each type branch below still rejects "" where it cannot
+	// be coerced (number/boolean/array/object) and falls back to the default there.
+	//
+	// Deliberately NOT run here: `spec.validate`. Dropping a value that fails a
+	// semantic validator back to the default would be silent data loss and would
+	// defeat the editor's out-of-range-value preservation (the select control's
+	// "(current)" option). Semantic validity is reported separately by
+	// `validateDocument` (INVALID_ATTR), which is the channel that surfaces it.
+	if (value === undefined || value === null) {
+		return cloneDefault(spec.default);
 	}
 
 	if (spec.parse) {
 		const parsed = spec.parse(value);
-		return parsed === undefined ? spec.default : parsed;
+		return parsed === undefined ? cloneDefault(spec.default) : parsed;
 	}
 
 	const fallback = spec.default;
@@ -101,7 +118,7 @@ export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown):
 			const parsed = parseJsonValue(value);
 			if (Array.isArray(parsed)) return parsed as T;
 		}
-		return fallback;
+		return cloneDefault(fallback);
 	}
 
 	if (isPlainObject(fallback)) {
@@ -110,7 +127,7 @@ export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown):
 			const parsed = parseJsonValue(value);
 			if (isPlainObject(parsed)) return parsed as T;
 		}
-		return fallback;
+		return cloneDefault(fallback);
 	}
 
 	return value as T;
@@ -174,14 +191,10 @@ export function toAttributeDraftValues(
 	);
 }
 
-export function parseBlockDraftAttributes(
-	block: AttributeDefinition,
-	draftAttrs: Record<string, unknown>
-): Record<string, unknown> {
-	return Object.fromEntries(
-		Object.entries(block.attributes).map(([name, spec]) => [
-			name,
-			coerceAttributeValue(spec, draftAttrs[name])
-		])
-	);
-}
+/**
+ * @deprecated Alias of {@link normalizeBlockAttributes}. Parsing draft (form)
+ * attribute values back into stored values is exactly attribute normalization:
+ * both coerce every declared attribute through `coerceAttributeValue`. Kept as a
+ * named export for the editor's attributes controller and existing callers.
+ */
+export const parseBlockDraftAttributes = normalizeBlockAttributes;

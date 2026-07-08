@@ -16,7 +16,13 @@ export {
 	validateMeta
 } from './meta.js';
 export { createBlockRegistry, createSchema, resolveRegistry } from './registry.js';
-export { CURRENT_DOCUMENT_VERSION, normalizeDocument } from './normalize.js';
+export {
+	CURRENT_DOCUMENT_VERSION,
+	registerDocumentMigration,
+	runDocumentMigrations
+} from './migrations.js';
+export type { DocumentMigration } from './migrations.js';
+export { normalizeDocument } from './normalize.js';
 export { validateDocument } from './validate.js';
 export type {
 	BlockEditorMountHandle,

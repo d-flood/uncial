@@ -30,7 +30,7 @@
 		<h3>{title || 'Untitled callout'}</h3>
 		{#if hasRichTextContent(body)}
 			<div class="uncial-wagtail-callout__body">
-				<RichText content={body} features={['bold', 'italic', 'link']} />
+				<RichText content={body} features={['bold', 'italic']} />
 			</div>
 		{/if}
 	</div>

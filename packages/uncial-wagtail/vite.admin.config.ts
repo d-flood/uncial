@@ -6,6 +6,10 @@ export default defineConfig({
 	resolve: {
 		alias: [
 			{
+				find: 'uncial/styles',
+				replacement: new URL('../uncial/src/lib/styles/index.css', import.meta.url).pathname
+			},
+			{
 				find: 'uncial/editor',
 				replacement: new URL('../uncial/src/lib/editor/index.ts', import.meta.url).pathname
 			},

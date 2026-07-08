@@ -9,8 +9,11 @@ import type {
 } from '../core/runtime.js';
 import type { BlockAttributes, RuntimeBlockConfig } from '../core/types.js';
 import BlockNodeView from '../editor/BlockNodeView.svelte';
+import { createReactiveProps } from './reactiveProps.svelte.js';
+import { SVELTE_RUNTIME_ID } from '../shared/runtimeId.js';
 
-export const SVELTE_RUNTIME_ID = 'svelte';
+// Re-exported so `uncial/runtime/svelte` consumers keep the same public surface.
+export { SVELTE_RUNTIME_ID };
 
 export interface SvelteBlockComponentProps {
 	content?: unknown[];
@@ -53,15 +56,22 @@ export const svelteRuntime: BlockRuntimePlugin<SvelteBlockComponent> = {
 		host.className = 'uncial-nodeview-host';
 		options.target.replaceChildren(host);
 
-		const props = {
+		const component = options.component.component;
+		// Prefer the first-class `contentDOM` option; fall back to the legacy
+		// `props.contentDOM` key for one release for any external caller still
+		// passing it that way.
+		const contentDOM =
+			options.contentDOM ?? (options.props.contentDOM as HTMLElement | null) ?? null;
+		const children = createContentSnippet(contentDOM);
+		const reactiveProps = createReactiveProps({
 			...options.props,
-			component: options.component.component,
-			children: createContentSnippet((options.props.contentDOM as HTMLElement | null) ?? null)
-		};
+			component,
+			children
+		});
 
 		let mounted: MountedComponent | null = mount(BlockNodeView, {
 			target: host,
-			props: props as Parameters<typeof BlockNodeView>[1]
+			props: reactiveProps.props as unknown as Parameters<typeof BlockNodeView>[1]
 		});
 
 		return {
@@ -70,6 +80,16 @@ export const svelteRuntime: BlockRuntimePlugin<SvelteBlockComponent> = {
 					void unmount(mounted);
 					mounted = null;
 				}
+			},
+			update(nextProps) {
+				if (!mounted) return;
+				// Keep the component identity and the content snippet stable so the
+				// mounted component (and its contentDOM) survives attribute updates.
+				reactiveProps.update({
+					...nextProps,
+					component,
+					children
+				});
 			}
 		};
 	}

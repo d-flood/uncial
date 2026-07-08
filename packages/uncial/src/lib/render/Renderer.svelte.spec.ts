@@ -30,6 +30,52 @@ describe('Renderer', () => {
 		await expect.element(strong).toBeInTheDocument();
 	});
 
+	it('renders repeated identical text runs without duplicate-key crashes', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [
+							{ type: 'text', text: 'hi ' },
+							{ type: 'text', text: 'x', marks: [{ type: 'bold' }] },
+							{ type: 'text', text: 'hi ' }
+						]
+					}
+				]
+			}
+		});
+
+		const paragraph = rendered.container.querySelector('p');
+		expect(paragraph?.textContent).toBe('hi xhi ');
+		expect(rendered.container.querySelector('strong')?.textContent).toBe('x');
+	});
+
+	it('renders sibling nodes of the same type with identical attrs.id without key crashes', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						attrs: { id: 'dup' },
+						content: [{ type: 'text', text: 'First copy' }]
+					},
+					{
+						type: 'paragraph',
+						attrs: { id: 'dup' },
+						content: [{ type: 'text', text: 'Second copy' }]
+					}
+				]
+			}
+		});
+
+		await expect.element(page.getByText('First copy')).toBeInTheDocument();
+		await expect.element(page.getByText('Second copy')).toBeInTheDocument();
+		expect(rendered.container.querySelectorAll('p')).toHaveLength(2);
+	});
+
 	it('escapes literal script tags in rich text', async () => {
 		const rendered = render(Renderer, {
 			content: {
@@ -112,6 +158,114 @@ describe('Renderer', () => {
 		const link = rendered.container.querySelector('a');
 		await expect.element(page.getByText('Safe link')).toBeInTheDocument();
 		expect(link?.getAttribute('href')).toBe('https://example.com/docs');
+	});
+
+	it('renders link title, class, target, and rel attributes', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [
+							{
+								type: 'text',
+								text: 'Full link',
+								marks: [
+									{
+										type: 'link',
+										attrs: {
+											href: 'https://example.com/docs',
+											title: 'Example docs',
+											class: 'fancy-link',
+											target: '_blank',
+											rel: 'nofollow',
+											onclick: 'alert(1)'
+										}
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		});
+
+		const link = rendered.container.querySelector('a');
+		await expect.element(page.getByText('Full link')).toBeInTheDocument();
+		expect(link?.getAttribute('href')).toBe('https://example.com/docs');
+		expect(link?.getAttribute('title')).toBe('Example docs');
+		expect(link?.getAttribute('class')).toBe('fancy-link');
+		expect(link?.getAttribute('target')).toBe('_blank');
+		// stored rel is merged with noopener, not clobbered
+		expect(link?.getAttribute('rel')?.split(/\s+/)).toEqual(
+			expect.arrayContaining(['nofollow', 'noopener'])
+		);
+		// arbitrary attrs are never rendered
+		expect(link?.hasAttribute('onclick')).toBe(false);
+	});
+
+	it('adds noopener to target=_blank links without a stored rel', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [
+							{
+								type: 'text',
+								text: 'New tab link',
+								marks: [
+									{
+										type: 'link',
+										attrs: { href: 'https://example.com', target: '_blank' }
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		});
+
+		const link = rendered.container.querySelector('a');
+		await expect.element(page.getByText('New tab link')).toBeInTheDocument();
+		expect(link?.getAttribute('target')).toBe('_blank');
+		expect(link?.getAttribute('rel')?.split(/\s+/)).toContain('noopener');
+	});
+
+	it('does not render unsafe link hrefs even when target and rel are present', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [
+							{
+								type: 'text',
+								text: 'Hostile link',
+								marks: [
+									{
+										type: 'link',
+										attrs: {
+											href: 'javascript:alert(1)',
+											title: 'Nope',
+											target: '_blank',
+											rel: 'noopener'
+										}
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		});
+
+		await expect.element(page.getByText('Hostile link')).toBeInTheDocument();
+		expect(rendered.container.querySelector('a')).toBeNull();
 	});
 
 	it('renders child content inside container blocks', async () => {

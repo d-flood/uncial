@@ -2,6 +2,13 @@ export interface BlockEditorMountOptions {
 	target: HTMLElement;
 	inline: boolean;
 	component: NormalizedBlockComponentDefinition;
+	/**
+	 * The ProseMirror-managed content host for container blocks (null for atomic
+	 * blocks). Runtimes render this into the editor node view as the block's
+	 * children slot. It is stable for the node view's lifetime, so it is only
+	 * supplied at mount — never via `update()`.
+	 */
+	contentDOM?: HTMLElement | null;
 	props: Record<string, unknown>;
 }
 

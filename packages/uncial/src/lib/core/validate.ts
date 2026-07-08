@@ -9,6 +9,8 @@ import type {
 } from './types.js';
 import { resolveRegistry } from './registry.js';
 import { validateMeta } from './meta.js';
+import { pushIssue } from './issues.js';
+import { CURRENT_DOCUMENT_VERSION } from './migrations.js';
 
 const BUILTIN_NODE_TYPES = new Set([
 	'doc',
@@ -24,25 +26,26 @@ const BUILTIN_NODE_TYPES = new Set([
 	'listItem'
 ]);
 
-function pushIssue(
-	issues: ValidationIssue[],
-	options: ValidateDocumentOptions | undefined,
-	issue: ValidationIssue
-): void {
-	issues.push(issue);
-	options?.onIssue?.(issue);
-}
-
 function validateMarks(
-	marks: PMMark[] | undefined,
+	marks: unknown,
 	path: PMPath,
 	schema: ContentSchema,
 	issues: ValidationIssue[],
 	options?: ValidateDocumentOptions
 ): void {
-	if (!marks) return;
+	if (marks === undefined || marks === null) return;
 
-	marks.forEach((mark, markIndex) => {
+	if (!Array.isArray(marks)) {
+		pushIssue(issues, options, {
+			code: 'MALFORMED_NODE',
+			path: [...path, 'marks'],
+			message: 'Node marks must be an array when present',
+			severity: 'error'
+		});
+		return;
+	}
+
+	marks.forEach((mark: PMMark, markIndex: number) => {
 		if (!mark?.type || typeof mark.type !== 'string') {
 			pushIssue(issues, options, {
 				code: 'MALFORMED_NODE',
@@ -142,7 +145,7 @@ function validateBlockContent(
 function validateNode(
 	node: PMNode,
 	path: PMPath,
-	registryBlocks: Map<string, BlockDefinition>,
+	registryBlocks: ReadonlyMap<string, BlockDefinition>,
 	schema: ContentSchema,
 	issues: ValidationIssue[],
 	options?: ValidateDocumentOptions
@@ -229,6 +232,16 @@ export function validateDocument(
 		return { ok: false, issues };
 	}
 
+	if (typeof document.version === 'number' && document.version > CURRENT_DOCUMENT_VERSION) {
+		pushIssue(issues, options, {
+			code: 'UNSUPPORTED_VERSION',
+			path: ['version'],
+			message: `Document version ${document.version} is newer than the supported version ${CURRENT_DOCUMENT_VERSION}`,
+			severity: 'warning',
+			details: { version: document.version, supportedVersion: CURRENT_DOCUMENT_VERSION }
+		});
+	}
+
 	if (document.content && !Array.isArray(document.content)) {
 		pushIssue(issues, options, {
 			code: 'MALFORMED_NODE',
@@ -241,9 +254,7 @@ export function validateDocument(
 
 	validateMeta(document.meta, schema.metaFields, issues, options);
 
-	const registryBlocks = new Map<string, BlockDefinition>(
-		registry.blocks.map((block: BlockDefinition) => [block.id, block] as const)
-	);
+	const registryBlocks = registry.byId;
 	document.content?.forEach((node: PMNode, index: number) => {
 		validateNode(node, ['content', index], registryBlocks, schema, issues, options);
 	});

@@ -3,7 +3,7 @@ name = "uncial-wagtail"
 version = "0.0.7"
 description = "Wagtail integration for Uncial headless page bodies"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = ["django>=5.2", "wagtail>=7.0"]
 
 [build-system]
@@ -19,10 +19,6 @@ packages = ["src/uncial_wagtail"]
 [tool.hatch.build.targets.sdist]
 exclude = ["/demo", "/testproject", "/tests", "/frontend", "/dist"]
 
-[tool.hatch.build.targets.wheel.shared-data]
-"src/uncial_wagtail/templates" = "uncial_wagtail/templates"
-"src/uncial_wagtail/static" = "uncial_wagtail/static"
-
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "testproject.settings"
 pythonpath = ["src", "."]
@@ -30,9 +26,9 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py311"
 
 [tool.pyright]
 include = ["src", "tests", "testproject", "demo"]
-pythonVersion = "3.14"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
