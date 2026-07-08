@@ -2,7 +2,7 @@
 	// Editor variant: prerendered page shell; the document itself is always
 	// fetched live from the forge by mountEditorPage — never baked in.
 	import { onMount } from 'svelte';
-	import { mountEditorPage, patSessionProvider } from '$lib/index.js';
+	import { mountEditorPage } from '$lib/index.js';
 	import { blocks, schema, siteConfig } from '../../site.js';
 
 	let { data } = $props();
@@ -14,10 +14,8 @@
 			sourcePath: data.sourcePath,
 			pagePath: data.path,
 			blocks,
-			schema,
-			// The demo stays on PAT until the canonical worker is deployed and
-			// authWorkerUrl is set (issue 03 human-validation step flips this).
-			sessionProvider: patSessionProvider
+			schema
+			// Uses the default popupSessionProvider; authWorkerUrl is set in site.ts.
 		});
 		return () => handle.destroy();
 	});

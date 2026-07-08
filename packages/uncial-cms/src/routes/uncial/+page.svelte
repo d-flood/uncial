@@ -3,7 +3,7 @@
 	// fallback editor, all provided by the framework-agnostic runtime.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { mountIndexPage, patSessionProvider } from '$lib/index.js';
+	import { mountIndexPage } from '$lib/index.js';
 	import { blocks, schema, siteConfig } from '../site.js';
 
 	let { data } = $props();
@@ -14,10 +14,8 @@
 			config: siteConfig,
 			blocks,
 			schema,
-			basePath: base,
-			// The demo stays on PAT until the canonical worker is deployed and
-			// authWorkerUrl is set (issue 03 human-validation step flips this).
-			sessionProvider: patSessionProvider
+			basePath: base
+			// Uses the default popupSessionProvider; authWorkerUrl is set in site.ts.
 		});
 		return () => handle.destroy();
 	});

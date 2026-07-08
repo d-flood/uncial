@@ -8,7 +8,7 @@ export const siteConfig: UncialCmsSiteConfig = {
 	repo: 'd-flood/uncial',
 	branch: 'main',
 	contentDir: 'packages/uncial-cms/content',
-	authWorkerUrl: '', // placeholder until the auth worker ships (issue 03)
+	authWorkerUrl: 'https://uncial-cms-auth.dflood.workers.dev',
 	appSlug: 'uncial-cms'
 };
 
