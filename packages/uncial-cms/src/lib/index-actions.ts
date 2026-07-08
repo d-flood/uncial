@@ -5,6 +5,7 @@
  */
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+import { MAX_CONTENT_BYTES } from './constants.js';
 import { serializeDocument } from './document.js';
 import { NotFoundError } from './errors.js';
 import { defaultMapSourceToPath } from './sveltekit/mapping.js';
@@ -59,6 +60,82 @@ export async function deletePage(
 ): Promise<void> {
 	const { sha } = await adapter.readFile(sourcePath);
 	await adapter.deleteFile(sourcePath, { message: `uncial-cms: delete ${pagePath}`, sha });
+}
+
+export interface UploadAssetFile {
+	bytes: Uint8Array;
+	filename: string; // original name; used to derive the file extension
+	contentType: string; // MIME type; extension fallback when filename has none
+}
+
+export interface UploadAssetOptions {
+	mediaDir: string; // repo-root-relative dir the asset is committed into
+	author: { name: string; email: string };
+}
+
+export interface UploadAssetResult {
+	path: string; // repo-root-relative committed path (`<mediaDir>/<hash>.<ext>`)
+	sha: string; // blob sha of the committed file
+	commitSha: string; // commit that added it; '' when the file already existed
+}
+
+const EXTENSION_FROM_CONTENT_TYPE: Record<string, string> = {
+	'image/jpeg': 'jpg',
+	'image/svg+xml': 'svg'
+};
+
+/** Extension from the filename if present, else derived from the content type. */
+function assetExtension(filename: string, contentType: string): string {
+	const dot = filename.lastIndexOf('.');
+	if (dot > 0 && dot < filename.length - 1) {
+		return filename.slice(dot + 1).toLowerCase();
+	}
+	const type = contentType.toLowerCase();
+	return EXTENSION_FROM_CONTENT_TYPE[type] ?? type.split('/')[1] ?? 'bin';
+}
+
+/** SHA-256 of the bytes, hex, truncated — the content-addressed asset name. */
+async function contentHash(bytes: Uint8Array): Promise<string> {
+	const digest = await crypto.subtle.digest('SHA-256', bytes as BufferSource);
+	const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0'));
+	return hex.join('').slice(0, 32);
+}
+
+/**
+ * Commit an image into the repo at a content-addressed path under `mediaDir`.
+ * Identical bytes hash to the same path, so re-uploads reuse the existing file
+ * (no second commit). Files over the Contents API limit reject before any
+ * network call — there is no git-blobs-API fallback (spec media non-goal).
+ */
+export async function uploadAsset(
+	deps: { adapter: ForgeAdapter },
+	file: UploadAssetFile,
+	opts: UploadAssetOptions
+): Promise<UploadAssetResult> {
+	if (file.bytes.byteLength > MAX_CONTENT_BYTES) {
+		throw new Error(
+			`Image "${file.filename}" is ${file.bytes.byteLength} bytes, over the 1 MB limit of the GitHub Contents API.`
+		);
+	}
+
+	const ext = assetExtension(file.filename, file.contentType);
+	const hash = await contentHash(file.bytes);
+	const dir = opts.mediaDir.replace(/\/+$/, '');
+	const path = `${dir}/${hash}.${ext}`;
+
+	// Content-addressed: if the path already exists, the bytes are identical.
+	try {
+		const existing = await deps.adapter.readFile(path);
+		return { path, sha: existing.sha, commitSha: '' };
+	} catch (error) {
+		if (!(error instanceof NotFoundError)) throw error;
+	}
+
+	const { sha, commitSha } = await deps.adapter.writeFile(path, file.bytes, {
+		message: `uncial-cms: upload ${path}`,
+		author: opts.author
+	});
+	return { path, sha, commitSha };
 }
 
 /** Recursively list the content dir's JSON sources, sorted by page path. */

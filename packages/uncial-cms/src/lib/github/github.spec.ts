@@ -205,6 +205,45 @@ describe('writeFile', () => {
 			})
 		).rejects.toBeInstanceOf(ConflictError);
 	});
+
+	it('base64-encodes binary Uint8Array content with the same PUT contract as text', async () => {
+		fetchMock.mockResolvedValueOnce(
+			jsonResponse({ content: { sha: 'img-sha' }, commit: { sha: 'commit-sha' } }, 201)
+		);
+		const adapter = await authenticatedAdapter();
+		// Bytes that are not valid UTF-8 text, to prove the binary path is used.
+		const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe]);
+
+		const result = await adapter.writeFile('media/logo.png', bytes, {
+			message: 'uncial-cms: upload media/logo.png',
+			author: { name: 'Octo Cat', email: '1+octocat@users.noreply.github.com' }
+		});
+
+		expect(result).toEqual({ sha: 'img-sha', commitSha: 'commit-sha' });
+		const [url, init] = fetchMock.mock.calls[0]!;
+		expect(String(url)).toBe('https://api.github.com/repos/octo/site/contents/media/logo.png');
+		expect(init?.method).toBe('PUT');
+		const body = JSON.parse(String(init?.body));
+		expect(body).toEqual({
+			message: 'uncial-cms: upload media/logo.png',
+			content: Buffer.from(bytes).toString('base64'),
+			branch: 'main',
+			author: { name: 'Octo Cat', email: '1+octocat@users.noreply.github.com' }
+		});
+	});
+
+	it('throws ConflictError on a stale sha (409) for a binary write', async () => {
+		fetchMock.mockResolvedValueOnce(jsonResponse({ message: 'is at ... but expected ...' }, 409));
+		const adapter = await authenticatedAdapter();
+
+		await expect(
+			adapter.writeFile('media/logo.png', new Uint8Array([1, 2, 3]), {
+				message: 'uncial-cms: upload media/logo.png',
+				sha: 'stale',
+				author: { name: 'Octo Cat', email: '1+octocat@users.noreply.github.com' }
+			})
+		).rejects.toBeInstanceOf(ConflictError);
+	});
 });
 
 describe('deleteFile', () => {

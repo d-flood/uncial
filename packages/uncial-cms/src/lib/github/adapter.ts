@@ -1,4 +1,5 @@
-import { decodeBase64, encodeBase64 } from '../base64.js';
+import { bytesToBase64, decodeBase64, encodeBase64 } from '../base64.js';
+import { MAX_CONTENT_BYTES } from '../constants.js';
 import { ConflictError, NotFoundError } from '../errors.js';
 import { clearCachedSession, readCachedSession, writeCachedSession } from '../session.js';
 import type {
@@ -9,8 +10,6 @@ import type {
 } from '../types.js';
 
 export const GITHUB_API_URL = 'https://api.github.com';
-
-const MAX_CONTENT_BYTES = 1024 * 1024;
 
 function encodeRepoPath(path: string): string {
 	return path.split('/').map(encodeURIComponent).join('/');
@@ -57,14 +56,14 @@ class GitHubAdapter implements ForgeAdapter {
 
 	async writeFile(
 		path: string,
-		content: string,
+		content: string | Uint8Array,
 		opts: { message: string; sha?: string; author: { name: string; email: string } }
 	): Promise<{ sha: string; commitSha: string }> {
 		const response = await this.#request(this.#contentsUrl(path), {
 			method: 'PUT',
 			body: JSON.stringify({
 				message: opts.message,
-				content: encodeBase64(content),
+				content: typeof content === 'string' ? encodeBase64(content) : bytesToBase64(content),
 				branch: this.#config!.branch,
 				...(opts.sha === undefined ? {} : { sha: opts.sha }),
 				author: opts.author
