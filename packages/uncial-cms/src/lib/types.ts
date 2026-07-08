@@ -21,7 +21,7 @@ export interface ForgeAdapter {
 	readFile(path: string): Promise<{ content: string; sha: string }>;
 	writeFile(
 		path: string,
-		content: string,
+		content: string | Uint8Array,
 		opts: {
 			message: string;
 			sha?: string; // absent = create; stale → ConflictError
