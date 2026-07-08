@@ -72,7 +72,8 @@ test('loads a document with a PAT, edits it, and saves the edit as a commit', as
 	await expect(editor).toContainText('Hello from GitHub — edited in e2e');
 
 	await page.getByRole('button', { name: 'Save' }).click();
-	await expect(page.getByRole('status')).toContainText('Saved as commit 1234567');
+	// Post-save, the shared runtime shows the deploy-status line (naming the branch).
+	await expect(page.getByRole('status')).toContainText('Committed to main');
 
 	expect(puts).toHaveLength(1);
 	const put = puts[0]!;

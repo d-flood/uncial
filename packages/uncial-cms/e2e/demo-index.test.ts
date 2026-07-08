@@ -47,7 +47,7 @@ test('create → fallback edit → delete round-trip from /uncial/', async ({ pa
 	await editor.click();
 	await page.keyboard.type('Fresh page body');
 	await page.getByRole('button', { name: 'Save' }).click();
-	await expect(page.getByRole('status').last()).toContainText('Saved as commit');
+	await expect(page.getByRole('status').last()).toContainText('Committed to main');
 
 	expect(puts).toHaveLength(2);
 	const editPut = puts[1]!;
@@ -102,7 +102,7 @@ test('fallback editor at #/about/ commits to the same source as /about/edit/', a
 	await page.keyboard.press('End');
 	await page.keyboard.type(' — via fallback');
 	await page.getByRole('button', { name: 'Save' }).click();
-	await expect(page.getByRole('status').last()).toContainText('Saved as commit');
+	await expect(page.getByRole('status').last()).toContainText('Committed to main');
 
 	expect(puts).toHaveLength(1);
 	expect(puts[0]!.path).toBe(ABOUT_SOURCE); // identical PUT path to /about/edit/

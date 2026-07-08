@@ -21,7 +21,7 @@ test('base-path build maps /uncial/cms-demo/about/edit/ to the same source path'
 	await page.keyboard.type(' — edited under a base path');
 
 	await page.getByRole('button', { name: 'Save' }).click();
-	await expect(page.getByRole('status')).toContainText('Saved as commit 1234567');
+	await expect(page.getByRole('status')).toContainText('Committed to main');
 
 	expect(puts).toHaveLength(1);
 	expect(puts[0]!.path).toBe(ABOUT_SOURCE);

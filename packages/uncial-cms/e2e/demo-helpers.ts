@@ -22,9 +22,23 @@ export interface RecordedPut {
 	body: Record<string, unknown>;
 }
 
+export interface InterceptDemoOptions {
+	/**
+	 * Commit-status states returned by `/commits/:sha/status`, one per poll; the
+	 * last entry repeats. Omit to leave the endpoint returning 404 (→ `unknown`).
+	 */
+	commitStatuses?: Array<'pending' | 'success' | 'failure' | 'error'>;
+	/** When true, PUT saves are rejected with 409 to drive the conflict flow. */
+	conflictOnPut?: boolean;
+}
+
 /** Intercepts api.github.com for the demo site (repo d-flood/uncial). */
-export async function interceptDemoGitHub(page: Page): Promise<{ puts: RecordedPut[] }> {
+export async function interceptDemoGitHub(
+	page: Page,
+	opts: InterceptDemoOptions = {}
+): Promise<{ puts: RecordedPut[] }> {
 	const puts: RecordedPut[] = [];
+	let statusCall = 0;
 
 	await page.route('https://api.github.com/**', async (route: Route) => {
 		const request = route.request();
@@ -32,6 +46,18 @@ export async function interceptDemoGitHub(page: Page): Promise<{ puts: RecordedP
 
 		if (url.pathname === '/user') {
 			await route.fulfill({ json: { login: 'octocat', id: 583231, name: 'Octo Cat' } });
+			return;
+		}
+
+		if (/^\/repos\/d-flood\/uncial\/commits\/.+\/status$/.test(url.pathname)) {
+			const states = opts.commitStatuses;
+			if (states && states.length > 0) {
+				const state = states[Math.min(statusCall, states.length - 1)]!;
+				statusCall += 1;
+				await route.fulfill({ json: { state } });
+				return;
+			}
+			await route.fulfill({ status: 404, json: { message: 'Not Found' } });
 			return;
 		}
 
@@ -44,6 +70,10 @@ export async function interceptDemoGitHub(page: Page): Promise<{ puts: RecordedP
 				return;
 			}
 			if (request.method() === 'PUT') {
+				if (opts.conflictOnPut) {
+					await route.fulfill({ status: 409, json: { message: 'sha mismatch' } });
+					return;
+				}
 				puts.push({
 					path: url.pathname.replace('/repos/d-flood/uncial/contents/', ''),
 					body: request.postDataJSON() as Record<string, unknown>

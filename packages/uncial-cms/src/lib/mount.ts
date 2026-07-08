@@ -1,11 +1,15 @@
 import 'uncial/web-components';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { UncialEditorElement } from 'uncial/web-components';
-import { parseDocument, serializeDocument } from './document.js';
-import { ConflictError } from './errors.js';
+import {
+	createEditorController,
+	type DownloadPayload,
+	type EditorPageUi,
+	type StatusView
+} from './editor-controller.js';
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
-import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
+import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
 export interface MountEditorPageOptions {
 	config: UncialCmsSiteConfig;
@@ -45,6 +49,18 @@ function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 	throw new Error(`Unknown forge "${config.forge}".`);
 }
 
+function triggerDownload(payload: DownloadPayload): void {
+	const blob = new Blob([payload.content], { type: payload.mimeType });
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = payload.filename;
+	document.body.append(anchor);
+	anchor.click();
+	anchor.remove();
+	URL.revokeObjectURL(url);
+}
+
 export function mountEditorPage(
 	target: HTMLElement,
 	opts: MountEditorPageOptions
@@ -69,103 +85,113 @@ export function mountEditorPage(
 	status.className = 'uncial-cms-status';
 	status.setAttribute('role', 'status');
 
-	// Conflict seam: issue 05 replaces this banner with real recovery UX.
+	// Conflict recovery banner (ticket 05): blocking, offers download + reload,
+	// and must never lose the unsaved document.
 	const banner = document.createElement('div');
 	banner.className = 'uncial-cms-banner';
 	banner.setAttribute('role', 'alert');
 	banner.hidden = true;
 
+	const bannerText = document.createElement('p');
+	bannerText.className = 'uncial-cms-banner-message';
+	bannerText.textContent =
+		`This page changed on ${config.branch} since you loaded it. ` +
+		'Your unsaved changes are safe — choose how to proceed.';
+
+	const downloadButton = document.createElement('button');
+	downloadButton.type = 'button';
+	downloadButton.textContent = 'Download my version';
+
+	const reloadButton = document.createElement('button');
+	reloadButton.type = 'button';
+	reloadButton.textContent = 'Reload latest';
+
+	const dismissButton = document.createElement('button');
+	dismissButton.type = 'button';
+	dismissButton.textContent = 'Dismiss';
+
+	const bannerActions = document.createElement('div');
+	bannerActions.className = 'uncial-cms-banner-actions';
+	bannerActions.append(downloadButton, reloadButton, dismissButton);
+	banner.append(bannerText, bannerActions);
+
 	const editor = document.createElement('uncial-editor') as UncialEditorElement;
 	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
+	editor.blocks = blocks;
+	editor.schema = schema;
 
 	chrome.append(saveButton, status);
 	root.append(chrome, banner, editor);
 	target.append(root);
 
 	let destroyed = false;
-	let adapter: ForgeAdapter | null = null;
-	let session: ForgeSession | null = null;
-	let sha: string | null = null;
-	let currentDocument: ContentDocument | null = null;
-	let dirty = false;
 
-	const setStatus = (text: string) => {
-		status.textContent = text;
+	const ui: EditorPageUi = {
+		status(view: StatusView) {
+			status.replaceChildren(document.createTextNode(view.text));
+			status.dataset.tone = view.tone;
+			if (view.href) {
+				status.append(document.createTextNode(' '));
+				const link = document.createElement('a');
+				link.href = view.href;
+				link.target = '_blank';
+				link.rel = 'noopener';
+				link.textContent = 'View commit';
+				status.append(link);
+			}
+		},
+		setDocument(doc: ContentDocument) {
+			editor.json = doc;
+		},
+		saveEnabled(enabled: boolean) {
+			saveButton.disabled = !enabled;
+		},
+		conflictVisible(visible: boolean) {
+			banner.hidden = !visible;
+		}
 	};
 
-	const showConflict = () => {
-		banner.hidden = false;
-		banner.textContent =
-			`This page changed on ${config.branch} since it was loaded. ` +
-			'Reload the page and re-apply your edit.';
-	};
+	const controller = createEditorController({
+		config,
+		sourcePath,
+		pagePath: opts.pagePath,
+		blocks,
+		schema,
+		adapter: createAdapter(config),
+		sessionProvider,
+		ui,
+		confirm: (message) => window.confirm(message),
+		download: triggerDownload,
+		isDestroyed: () => destroyed
+	});
 
 	const onChange = (event: Event) => {
-		currentDocument = (event as CustomEvent<ContentDocument>).detail;
-		dirty = true;
+		controller.documentChanged((event as CustomEvent<ContentDocument>).detail);
 	};
 	editor.addEventListener('uncial-change', onChange);
 
-	const load = async () => {
-		setStatus('Signing in…');
-		adapter = createAdapter(config);
-		session = await adapter.authenticate(config, sessionProvider);
+	saveButton.addEventListener('click', () => void controller.save());
+	downloadButton.addEventListener('click', () => controller.downloadMyVersion());
+	reloadButton.addEventListener('click', () => void controller.reloadLatest());
+	dismissButton.addEventListener('click', () => controller.dismissConflict());
+
+	void controller.load().catch((error: unknown) => {
 		if (destroyed) return;
-
-		setStatus('Loading…');
-		const file = await adapter.readFile(sourcePath);
-		if (destroyed) return;
-
-		sha = file.sha;
-		currentDocument = parseDocument(file.content, blocks, schema);
-		editor.blocks = blocks;
-		editor.schema = schema;
-		editor.json = currentDocument;
-		saveButton.disabled = false;
-		setStatus(`Editing ${sourcePath} as ${session.user.login}`);
-	};
-
-	const save = async () => {
-		if (!adapter || !session || !currentDocument) return;
-		banner.hidden = true;
-		saveButton.disabled = true;
-		setStatus('Saving…');
-		try {
-			const content = serializeDocument(currentDocument, blocks, schema);
-			const result = await adapter.writeFile(sourcePath, content, {
-				message: `uncial-cms: edit ${opts.pagePath ?? sourcePath}`,
-				sha: sha ?? undefined,
-				author: { name: session.user.name, email: session.user.email }
-			});
-			sha = result.sha;
-			dirty = false;
-			setStatus(`Saved as commit ${result.commitSha.slice(0, 7)}`);
-		} catch (error) {
-			if (error instanceof ConflictError) {
-				showConflict();
-				setStatus('Save conflicted');
-			} else {
-				setStatus(error instanceof Error ? error.message : 'Save failed');
-			}
-		} finally {
-			if (!destroyed) saveButton.disabled = false;
-		}
-	};
-	saveButton.addEventListener('click', () => void save());
-
-	void load().catch((error: unknown) => {
-		if (destroyed) return;
-		setStatus(error instanceof Error ? error.message : 'Failed to load the document.');
+		ui.status({
+			tone: 'error',
+			text: error instanceof Error ? error.message : 'Failed to load the document.'
+		});
 	});
 
 	return {
 		destroy() {
 			destroyed = true;
+			controller.stop();
 			editor.removeEventListener('uncial-change', onChange);
 			root.remove();
 		},
 		isDirty() {
-			return dirty;
+			return controller.isDirty();
 		}
 	};
 }
