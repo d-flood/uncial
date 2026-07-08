@@ -33,3 +33,4 @@ packages/uncial-cms/.fixture-dist
 packages/uncial-cms/.e2e-build
 packages/uncial-cms/.svelte-kit-e2e-*
 .tracker
+*.pem
