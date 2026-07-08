@@ -1,0 +1,159 @@
+/* ----------------------------------------------------------------------------
+ * Fonts
+ * -------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Uncial's shipped renderer/editor styles, resolved from workspace source
+ * (dist/ does not exist on a fresh checkout). */
+@import '../../uncial/src/lib/styles/index.css';
+
+@import 'tailwindcss';
+
+@plugin 'daisyui' {
+	themes:
+		vellum --default,
+		vellum-dark --prefersdark;
+}
+
+/* --------------------------------  VELLUM  -------------------------------- */
+@plugin 'daisyui/theme' {
+	name: 'vellum';
+	default: true;
+	prefersdark: false;
+	color-scheme: light;
+
+	/* Page is near-white warm; editor surfaces sit on the cream base-200.      */
+	--color-base-100: oklch(99% 0.006 85);
+	--color-base-200: oklch(96% 0.022 85);
+	--color-base-300: oklch(91% 0.032 82);
+	--color-base-content: oklch(22% 0.04 45);
+
+	--color-primary: oklch(46% 0.14 260);
+	--color-primary-content: oklch(98% 0.015 85);
+	--color-secondary: oklch(42% 0.06 145);
+	--color-secondary-content: oklch(98% 0.015 85);
+	--color-accent: oklch(58% 0.12 75);
+	--color-accent-content: oklch(18% 0.03 45);
+	--color-neutral: oklch(24% 0.04 45);
+	--color-neutral-content: oklch(96% 0.015 85);
+
+	--color-info: oklch(50% 0.08 220);
+	--color-info-content: oklch(98% 0.015 85);
+	--color-success: oklch(48% 0.1 145);
+	--color-success-content: oklch(98% 0.015 85);
+	--color-warning: oklch(60% 0.12 75);
+	--color-warning-content: oklch(18% 0.03 45);
+	--color-error: oklch(48% 0.18 25);
+	--color-error-content: oklch(98% 0.015 85);
+
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.5rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.28rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
+}
+
+/* --------------------------------  VELLUM-DARK  --------------------------- */
+@plugin 'daisyui/theme' {
+	name: 'vellum-dark';
+	default: false;
+	prefersdark: true;
+	color-scheme: dark;
+
+	/* Warm inverted vellum — near-black parchment, off-white ink.              */
+	--color-base-100: oklch(18% 0.015 60);
+	--color-base-200: oklch(22% 0.02 60);
+	--color-base-300: oklch(27% 0.025 60);
+	--color-base-content: oklch(92% 0.015 85);
+
+	--color-primary: oklch(72% 0.13 260);
+	--color-primary-content: oklch(16% 0.03 260);
+	--color-secondary: oklch(70% 0.08 145);
+	--color-secondary-content: oklch(16% 0.03 145);
+	--color-accent: oklch(78% 0.13 75);
+	--color-accent-content: oklch(18% 0.03 45);
+	--color-neutral: oklch(28% 0.03 60);
+	--color-neutral-content: oklch(90% 0.015 85);
+
+	--color-info: oklch(72% 0.1 220);
+	--color-info-content: oklch(16% 0.03 220);
+	--color-success: oklch(70% 0.11 145);
+	--color-success-content: oklch(16% 0.03 145);
+	--color-warning: oklch(80% 0.12 75);
+	--color-warning-content: oklch(18% 0.03 45);
+	--color-error: oklch(72% 0.16 25);
+	--color-error-content: oklch(16% 0.03 25);
+
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.5rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.28rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Base styles
+ * -------------------------------------------------------------------------- */
+@layer base {
+	body {
+		margin: 0;
+		font-family: 'Lora', Georgia, serif;
+		background: var(--color-base-100);
+		color: var(--color-base-content);
+	}
+
+	button,
+	input,
+	select,
+	textarea {
+		font: inherit;
+	}
+}
+
+/* Utility classes for typography */
+@layer components {
+	.font-vellum-display {
+		font-family: 'Playfair Display', Georgia, serif;
+	}
+	.font-vellum-mono {
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
+	}
+}
+
+.uncial-editor-shell,
+.uncial-renderer,
+.uncial-attrs-panel,
+.uncial-link-panel,
+.uncial-richtext-wrapper,
+.uncial-block-menu {
+	--uncial-color-bg: var(--color-base-100);
+	--uncial-color-surface: var(--color-base-100);
+	--uncial-color-surface-elevated: var(--color-base-200);
+	--uncial-color-border: var(--color-base-300);
+	--uncial-color-border-strong: color-mix(
+		in srgb,
+		var(--color-base-content) 22%,
+		var(--color-base-300)
+	);
+	--uncial-color-text: var(--color-base-content);
+	--uncial-color-text-muted: color-mix(in srgb, var(--color-base-content) 62%, transparent);
+	--uncial-color-text-inverted: var(--color-neutral-content);
+	--uncial-color-primary: var(--color-primary);
+	--uncial-color-primary-contrast: var(--color-primary-content);
+	--uncial-color-accent: var(--color-accent);
+	--uncial-color-danger: var(--color-error);
+	--uncial-color-focus-ring: var(--color-primary);
+	--uncial-color-code-bg: var(--color-neutral);
+	--uncial-color-code-text: var(--color-neutral-content);
+	--uncial-font-body: 'Lora', Georgia, serif;
+	--uncial-font-display: 'Playfair Display', Georgia, serif;
+	--uncial-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+	--uncial-radius-sm: var(--radius-selector);
+	--uncial-radius-md: var(--radius-field);
+	--uncial-radius-lg: var(--radius-box);
+}

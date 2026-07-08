@@ -32,5 +32,7 @@ test-results
 packages/uncial-cms/.fixture-dist
 packages/uncial-cms/.e2e-build
 packages/uncial-cms/.svelte-kit-e2e-*
+packages/uncial-docs/.e2e-build
+packages/uncial-docs/.svelte-kit-e2e-*
 .tracker
 *.pem
