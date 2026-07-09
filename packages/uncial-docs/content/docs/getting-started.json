@@ -48,7 +48,7 @@
 								{ "type": "text", "text": "Live with the generated forms.", "marks": [{ "type": "bold" }] },
 								{
 									"type": "text",
-									"text": " Editors lose all sense of what they're building."
+									"text": " Editors lose all sense of what they're building. \"Which of these five identical Section panels is the one above the fold?\" becomes a daily question."
 								}
 							]
 						}
@@ -63,7 +63,7 @@
 								{ "type": "text", "text": "Customize the admin.", "marks": [{ "type": "bold" }] },
 								{
 									"type": "text",
-									"text": " Now you maintain two frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output."
+									"text": " Now you maintain two frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output. Every new block means writing it twice and keeping the two in sync forever."
 								}
 							]
 						}
@@ -82,7 +82,12 @@
 		},
 		{
 			"type": "paragraph",
-			"content": [{ "type": "text", "text": "Concretely, one block definition gives you:" }]
+			"content": [
+				{
+					"type": "text",
+					"text": "When the editing surface renders the same components with the same document JSON as production, preview isn't a feature you bolt on with draft APIs and iframe round-trips — it's just what the editor looks like. What the editor sees is what the reader gets, because it's literally the same code. Concretely, one block definition gives you:"
+				}
+			]
 		},
 		{
 			"type": "bulletList",
@@ -131,7 +136,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "and a plain ProseMirror-compatible JSON document your backend can store anywhere."
+									"text": "and a plain ProseMirror-compatible JSON document your backend can store anywhere — including, via uncial-wagtail, a regular Wagtail page field."
 								}
 							]
 						}
@@ -172,7 +177,7 @@
 				{ "type": "text", "text": "defineSvelteBlock", "marks": [{ "type": "code" }] },
 				{
 					"type": "text",
-					"text": " then wraps it with a stable id, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor and the SSR-capable renderer."
+					"text": " then wraps it with a stable id, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor and the SSR-capable renderer, so there is no second \"admin widget\" to write and no translation layer to keep in sync."
 				}
 			]
 		},
@@ -195,6 +200,62 @@
 					"text": "// src/lib/blocks/promoCard.ts\nimport { defineSvelteBlock } from 'uncial';\nimport PromoCard from './PromoCard.svelte';\n\nexport const promoCard = defineSvelteBlock({\n\tid: 'promoCard',\n\tlabel: 'Promo Card',\n\tdescription: 'A reusable promotional card block',\n\tattributes: {\n\t\ttitle: '',\n\t\tbody: { default: '', input: 'textarea' }\n\t},\n\tcomponent: PromoCard\n});"
 				}
 			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Create the registry, schema, and controller" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The registry is the shared block catalog. The schema controls allowed blocks and marks. The attributes controller powers block and link editing UI."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/uncial.ts\nimport { createBlockAttributesController, createBlockRegistry, createSchema } from 'uncial';\nimport { promoCard } from './blocks/promoCard';\n\nexport const blocks = createBlockRegistry([promoCard]);\nexport const schema = createSchema(blocks);\nexport const attributesController = createBlockAttributesController();"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Edit and render the same JSON" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Editor and renderer share one document and one block registry. Bind your document to Editor with bind:json; pass the saved document to Renderer as content with the same blocks and schema. Because both sides render your actual components, the editor doubles as a live preview — there's no separate preview pipeline to build."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "svelte" },
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/routes/editor/+page.svelte -->\n<script lang=\"ts\">\n\timport 'uncial/styles';\n\timport { Editor, Renderer } from 'uncial';\n\timport { attributesController, blocks, schema } from './uncial';\n\n\tlet document = $state({\n\t\ttype: 'doc',\n\t\tcontent: [{ type: 'paragraph' }]\n\t});\n</script>\n\n<Editor {blocks} {schema} {attributesController} bind:json={document} />\n<Renderer content={document} {blocks} {schema} />"
+				}
+			]
+		},
+		{
+			"type": "image",
+			"attrs": {
+				"src": "/uploads/basic-editor.png",
+				"alt": "The Uncial editor with a heading, paragraph, and a promo card block being edited in place",
+				"caption": "The Uncial editor: the block you edit is the same component your site renders."
+			}
 		}
 	]
 }

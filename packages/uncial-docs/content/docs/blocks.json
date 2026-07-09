@@ -1,0 +1,186 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "Blocks & attributes", "navGroup": "Guides", "navOrder": 10 },
+	"content": [
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Describe editable block data" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Attribute specs are how Uncial derives the editing UI you'd otherwise hand-build: each spec maps a component prop to a typed, validated control in the block attributes panel."
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "default", "marks": [{ "type": "code" }] },
+								{
+									"type": "text",
+									"text": " — Required fallback value. Shorthand values like title: \"\" become defaults."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "input", "marks": [{ "type": "code" }] },
+								{
+									"type": "text",
+									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, or select."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "required", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Marks an attribute as required during validation." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "validate", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Custom predicate for accepting or rejecting an attribute value." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "parse / serialize", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Coerce values at editor or persistence boundaries." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "options", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Allowed values for select-style attributes." }
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Allow nested document flow" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Nesting is where form-driven admins fall apart — and where in-place editing pays off most. Editors write nested content inside the rendered block, exactly where it will appear, not in a collapsed sub-form three scroll-screens away."
+				}
+			]
+		},
+		{
+			"type": "callout",
+			"attrs": { "variant": "note" },
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "Atomic blocks have no child content. Add content: { kind: 'flow' } when a block should own one default child region; the block component then receives its attribute props plus a children snippet for that region."
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/blocks/collapsible.ts\nimport { defineSvelteBlock } from 'uncial';\nimport Collapsible from './Collapsible.svelte';\n\nexport const collapsible = defineSvelteBlock({\n\tid: 'collapsible',\n\tlabel: 'Collapsible',\n\tattributes: {\n\t\ttitle: ''\n\t},\n\tcomponent: Collapsible,\n\tcontent: { kind: 'flow' }\n});"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "svelte" },
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/lib/blocks/Collapsible.svelte -->\n<script lang=\"ts\">\n\timport type { Snippet } from 'svelte';\n\n\tinterface Props {\n\t\ttitle?: string;\n\t\tchildren?: Snippet;\n\t}\n\n\tlet { title = '', children }: Props = $props();\n</script>\n\n<details class=\"collapse collapse-arrow border border-base-300 bg-base-100\">\n\t<summary class=\"collapse-title font-semibold\">{title}</summary>\n\t<div class=\"collapse-content\">\n\t\t{#if children}\n\t\t\t{@render children()}\n\t\t{/if}\n\t</div>\n</details>"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Svelte ships first, core stays neutral" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Svelte is the only bundled block runtime today. Non-Svelte block authoring is enabled through public runtime plugins that normalize native components and can provide editor node-view mounting. A registry may contain blocks from only one runtime in this release; mixed-runtime documents fail fast."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Svelte blocks keep the direct Svelte renderer path, so custom block rendering remains SSR-capable. Future React or Vue support should be implemented with full-document runtime renderers that can use each framework's SSR APIs, not by mixing client-only component islands into the Svelte renderer."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "import { defineRuntimeBlock } from 'uncial/core';\nimport { reactRuntime } from 'uncial-react-runtime';\n\nexport function defineReactBlock(config) {\n\treturn defineRuntimeBlock(reactRuntime, config);\n}"
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,178 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "Integrations & security", "navGroup": "Advanced", "navOrder": 20 },
+	"content": [
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Use Uncial from React, Vue, or vanilla JS" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "React, Vue, and vanilla apps can use Uncial through browser-native custom elements. Register them once on the client, then drop the tags into your markup."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [{ "type": "text", "text": "import 'uncial/web-components';" }]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "html" },
+			"content": [
+				{ "type": "text", "text": "<uncial-editor></uncial-editor>\n<uncial-renderer></uncial-renderer>" }
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Configure the elements with JS properties, not HTML attributes: the inputs are structured objects and components that do not round-trip through strings. Editor document updates arrive as a bubbling uncial-change event, because non-Svelte hosts cannot use bind:json."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "const editor = document.querySelector('uncial-editor');\nObject.assign(editor, { blocks, schema, json: document, attributesController });\neditor.addEventListener('uncial-change', (event) => {\n\tdocument = event.detail;\n});\n\nconst renderer = document.querySelector('uncial-renderer');\nObject.assign(renderer, { blocks, schema, content: document });"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Both elements render into an open shadow root, so page styles do not reach them. Pass Uncial's default CSS through the one reflected attribute, stylesheet (a whitespace-separated list of stylesheet URLs)."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "import uncialStylesHref from 'uncial/styles?url';\neditor.stylesheet = uncialStylesHref;"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Store Uncial documents in Wagtail pages" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Wagtail is the origin story here: deeply nested StreamFields render as towers of stacked form panels, and headless preview requires real plumbing. The companion uncial-wagtail package replaces that experience — it stores an Uncial document in an ordinary Wagtail page field and mounts this editor inside the Wagtail admin, so editors work in your actual components instead of generated forms. Because the body is just JSON, the document you edit is the document served headless (with a resolved image sidecar) for your frontend to render: no admin-to-frontend translation layer, and preview comes for free."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "python" },
+			"content": [
+				{
+					"type": "text",
+					"text": "from wagtail.admin.panels import FieldPanel\nfrom wagtail.models import Page\n\nfrom uncial_wagtail.fields import UncialField\nfrom uncial_wagtail.schema import UncialEditorConfig\n\n\nclass ArticlePage(Page):\n    body = UncialField(config=UncialEditorConfig(allowed_blocks=[\"wagtail.image\"]))\n    content_panels = Page.content_panels + [FieldPanel(\"body\")]"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{ "type": "text", "text": "See the " },
+				{
+					"type": "text",
+					"text": "uncial-wagtail README",
+					"marks": [
+						{
+							"type": "link",
+							"attrs": { "href": "https://github.com/d-flood/uncial/tree/main/packages/uncial-wagtail" }
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for the headless API, image reference resolution, and custom block registration."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Render known blocks, validate user content" }]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Renderer uses the block registry you provide, so unknown custom blocks are not rendered as trusted components."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Built-in rich text links are sanitized to http, https, mailto, tel, relative paths, and hash links."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "Run validation before publishing or saving user-authored documents." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Custom block components and html.render hooks are trusted application code; sanitize any raw HTML or navigation attributes they emit."
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

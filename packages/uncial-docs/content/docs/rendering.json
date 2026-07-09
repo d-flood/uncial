@@ -1,33 +1,296 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Rendering content", "navGroup": "Guides", "navOrder": 1 },
+	"meta": { "title": "Rendering & content", "navGroup": "Guides", "navOrder": 11 },
 	"content": [
 		{
 			"type": "heading",
 			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Server-side rendering" }]
+			"content": [{ "type": "text", "text": "Edit document-level metadata" }]
 		},
 		{
 			"type": "paragraph",
 			"content": [
 				{
 					"type": "text",
-					"text": "Uncial's renderer turns a stored document into static HTML on the server, so readers get fast pages with no editor JavaScript. This placeholder page exists to exercise content-driven grouping; the full content port lands in ticket 05."
+					"text": "Add typed metaFields to your schema for frontmatter-style data such as title, author, publish date, or tags. Metadata is stored as JSON on the top-level document meta field and is not serialized to YAML."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "svelte" },
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\timport {\n\t\tDocumentMetaPanel,\n\t\tEditor,\n\t\tcreateDocumentMetaController,\n\t\tcreateSchema\n\t} from 'uncial';\n\n\tconst schema = createSchema(blocks, {\n\t\tmetaFields: {\n\t\t\ttitle: { default: '', required: true },\n\t\t\tauthor: { default: '' },\n\t\t\tpublishedAt: { default: '', placeholder: 'YYYY-MM-DD' },\n\t\t\ttags: { default: [], input: 'json' }\n\t\t}\n\t});\n\n\tconst metaController = createDocumentMetaController(schema.metaFields);\n\tlet document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n\tlet meta = $state({ title: 'Hello world', author: 'Ada' });\n</script>\n\n<Editor {blocks} {schema} {metaController} bind:json={document} bind:meta />\n<DocumentMetaPanel\n\tcontroller={metaController}\n\tfields={schema.metaFields}\n\tonCommit={(nextMeta) => (meta = nextMeta)}\n/>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "When metadata fields are configured, Editor also shows a built-in Metadata button in the toolbar. The renderer normalizes the same metadata and exposes it as an optional snippet prop."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "svelte" },
+			"content": [
+				{
+					"type": "text",
+					"text": "<Renderer content={document} {blocks} {schema}>\n\t{#snippet meta(meta)}\n\t\t<h1>{meta?.title}</h1>\n\t{/snippet}\n</Renderer>"
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Custom blocks in the frontend" }]
+			"content": [{ "type": "text", "text": "Match Uncial to your site" }]
 		},
 		{
 			"type": "paragraph",
 			"content": [
 				{
 					"type": "text",
-					"text": "The same block definition powers both the editor and the SSR renderer, so what an author sees is what a reader gets."
+					"text": "Uncial's editor and renderer chrome are plain CSS. Tailwind and DaisyUI are not required by the library. Import the default styles once, then override --uncial-* custom properties anywhere above the editor in the cascade."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// Full default editor, renderer, controls, and rich text prose styles.\nimport 'uncial/styles';\n\n// Or import only the editor chrome if your app owns prose typography.\nimport 'uncial/styles/chrome';"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Scope theme tokens to a wrapper when one page should look different from the rest of your app:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "css" },
+			"content": [
+				{
+					"type": "text",
+					"text": ".your-custom-class .uncial-editor-shell,\n.your-custom-class .uncial-renderer {\n\t--uncial-color-surface: white;\n\t--uncial-color-primary: #7c3aed;\n\t--uncial-color-primary-contrast: white;\n\t--uncial-color-accent: #d97706;\n\n\t--uncial-radius-md: 0.5rem;\n\t--uncial-font-body: Inter, system-ui, sans-serif;\n\t--uncial-font-display: Georgia, serif;\n\t--uncial-font-mono: 'IBM Plex Mono', ui-monospace, monospace;\n}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [{ "type": "text", "text": "The most common tokens are:" }]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-primary", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Primary buttons, links, active controls, block focus outlines." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-primary-contrast", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Text/icons on primary buttons." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-accent", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Secondary emphasis color for consumers who want one." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-surface", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Main editor and renderer background." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-surface-elevated", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Toolbar, inputs, nested block surfaces." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-border", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Control, panel, renderer, and block chrome borders." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-text", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Editor UI and rich text foreground." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-color-code-bg", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Fenced code block background. Defaults dark in both light and dark themes." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-radius-sm/md/lg", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Buttons, inputs, panels, renderer, and block chrome radius." }
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{ "type": "text", "text": "--uncial-font-body/display/mono", "marks": [{ "type": "code" }] },
+								{ "type": "text", "text": " — Editor UI, headings, and code typography." }
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Rich text uses a stable .uncial-rich-content hook. If your site already has article typography, import uncial/styles/chrome and style that hook yourself:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "css" },
+			"content": [
+				{
+					"type": "text",
+					"text": ".your-custom-class .uncial-rich-content {\n\tfont: 400 1rem/1.7 var(--site-body-font);\n\tcolor: var(--site-ink);\n}\n\n.your-custom-class .uncial-rich-content h2 {\n\tfont: 700 1.75rem/1.2 var(--site-display-font);\n\tmargin-block: 2rem 0.75rem;\n}"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Normalize and validate before publish" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Use normalizeDocument and validateDocument around persistence boundaries, or pass onIssue to Editor and Renderer to observe document issues as they happen."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/publish.ts\nimport { normalizeDocument, validateDocument } from 'uncial';\nimport { blocks, schema } from './uncial';\n\nconst normalized = normalizeDocument(document, blocks, schema);\nconst result = validateDocument(normalized, blocks, schema, {\n\tonIssue: (issue) => console.warn(issue.code, issue.path)\n});\n\nif (!result.ok) {\n\tthrow new Error('Document is not publishable');\n}"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": { "level": 2 },
+			"content": [{ "type": "text", "text": "Render on the server without the editor" }]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "\"Same component in editor and frontend\" only works if the frontend half stays lean. The Renderer is safe to import in a server bundle. Use the granular entry points so the browser-only editor stack (Tiptap, node views, mount()) never reaches your server."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": { "language": "ts" },
+			"content": [
+				{
+					"type": "text",
+					"text": "// Server-safe: no editor mount code enters your bundle.\nimport { Renderer } from 'uncial/render';\nimport { createBlockRegistry, createSchema, defineSvelteBlock } from 'uncial/core';"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "uncial/render and uncial/core are free of editor machinery, and a regression test walks the render/ import graph to keep it that way. The package root (import ... from 'uncial') also re-exports the editor, so prefer these entry points on the server."
 				}
 			]
 		}
