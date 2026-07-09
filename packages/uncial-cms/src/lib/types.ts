@@ -5,6 +5,7 @@ export interface UncialCmsSiteConfig {
 	contentDir: string; // repo-root-relative, e.g. 'packages/uncial-cms/content'
 	authWorkerUrl: string; // unused by the PAT provider; required in the config shape
 	appSlug: string;
+	mediaDir?: string; // repo-root-relative dir uploaded images commit into; consumer-defined
 }
 
 export interface ForgeSession {

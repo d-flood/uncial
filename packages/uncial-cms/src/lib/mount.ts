@@ -10,6 +10,7 @@ import {
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
+import { clearActiveForge } from './upload-context.js';
 
 export interface MountEditorPageOptions {
 	config: UncialCmsSiteConfig;
@@ -195,6 +196,7 @@ export function mountEditorPage(
 		destroy() {
 			destroyed = true;
 			controller.stop();
+			clearActiveForge();
 			editor.removeEventListener('uncial-change', onChange);
 			root.remove();
 		},

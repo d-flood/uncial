@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema, normalizeDocument } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
 import { NotFoundError } from './errors.js';
-import { createPage, deletePage, listPages, uploadAsset } from './index-actions.js';
+import { createPage, deletePage, listPages, uploadAsset, uploadImageAsset } from './index-actions.js';
 import type { ForgeAdapter } from './types.js';
+import { clearActiveForge, setActiveForge } from './upload-context.js';
 
 const blocks = createBlockRegistry([]);
 const schema = createSchema(blocks, {
@@ -171,6 +172,32 @@ describe('uploadAsset', () => {
 		const result = await uploadAsset({ adapter }, file, { mediaDir: 'static/media/', author });
 
 		expect(result.path).toMatch(/^static\/media\/[0-9a-f]+\.png$/);
+	});
+});
+
+describe('uploadImageAsset', () => {
+	const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02]);
+	const file = { bytes: pngBytes, filename: 'shot.png', contentType: 'image/png' };
+
+	afterEach(() => clearActiveForge());
+
+	it('uploads through the active editor forge, resolving its adapter + author', async () => {
+		const adapter = fakeAdapter();
+		setActiveForge({ adapter, author });
+
+		const result = await uploadImageAsset(file, { mediaDir: 'packages/uncial-docs/static/uploads' });
+
+		expect(result.path).toMatch(/^packages\/uncial-docs\/static\/uploads\/[0-9a-f]+\.png$/);
+		expect(adapter.writeFile).toHaveBeenCalledTimes(1);
+		const [path, , writeOpts] = vi.mocked(adapter.writeFile).mock.calls[0]!;
+		expect(path).toBe(result.path);
+		expect(writeOpts.author).toEqual(author); // author came from the active forge
+	});
+
+	it('throws a clear error when no editor session is active', async () => {
+		await expect(uploadImageAsset(file, { mediaDir: 'media' })).rejects.toThrow(
+			/no active editor session/i
+		);
 	});
 });
 

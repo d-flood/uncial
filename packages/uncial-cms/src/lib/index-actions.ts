@@ -10,6 +10,7 @@ import { serializeDocument } from './document.js';
 import { NotFoundError } from './errors.js';
 import { defaultMapSourceToPath } from './sveltekit/mapping.js';
 import type { ForgeAdapter } from './types.js';
+import { getActiveForge } from './upload-context.js';
 
 export interface CreatePageDeps {
 	adapter: ForgeAdapter;
@@ -136,6 +137,29 @@ export async function uploadAsset(
 		author: opts.author
 	});
 	return { path, sha, commitSha };
+}
+
+/**
+ * Editor-facing convenience over {@link uploadAsset}: resolves the adapter and
+ * author from the {@link getActiveForge active editor session} so a block's
+ * Upload affordance only has to supply the file and its `mediaDir`. Throws a
+ * clear error when no editor is mounted (e.g. called before sign-in). Import
+ * this dynamically from a block so the reader bundle stays free of CMS runtime.
+ */
+export async function uploadImageAsset(
+	file: UploadAssetFile,
+	opts: { mediaDir: string }
+): Promise<UploadAssetResult> {
+	const forge = getActiveForge();
+	if (!forge) {
+		throw new Error(
+			'No active editor session — open a page in the editor and sign in before uploading.'
+		);
+	}
+	return uploadAsset({ adapter: forge.adapter }, file, {
+		mediaDir: opts.mediaDir,
+		author: forge.author
+	});
 }
 
 /** Recursively list the content dir's JSON sources, sorted by page path. */
