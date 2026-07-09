@@ -6,7 +6,7 @@
 	// URL as `src`. uncial-cms is imported *dynamically*, inside the upload
 	// handler only, so it never enters the reader page's static import graph
 	// (the clean-pages guarantee: content pages carry no editor JS).
-	import { MEDIA_DIR, mediaSrcFromPath } from '$lib/media.js';
+	import { MEDIA_DIR, mediaSrcFromPath, withBase } from '$lib/media.js';
 
 	interface Props {
 		src?: string;
@@ -24,8 +24,10 @@
 	let busy = $state(false);
 
 	// Prefer the just-uploaded local object URL; the committed copy only serves
-	// after the next redeploy, so the preview bridges the gap.
-	const displaySrc = $derived(previewUrl ?? src);
+	// after the next redeploy, so the preview bridges the gap. The stored `src`
+	// is site-root-relative (base-less), so apply the build-time base here — that
+	// keeps the same content correct at any `paths.base`.
+	const displaySrc = $derived(previewUrl ?? (src ? withBase(src) : ''));
 
 	function clearPreview(): void {
 		if (previewUrl) {

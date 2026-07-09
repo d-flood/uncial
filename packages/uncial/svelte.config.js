@@ -66,6 +66,15 @@ const config = {
 		}),
 		paths: {
 			base: process.argv.includes('dev') ? '' : (process.env.BASE_PATH ?? '')
+		},
+		prerender: {
+			handleHttpError: ({ path, referrer, message }) => {
+				// `<base>/docs/` is a sibling app (packages/uncial-docs) merged into
+				// the same Pages artifact at deploy time — not a route of this app,
+				// so the prerender crawler can't resolve it. Ignore that known link.
+				if (path.replace(/\/$/, '').endsWith('/docs')) return;
+				throw new Error(`${message} (linked from ${referrer})`);
+			}
 		}
 	}
 };

@@ -454,7 +454,8 @@ This repository is a workspace that also ships:
   runtime. Every content page gets a generated editor variant; editors sign in
   with GitHub and save edits as commits, with the repository as the single
   source of truth. Includes SvelteKit route factories and a framework-agnostic
-  web-component runtime. [Live demo](https://d-flood.github.io/uncial/cms-demo/).
+  web-component runtime. The [Uncial docs](https://d-flood.github.io/uncial/docs/)
+  are themselves managed by uncial-cms — the docs are the live demo.
 - **[`uncial-cms-auth`](packages/uncial-cms-auth)** — the stateless Cloudflare
   Worker behind uncial-cms's default auth, releasing single-repo-scoped GitHub
   App tokens to the browser. A canonical instance is hosted by the project;

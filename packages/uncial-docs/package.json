@@ -14,6 +14,7 @@
 		"preview": "vite preview",
 		"prepare": "bunx svelte-kit sync || true",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
 		"test:unit": "vitest --project server",
 		"test": "bun run test:unit -- --run && bun run test:e2e",
 		"test:e2e": "playwright test"
