@@ -1,0 +1,1 @@
+make attribute panel floating and unable to leave viewport (like sticky); solves the horizontal space issue
