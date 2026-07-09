@@ -3,7 +3,7 @@
 	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
 	import BracketsCurlyIcon from 'phosphor-svelte/lib/BracketsCurlyIcon';
 	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
-	import { resolve } from '$app/paths';
+	import { base } from '$app/paths';
 	import { BlockAttributesPanel, Editor, Renderer } from '$lib/index.js';
 	import { buildDemo } from './demo.js';
 	import Logo from './demo/Logo.svelte';
@@ -13,7 +13,9 @@
 	const pageWashBackground =
 		'radial-gradient(1200px 600px at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%), radial-gradient(900px 700px at 10% 90%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%)';
 	const repoUrl = 'https://github.com/d-flood/uncial';
-	const docsUrl = resolve('/docs');
+	// The docs are a separate app merged into the same Pages artifact at
+	// `<base>/docs/` (packages/uncial-docs), not a route of this app.
+	const docsUrl = `${base}/docs/`;
 	let doc = $state(initialDocument);
 	let meta = $state(initialDocument.meta ?? {});
 	let activeTab = $state<'editor' | 'rendered' | 'json'>('editor');

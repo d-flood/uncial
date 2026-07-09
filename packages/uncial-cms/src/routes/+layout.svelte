@@ -8,9 +8,10 @@
 <div class="site">
 	<header class="site-header">
 		<nav>
-			<a href={resolve('/')}>uncial-cms demo</a>
+			<!-- This app is now a test harness, not a deployed demo: it serves only
+			     the pages its unit/e2e suites drive (/about, the /uncial index). -->
+			<a href={resolve('/uncial')}>uncial-cms harness</a>
 			<a href={resolve('/about')}>About</a>
-			<a href={resolve('/uncial')}>Site index</a>
 			<a href="https://github.com/d-flood/uncial">GitHub</a>
 		</nav>
 	</header>

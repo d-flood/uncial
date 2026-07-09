@@ -8,8 +8,9 @@ with their GitHub account, and edits the page in place with the same components
 and layout. Saving commits the JSON back to the repo, which triggers your
 normal deploy. There is no CMS server, no database, and no user table.
 
-**[Live demo →](https://d-flood.github.io/uncial/cms-demo/)** — a prerendered
-SvelteKit site that edits this repository itself.
+**[Live demo →](https://d-flood.github.io/uncial/docs/)** — the Uncial docs are
+a prerendered SvelteKit site managed by uncial-cms, editing this repository
+itself. The docs are the live demo.
 
 ## How it works
 
@@ -40,10 +41,11 @@ bun add uncial-cms uncial
 ## Exports
 
 - `uncial-cms` — framework-agnostic browser runtime: `mountEditorPage`,
-  `mountIndexPage`, `createPage`/`deletePage`/`listPages`, the session providers
-  (`popupSessionProvider`, `patSessionProvider`), path helpers, `ConflictError`,
-  `NotFoundError`, and the shared types (`UncialCmsSiteConfig`, `ForgeSession`,
-  `SessionProvider`, `ForgeAdapter`).
+  `mountIndexPage`, `createPage`/`deletePage`/`listPages`,
+  `uploadAsset`/`uploadImageAsset` (see [Image upload](#image-upload)), the
+  session providers (`popupSessionProvider`, `patSessionProvider`), path helpers,
+  `MAX_CONTENT_BYTES`, `ConflictError`, `NotFoundError`, and the shared types
+  (`UncialCmsSiteConfig`, `ForgeSession`, `SessionProvider`, `ForgeAdapter`).
 - `uncial-cms/github` — the GitHub `ForgeAdapter` (`createGitHubAdapter`) over
   the Contents API, plus the two session providers.
 - `uncial-cms/sveltekit` — build-time route factories for prerendered SvelteKit
@@ -64,7 +66,8 @@ export const siteConfig: UncialCmsSiteConfig = {
 	branch: 'main',
 	contentDir: 'content',        // repo-root-relative
 	authWorkerUrl: 'https://uncial-cms-auth.dflood.workers.dev',
-	appSlug: 'uncial-cms'         // GitHub App slug, for install links
+	appSlug: 'uncial-cms',        // GitHub App slug, for install links
+	mediaDir: 'static/uploads'    // optional; repo-root-relative dir for uploads
 };
 ```
 
@@ -271,13 +274,54 @@ Residual risks accepted for v1 (see the spec's §6.5 for the full treatment):
   to repos the victim can push to *and* whose allowlist names the attacker
   origin — i.e. near zero.
 
+## Image upload
+
+Basic single-image upload commits an image straight into the repo and hands the
+block back its served path. It is exposed as pure, adapter-injected functions in
+the same family as `createPage`/`deletePage`:
+
+```ts
+import { uploadAsset, uploadImageAsset, MAX_CONTENT_BYTES } from 'uncial-cms';
+
+// Pure form — inject an adapter (mirrors createPage). Returns the committed path.
+const { path, sha, commitSha } = await uploadAsset(
+	{ adapter },
+	{ bytes, filename: 'diagram.png', contentType: 'image/png' },
+	{ mediaDir: 'static/uploads', author: { name, email } }
+);
+
+// Editor convenience — resolves the adapter + author from the active editor
+// session, so a block's Upload affordance only supplies the file and mediaDir.
+// Import it *dynamically* from a block so reader pages stay CMS-JS-free.
+const result = await uploadImageAsset(
+	{ bytes, filename, contentType },
+	{ mediaDir: siteConfig.mediaDir! }
+);
+```
+
+- **Content-addressed.** The committed name is a hash of the bytes plus the
+  original extension (`<mediaDir>/<hash>.<ext>`), so re-uploading identical bytes
+  reuses the existing file (idempotent create) and distinct images never collide.
+- **Size guard.** Files over `MAX_CONTENT_BYTES` (~1 MB, the GitHub Contents API
+  limit) reject with a clear, catchable error before any network call — there is
+  no git-blobs-API fallback in v1.
+- **`mediaDir`** is a repo-root-relative dir set on `UncialCmsSiteConfig`; the
+  returned `path` is repo-root-relative, and the consumer maps it to the
+  site-relative URL its block stores. Until the next redeploy the committed copy
+  is not served, so the editor should bridge the gap with a local `objectURL`
+  preview.
+
+The `ForgeAdapter`'s `writeFile` accepts `string | Uint8Array`; binary content is
+base64-encoded and PUT to the Contents API with the same message/branch/sha
+contract as text writes (conflicts still surface as `ConflictError`).
+
 ## v1 limitations & roadmap
 
 Deliberately out of scope for v1 (tracked as future design rounds):
 
-- **No media / image upload.** Image-bearing block attributes accept URL
-  strings; there is no upload UI or repo media handling. A media strategy is a
-  separate future round.
+- **Single-image upload only.** [Image upload](#image-upload) commits one image
+  at a time, up to the ~1 MB Contents API limit. No multi-image/galleries, no
+  video, no >1 MB via the blobs API, no transforms/resizing.
 - **No drafts / PR workflows.** Save commits directly to the configured branch.
   Editorial review in v1 is git **branch protection**, configured by the site
   owner. A save-to-branch toggle is a candidate for v1.x.

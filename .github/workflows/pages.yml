@@ -36,17 +36,17 @@ jobs:
       - name: Build
         run: BASE_PATH=/${{ github.event.repository.name }} bun run build
 
-      # Own step so the docs build's BASE_PATH does not leak into the demo.
-      - name: Build CMS demo
-        run: BASE_PATH=/${{ github.event.repository.name }}/cms-demo bun --filter=uncial-cms run build
+      # Own step so the docs build's BASE_PATH does not leak into the landing site.
+      - name: Build docs
+        run: BASE_PATH=/${{ github.event.repository.name }}/docs bun --filter=uncial-docs run build
 
-      - name: Assert production pages ship no CMS JS
-        run: bun --filter=uncial-cms run assert:clean-pages
+      - name: Assert docs content pages ship no CMS JS
+        run: bun --filter=uncial-docs run assert:clean-pages
 
-      - name: Merge CMS demo into docs artifact
+      - name: Merge docs into Pages artifact
         run: |
-          mkdir -p packages/uncial/build/cms-demo
-          cp -R packages/uncial-cms/build/. packages/uncial/build/cms-demo/
+          mkdir -p packages/uncial/build/docs
+          cp -R packages/uncial-docs/build/. packages/uncial/build/docs/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
