@@ -18,6 +18,21 @@
 			]
 		},
 		{
+			"type": "callout",
+			"attrs": { "variant": "tip" },
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "This very page is a Content document managed by uncial-cms. Maintainers with repo access edit it in the WYSIWYG editor — this callout is a custom block authored right here."
+						}
+					]
+				}
+			]
+		},
+		{
 			"type": "paragraph",
 			"content": [{ "type": "text", "text": "You have two bad options from there:" }]
 		},

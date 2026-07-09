@@ -13,6 +13,7 @@ export {
 	deletePage,
 	listPages,
 	uploadAsset,
+	uploadImageAsset,
 	type PageRef,
 	type UploadAssetFile,
 	type UploadAssetOptions,

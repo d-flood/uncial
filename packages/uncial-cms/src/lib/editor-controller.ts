@@ -18,6 +18,7 @@ import {
 	type Schedule
 } from './deploy-status.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
+import { setActiveForge } from './upload-context.js';
 
 export interface StatusView {
 	text: string;
@@ -123,6 +124,13 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		ui.status({ tone: 'progress', text: 'Signing in…' });
 		session = await adapter.authenticate(config, sessionProvider);
 		if (destroyed()) return;
+		// Publish the authenticated forge so in-editor block UIs (the Image block's
+		// upload) can reach the same adapter + author. Cleared by mountEditorPage on
+		// teardown.
+		setActiveForge({
+			adapter,
+			author: { name: session.user.name, email: session.user.email }
+		});
 		ui.status({ tone: 'progress', text: 'Loading…' });
 		const file = await adapter.readFile(sourcePath);
 		if (destroyed()) return;
