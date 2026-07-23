@@ -1,12 +1,18 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Getting started", "navGroup": "Introduction", "navOrder": 1 },
 	"content": [
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Your presentation layer is the editor" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Your presentation layer is the EDITOR."
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -19,7 +25,9 @@
 		},
 		{
 			"type": "callout",
-			"attrs": { "variant": "tip" },
+			"attrs": {
+				"variant": "tip"
+			},
 			"content": [
 				{
 					"type": "paragraph",
@@ -34,10 +42,19 @@
 		},
 		{
 			"type": "paragraph",
-			"content": [{ "type": "text", "text": "You have two bad options from there:" }]
+			"content": [
+				{
+					"type": "text",
+					"text": "You have two bad options from there:"
+				}
+			]
 		},
 		{
 			"type": "orderedList",
+			"attrs": {
+				"start": 1,
+				"type": null
+			},
 			"content": [
 				{
 					"type": "listItem",
@@ -45,7 +62,15 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "Live with the generated forms.", "marks": [{ "type": "bold" }] },
+								{
+									"type": "text",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									],
+									"text": "Live with the generated forms."
+								},
 								{
 									"type": "text",
 									"text": " Editors lose all sense of what they're building. \"Which of these five identical Section panels is the one above the fold?\" becomes a daily question."
@@ -60,7 +85,15 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "Customize the admin.", "marks": [{ "type": "bold" }] },
+								{
+									"type": "text",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									],
+									"text": "Customize the admin."
+								},
 								{
 									"type": "text",
 									"text": " Now you maintain two frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output. Every new block means writing it twice and keeping the two in sync forever."
@@ -112,7 +145,10 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "an SSR-capable renderer for your public frontend," }
+								{
+									"type": "text",
+									"text": "an SSR-capable renderer for your public frontend,"
+								}
 							]
 						}
 					]
@@ -123,7 +159,10 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "typed attribute editing UI derived from the component's props," }
+								{
+									"type": "text",
+									"text": "typed attribute editing UI derived from the component's props,"
+								}
 							]
 						}
 					]
@@ -146,26 +185,61 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Add Uncial to a Svelte 5 app" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Add Uncial to a Svelte 5 app"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
 			"content": [
-				{ "type": "text", "text": "Install the package in your application. Uncial expects " },
-				{ "type": "text", "text": "svelte@^5", "marks": [{ "type": "code" }] },
-				{ "type": "text", "text": " as a peer dependency." }
+				{
+					"type": "text",
+					"text": "Install the package in your application. Uncial expects "
+				},
+				{
+					"type": "text",
+					"marks": [
+						{
+							"type": "code"
+						}
+					],
+					"text": "svelte@^5"
+				},
+				{
+					"type": "text",
+					"text": " as a peer dependency."
+				}
 			]
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "bash" },
-			"content": [{ "type": "text", "text": "npm install uncial\npnpm add uncial\nbun add uncial" }]
+			"attrs": {
+				"language": "bash"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "npm install uncial\npnpm add uncial\nbun add uncial"
+				}
+			]
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Define a custom block once" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Define a custom block once"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -174,7 +248,15 @@
 					"type": "text",
 					"text": "This is the core move: a block starts life as a plain Svelte component — no editor imports, no CMS awareness. "
 				},
-				{ "type": "text", "text": "defineSvelteBlock", "marks": [{ "type": "code" }] },
+				{
+					"type": "text",
+					"marks": [
+						{
+							"type": "code"
+						}
+					],
+					"text": "defineSvelteBlock"
+				},
 				{
 					"type": "text",
 					"text": " then wraps it with a stable id, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor and the SSR-capable renderer, so there is no second \"admin widget\" to write and no translation layer to keep in sync."
@@ -183,7 +265,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "svelte" },
+			"attrs": {
+				"language": "svelte"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -193,7 +277,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -203,8 +289,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Create the registry, schema, and controller" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Create the registry, schema, and controller"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -217,7 +310,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -227,8 +322,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Edit and render the same JSON" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Edit and render the same JSON"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -241,7 +343,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "svelte" },
+			"attrs": {
+				"language": "svelte"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -256,6 +360,14 @@
 				"alt": "The Uncial editor with a heading, paragraph, and a promo card block being edited in place",
 				"caption": "The Uncial editor: the block you edit is the same component your site renders."
 			}
+		},
+		{
+			"type": "paragraph"
 		}
-	]
+	],
+	"meta": {
+		"title": "Getting started",
+		"navGroup": "Introduction",
+		"navOrder": 1
+	}
 }
