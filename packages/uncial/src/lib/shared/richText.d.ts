@@ -1,0 +1,11 @@
+import type { RichTextFeature, RichTextFeatureSelection } from '../core/types.js';
+import type { PMDoc, PMNode } from './document.js';
+export declare const supportedRichTextFeatures: readonly ["bold", "italic", "strike", "code", "link", "heading", "bulletList", "orderedList", "blockquote", "codeBlock", "horizontalRule", "hardBreak"];
+export declare const runtimeRichTextFeatures: ("bold" | "italic" | "strike" | "code" | "heading" | "bulletList" | "orderedList" | "blockquote" | "codeBlock" | "horizontalRule" | "hardBreak")[];
+export declare function emptyRichTextDocument(): PMDoc;
+export declare function richTextDocument(text?: string): PMDoc;
+export declare function isRichTextDocument(value: unknown): value is PMDoc;
+export declare function coerceRichTextDocument(value: unknown): PMDoc;
+export declare function hasRichTextContent(value: unknown): value is PMDoc;
+export declare function resolveRichTextFeatures(features?: RichTextFeatureSelection): ReadonlySet<RichTextFeature>;
+export declare function filterRichTextNodes(nodes: PMNode[] | undefined, features: ReadonlySet<RichTextFeature>): PMNode[];
