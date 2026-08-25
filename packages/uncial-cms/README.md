@@ -333,8 +333,8 @@ Deliberately out of scope for v1 (tracked as future design rounds):
 ## Development
 
 ```sh
-bun run check              # svelte-check
-bun run test:unit -- --run # vitest (node)
-bun run test:e2e           # Playwright: plain-HTML fixture + built demo + base-path demo
-bun run prepack            # svelte-package → dist, then publint
+pnpm run check              # svelte-check
+pnpm run test:unit -- --run # vitest (node)
+pnpm run test:e2e           # Playwright: plain-HTML fixture + built demo + base-path demo
+pnpm run prepack            # svelte-package → dist, then publint
 ```

@@ -466,25 +466,25 @@ This repository is a workspace that also ships:
 ## Development
 
 ```sh
-bun run check
-bun run test:unit -- --run
-bun run build
+pnpm run check
+pnpm run test:unit -- --run
+pnpm run build
 ```
 
 Additional suites:
 
-- `bun run test:browser -- --run` for browser-backed Svelte component tests
-- `bun run test:e2e` for Playwright end-to-end tests
+- `pnpm run test:browser -- --run` for browser-backed Svelte component tests
+- `pnpm run test:e2e` for Playwright end-to-end tests
 
 Browser-backed tests require Playwright browsers to be installed:
 
 ```sh
-bunx playwright install
+pnpm exec playwright install
 ```
 
 ## Releasing
 
-For user-facing library changes, run `bun run changeset` and commit the generated changeset with your PR. After regular PRs merge into `main`, Changesets opens or updates a version PR. Merging that version PR publishes `uncial` to npm with trusted publishing/provenance and creates the GitHub release.
+For user-facing library changes, run `pnpm run changeset` and commit the generated changeset with your PR. After regular PRs merge into `main`, Changesets opens or updates a version PR. Merging that version PR publishes `uncial` to npm with trusted publishing/provenance and creates the GitHub release.
 
 ## Status
 

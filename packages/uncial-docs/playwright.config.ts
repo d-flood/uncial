@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 // Builds the static docs site and serves it (mirrors uncial-cms's demo e2e).
-// BUILD_DIR / KIT_OUT_DIR isolate the e2e build from a plain `bun run build`.
+// BUILD_DIR / KIT_OUT_DIR isolate the e2e build from a plain `pnpm run build`.
 export default defineConfig({
 	testDir: 'e2e',
 	webServer: [

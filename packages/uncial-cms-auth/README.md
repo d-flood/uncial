@@ -103,6 +103,6 @@ your GitHub App's slug.
 ## Development
 
 ```sh
-bun run test    # vitest, GitHub API fully mocked
-bun run check   # tsc --noEmit
+pnpm run test    # vitest, GitHub API fully mocked
+pnpm run check   # tsc --noEmit
 ```

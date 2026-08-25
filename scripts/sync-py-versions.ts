@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { join } from "path";
 
-const packagesDir = join(import.meta.dir, "..", "packages");
+const packagesDir = join(import.meta.dirname, "..", "packages");
 const packages = readdirSync(packagesDir);
 
 let synced = 0;

@@ -1,7 +1,7 @@
 {
 	"name": "uncial",
 	"version": "0.0.7",
-	"packageManager": "bun@1.3.10",
+	"packageManager": "pnpm@11.15.1",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -15,19 +15,19 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"prepare": "bunx svelte-kit sync || true",
+		"prepare": "pnpm exec svelte-kit sync || true",
 		"package": "svelte-kit sync && svelte-package",
-		"prepack": "bun run package && bunx publint",
+		"prepack": "pnpm run package && pnpm exec publint",
 		"changeset": "changeset",
 		"version": "changeset version",
-		"release": "bun run prepack && changeset publish",
+		"release": "pnpm run prepack && changeset publish",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test:unit": "vitest --project server",
 		"test:browser": "vitest --project client",
-		"test": "bun run test:unit -- --run && bun run test:browser -- --run && bun run test:e2e",
+		"test": "pnpm run test:unit -- --run && pnpm run test:browser -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test"
 	},
 	"publishConfig": {
@@ -47,6 +47,7 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"exports": {
+		"./package.json": "./package.json",
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js",
@@ -109,7 +110,7 @@
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.4.1",
 		"publint": "^0.3.17",
-		"svelte": "^5.51.0",
+		"svelte": "^5.56.10",
 		"svelte-check": "^4.4.2",
 		"tailwindcss": "^4.2.4",
 		"typescript": "^5.9.3",
