@@ -1,0 +1,7 @@
+packages:
+  - 'packages/*'
+
+allowBuilds:
+  esbuild: true
+  # uncial-cms-auth is a Cloudflare Worker; wrangler pulls workerd in.
+  workerd: true

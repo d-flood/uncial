@@ -1,19 +1,18 @@
 {
 	"private": true,
-	"packageManager": "bun@1.3.10",
-	"workspaces": ["packages/*"],
+	"packageManager": "pnpm@11.15.1",
 	"scripts": {
-		"check": "bun --filter=uncial run check && bun --filter=uncial-wagtail run check && bun --filter=uncial-cms run check && bun --filter=uncial-docs run check",
-		"test": "bun --filter=uncial run test && bun --filter=uncial-wagtail run test && bun --filter=uncial-cms run test && bun --filter=uncial-docs run test",
-		"build": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build && bun --filter=uncial-cms run build && bun --filter=uncial-docs run build",
-		"dev": "bun --filter=uncial run dev",
-		"build:wagtail": "bun --filter=uncial run build && bun --filter=uncial-wagtail run build",
-		"wagtail:setup": "uv sync --project packages/uncial-wagtail && bun --filter=uncial-wagtail run demo:migrate && bun --filter=uncial-wagtail run demo:seed",
-		"wagtail:serve": "echo '>> Wagtail demo admin → http://localhost:8000/admin/  (login: admin / admin)' && bun --filter=uncial-wagtail run demo",
-		"dev:wagtail": "bun run build:wagtail && bun run wagtail:setup && bun run wagtail:serve",
-		"prepack": "bun --filter=uncial run prepack && bun --filter=uncial-cms run prepack",
-		"version": "changeset version && bun run scripts/sync-py-versions.ts && uv lock --project packages/uncial-wagtail",
-		"release": "bun run prepack && changeset publish"
+		"check": "pnpm --filter uncial run check && pnpm --filter uncial-wagtail run check && pnpm --filter uncial-cms run check && pnpm --filter uncial-docs run check",
+		"test": "pnpm --filter uncial run test && pnpm --filter uncial-wagtail run test && pnpm --filter uncial-cms run test && pnpm --filter uncial-docs run test",
+		"build": "pnpm --filter uncial run build && pnpm --filter uncial-wagtail run build && pnpm --filter uncial-cms run build && pnpm --filter uncial-docs run build",
+		"dev": "pnpm --filter uncial run dev",
+		"build:wagtail": "pnpm --filter uncial run build && pnpm --filter uncial-wagtail run build",
+		"wagtail:setup": "uv sync --project packages/uncial-wagtail && pnpm --filter uncial-wagtail run demo:migrate && pnpm --filter uncial-wagtail run demo:seed",
+		"wagtail:serve": "echo '>> Wagtail demo admin → http://localhost:8000/admin/  (login: admin / admin)' && pnpm --filter uncial-wagtail run demo",
+		"dev:wagtail": "pnpm run build:wagtail && pnpm run wagtail:setup && pnpm run wagtail:serve",
+		"prepack": "pnpm --filter uncial run prepack && pnpm --filter uncial-cms run prepack",
+		"version": "changeset version && node scripts/sync-py-versions.ts && uv lock --project packages/uncial-wagtail",
+		"release": "pnpm run prepack && changeset publish"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.31.0",

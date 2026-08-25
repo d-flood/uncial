@@ -6,9 +6,9 @@ Local Wagtail project for developing the `uncial_wagtail` package. It is exclude
 
 ```bash
 uv sync
-bun --filter=uncial-wagtail run demo:migrate
-bun --filter=uncial-wagtail run demo:seed
-bun --filter=uncial-wagtail run demo
+pnpm --filter uncial-wagtail run demo:migrate
+pnpm --filter uncial-wagtail run demo:seed
+pnpm --filter uncial-wagtail run demo
 ```
 
 Open `http://localhost:8000/admin/` and sign in with `admin` / `admin`.

@@ -14,13 +14,13 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"prepare": "bunx svelte-kit sync || true",
+		"prepare": "pnpm exec svelte-kit sync || true",
 		"package": "svelte-kit sync && svelte-package --input src/lib --output dist",
-		"prepack": "bun run package && bunx publint",
+		"prepack": "pnpm run package && pnpm exec publint",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
 		"test:unit": "vitest --project server",
-		"test": "bun run test:unit -- --run && bun run test:e2e",
+		"test": "pnpm run test:unit -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test"
 	},
 	"publishConfig": {
@@ -35,6 +35,7 @@
 	"type": "module",
 	"types": "./dist/index.d.ts",
 	"exports": {
+		"./package.json": "./package.json",
 		".": {
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
@@ -65,7 +66,7 @@
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"publint": "^0.3.17",
-		"svelte": "^5.51.0",
+		"svelte": "^5.56.10",
 		"svelte-check": "^4.4.2",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1",
