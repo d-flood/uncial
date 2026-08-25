@@ -22,43 +22,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
         with:
-          bun-version: 1.3.10
+          version: 11.15.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Check
-        run: bun run check
+        run: pnpm run check
 
       - name: Unit tests (uncial)
-        run: bun --filter=uncial run test:unit -- --run
+        run: pnpm --filter uncial run test:unit -- --run
 
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
         working-directory: packages/uncial
 
       - name: Browser tests (uncial)
-        run: bun --filter=uncial run test:browser -- --run
+        run: pnpm --filter uncial run test:browser -- --run
 
       - name: E2E tests (uncial)
-        run: bun --filter=uncial run test:e2e
+        run: pnpm --filter uncial run test:e2e
 
       - name: JS tests (uncial-wagtail)
-        run: bun --filter=uncial-wagtail run test
+        run: pnpm --filter uncial-wagtail run test
 
       # uncial-cms/-auth unit suites are fully mocked and fast; the uncial-cms
       # Playwright e2e (three build servers) runs locally per its README.
       - name: Unit tests (uncial-cms)
-        run: bun --filter=uncial-cms run test:unit -- --run
+        run: pnpm --filter uncial-cms run test:unit -- --run
 
       - name: Tests (uncial-cms-auth)
-        run: bun --filter=uncial-cms-auth run test -- --run
+        run: pnpm --filter uncial-cms-auth run test -- --run
 
       - name: Sync Python dependencies
         run: uv sync --locked
@@ -74,10 +79,10 @@ jobs:
 
       - name: Check committed Wagtail bundles
         run: |
-          bun --filter=uncial-wagtail run build:admin
-          bun --filter=uncial-wagtail run build:demo-blocks
+          pnpm --filter uncial-wagtail run build:admin
+          pnpm --filter uncial-wagtail run build:demo-blocks
           git diff --exit-code -- packages/uncial-wagtail/src/uncial_wagtail/static/uncial_wagtail/ packages/uncial-wagtail/demo/pages/static/pages/ || {
-            echo "::error::Committed Wagtail bundles are stale. Run 'bun --filter=uncial-wagtail run build:admin' and 'bun --filter=uncial-wagtail run build:demo-blocks' and commit the result."
+            echo "::error::Committed Wagtail bundles are stale. Run 'pnpm --filter uncial-wagtail run build:admin' and 'pnpm --filter uncial-wagtail run build:demo-blocks' and commit the result."
             exit 1
           }
 
@@ -92,10 +97,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
         with:
-          bun-version: 1.3.10
+          version: 11.15.1
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -109,17 +114,17 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: bun run prepack
+        run: pnpm run prepack
 
       - name: Create Version PR or Publish
         id: changesets
         uses: changesets/action@v1
         with:
-          version: bun run version
-          publish: bun run release
+          version: pnpm run version
+          publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
@@ -133,19 +138,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
         with:
-          bun-version: 1.3.10
+          version: 11.15.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        run: bun --filter=uncial-wagtail run build
+        run: pnpm --filter uncial-wagtail run build
 
       - name: Build Python package
         run: uv build

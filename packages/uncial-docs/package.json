@@ -12,11 +12,11 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"prepare": "bunx svelte-kit sync || true",
+		"prepare": "pnpm exec svelte-kit sync || true",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
 		"test:unit": "vitest --project server",
-		"test": "bun run test:unit -- --run && bun run test:e2e",
+		"test": "pnpm run test:unit -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test"
 	},
 	"dependencies": {
@@ -31,7 +31,7 @@
 		"@tailwindcss/vite": "^4.2.4",
 		"daisyui": "^5.5.19",
 		"phosphor-svelte": "^3.1.0",
-		"svelte": "^5.51.0",
+		"svelte": "^5.56.10",
 		"svelte-check": "^4.4.2",
 		"tailwindcss": "^4.2.4",
 		"typescript": "^5.9.3",
