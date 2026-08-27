@@ -1,4 +1,4 @@
-import type { SessionProvider } from '../types.js';
+import type { GitHubSiteConfig, SessionProvider } from '../types.js';
 
 function base64UrlEncode(bytes: Uint8Array | ArrayBuffer): string {
 	const view = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
@@ -49,12 +49,13 @@ function waitForRelay(workerOrigin: string, popup: Window): Promise<RelayedAuth>
  * one configured repository.
  */
 export const popupSessionProvider: SessionProvider = async (config) => {
-	if (!config.authWorkerUrl) {
+	const githubConfig = config as GitHubSiteConfig;
+	if (!githubConfig.authWorkerUrl) {
 		throw new Error(
 			'config.authWorkerUrl is not set; configure the auth worker or use patSessionProvider.'
 		);
 	}
-	const workerBase = config.authWorkerUrl.replace(/\/+$/, '');
+	const workerBase = githubConfig.authWorkerUrl.replace(/\/+$/, '');
 	const workerOrigin = new URL(workerBase).origin;
 
 	const verifier = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
@@ -63,7 +64,7 @@ export const popupSessionProvider: SessionProvider = async (config) => {
 	);
 
 	const authUrl = new URL(`${workerBase}/auth`);
-	authUrl.searchParams.set('repo', config.repo);
+	authUrl.searchParams.set('repo', githubConfig.repo);
 	authUrl.searchParams.set('origin', window.location.origin);
 	authUrl.searchParams.set('challenge', challenge);
 

@@ -8,6 +8,8 @@ import {
 	type StatusView
 } from './editor-controller.js';
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
+import { createLocalAdapter } from './local/adapter.js';
+import { localSessionProvider } from './local/session.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { clearActiveForge } from './upload-context.js';
@@ -47,7 +49,8 @@ function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: stri
 
 function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 	if (config.forge === 'github') return createGitHubAdapter();
-	throw new Error(`Unknown forge "${config.forge}".`);
+	if (config.forge === 'local') return createLocalAdapter();
+	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
 }
 
 function triggerDownload(payload: DownloadPayload): void {
@@ -66,7 +69,9 @@ export function mountEditorPage(
 	target: HTMLElement,
 	opts: MountEditorPageOptions
 ): { destroy(): void; isDirty(): boolean } {
-	const { config, sourcePath, sessionProvider = popupSessionProvider } = opts;
+	const { config, sourcePath } = opts;
+	const sessionProvider =
+		opts.sessionProvider ?? (config.forge === 'local' ? localSessionProvider : popupSessionProvider);
 	const blocks = opts.blocks as BlockRegistry;
 	const schema = opts.schema as ContentSchema;
 
@@ -96,7 +101,7 @@ export function mountEditorPage(
 	const bannerText = document.createElement('p');
 	bannerText.className = 'uncial-cms-banner-message';
 	bannerText.textContent =
-		`This page changed on ${config.branch} since you loaded it. ` +
+		`This page changed on ${config.forge === 'github' ? config.branch : 'the local checkout'} since you loaded it. ` +
 		'Your unsaved changes are safe — choose how to proceed.';
 
 	const downloadButton = document.createElement('button');
