@@ -7,7 +7,7 @@ import type {
 import { coerceRichTextDocument } from '../shared/richText.js';
 import { isPlainObject, isAttributeOption } from '../shared/guards.js';
 
-export type AttributeDefinition = Pick<BlockDefinition, 'attributes'>;
+export type AttributeDefinition = Pick<BlockDefinition, 'attributes'> & { readOnly?: boolean };
 
 function parseJsonValue(raw: string): unknown {
 	try {
@@ -137,6 +137,8 @@ export function normalizeBlockAttributes(
 	block: AttributeDefinition,
 	attrs: Record<string, unknown> = {}
 ): Record<string, unknown> {
+	if (block.readOnly) return attrs;
+
 	return Object.fromEntries(
 		Object.entries(block.attributes).map(([name, spec]) => [
 			name,
@@ -157,6 +159,8 @@ export function serializeBlockAttributes(
 	block: AttributeDefinition,
 	attrs: Record<string, unknown>
 ): string {
+	if (block.readOnly) return JSON.stringify(attrs);
+
 	return JSON.stringify(
 		Object.fromEntries(
 			Object.entries(block.attributes).map(([name, spec]) => [

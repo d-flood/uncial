@@ -106,8 +106,8 @@ function normalizeComponents<Attrs extends BlockAttributes, Component>(
 	config: RuntimeBlockConfig<Attrs, Component>
 ): BlockComponents {
 	const shared = config.component;
-	const editor = config.components?.editor ?? shared ?? config.components?.render;
 	const render = config.components?.render ?? shared ?? config.components?.editor;
+	const editor = config.readOnly ? render : config.components?.editor ?? shared ?? render;
 
 	if (!editor || !render) {
 		throw new Error(
@@ -142,6 +142,7 @@ export function defineRuntimeBlock<Attrs extends BlockAttributes, Component>(
 		label: config.label,
 		description: config.description,
 		icon: config.icon,
+		readOnly: config.readOnly ?? false,
 		attributes: normalizeAttributes(config.attributes),
 		components: normalizeComponents(runtime, config),
 		behaviors: {
