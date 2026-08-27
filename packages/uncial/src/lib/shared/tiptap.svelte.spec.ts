@@ -69,7 +69,7 @@ describe('container block content expression', () => {
 
 		const json = editor.getJSON();
 		expect(json.content?.[0]?.type).toBe('collapsible');
-		expect(json.content?.[0]?.content).toEqual([
+		expect(json.content?.[0]?.content).toMatchObject([
 			{ type: 'paragraph', content: [{ type: 'text', text: 'Nested copy' }] }
 		]);
 
@@ -79,7 +79,7 @@ describe('container block content expression', () => {
 		editor.commands.setContent(editor.getHTML());
 		const reparsed = editor.getJSON().content?.[0];
 		expect(reparsed?.type).toBe('collapsible');
-		expect(reparsed?.content).toEqual([
+		expect(reparsed?.content).toMatchObject([
 			{ type: 'paragraph', content: [{ type: 'text', text: 'Nested copy' }] }
 		]);
 

@@ -58,6 +58,75 @@ function appendParagraph(editor: TiptapEditor, text: string): void {
 }
 
 describe('bindEditor content guard', () => {
+	it('assigns an id and slug to a heading created in the editor', async () => {
+		const harness = bindHarness({
+			json: {
+				type: 'doc',
+				content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Existing copy.' }] }]
+			} as JSONContent
+		});
+
+		harness.editor().commands.insertContentAt(harness.editor().state.doc.content.size, {
+			type: 'heading',
+			attrs: { level: 2 },
+			content: [{ type: 'text', text: 'Created Heading' }]
+		});
+
+		await expect.poll(() => harness.changes.length).toBeGreaterThan(1);
+		expect(harness.changes.at(-1)?.content?.[1]?.attrs).toMatchObject({
+			id: expect.any(String),
+			slug: 'created-heading'
+		});
+
+		harness.cleanup();
+	});
+
+	it('preserves a heading id and slug while its text is edited', async () => {
+		const harness = bindHarness({
+			json: {
+				type: 'doc',
+				content: [
+					{
+						type: 'heading',
+						attrs: {
+							id: 'heading-identity',
+							level: 2,
+							slug: 'adding-a-plugin-to-your-viewer'
+						},
+						content: [{ type: 'text', text: 'Adding a Plugin to Your Viewer' }]
+					},
+					{
+						type: 'paragraph',
+						attrs: { id: 'paragraph-identity' },
+						content: [{ type: 'text', text: 'Body copy.' }]
+					}
+				]
+			} as JSONContent
+		});
+
+		expect(harness.editor().getJSON().content?.[0]?.attrs).toMatchObject({
+			id: 'heading-identity',
+			slug: 'adding-a-plugin-to-your-viewer'
+		});
+
+		const heading = harness.editor().state.doc.firstChild;
+		if (!heading) throw new Error('editor is missing the heading');
+		harness.editor().commands.insertContentAt(
+			{ from: 1, to: heading.nodeSize - 1 },
+			'Install the Viewer Plugin'
+		);
+
+		await expect.poll(() => harness.changes.length).toBeGreaterThan(1);
+		const latest = harness.changes.at(-1) as JSONContent;
+		expect(latest.content?.[0]?.attrs).toMatchObject({
+			id: 'heading-identity',
+			slug: 'adding-a-plugin-to-your-viewer'
+		});
+		expect(latest.content?.[1]?.attrs).toMatchObject({ id: 'paragraph-identity' });
+
+		harness.cleanup();
+	});
+
 	it('keeps sibling paragraphs when the initial doc contains an unknown block', async () => {
 		// Core normalization deliberately preserves unknown block types
 		// (UNKNOWN_BLOCK is a warning), but Tiptap replaces the whole document
@@ -261,7 +330,13 @@ describe('bindEditor editor recreation', () => {
 		const doc = {
 			type: 'doc',
 			version: 99,
-			content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Echoed' }] }]
+			content: [
+				{
+					type: 'paragraph',
+					attrs: { id: 'echoed-paragraph' },
+					content: [{ type: 'text', text: 'Echoed' }]
+				}
+			]
 		} as JSONContent;
 		const harness = bindHarness({ blocks, schema, extensions, json: doc });
 

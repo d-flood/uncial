@@ -58,7 +58,7 @@ describe('Callout block (SSR)', () => {
 	it('preserves variant and body across an editor round-trip', () => {
 		const result = roundTrip(calloutDoc('warning'));
 		const block = result.content?.[0];
-		expect(block?.attrs).toEqual({ variant: 'warning' });
+		expect(block?.attrs).toMatchObject({ variant: 'warning', id: expect.any(String) });
 		expect(block?.content?.[0]?.content?.[0]).toMatchObject({ type: 'text', text: 'Body copy here.' });
 	});
 });
@@ -96,10 +96,11 @@ describe('Image block (SSR)', () => {
 		const result = roundTrip(
 			imageDoc({ src: '/uncial/docs/uploads/abc.png', alt: 'A diagram', caption: 'Figure 1' })
 		);
-		expect(result.content?.[0]?.attrs).toEqual({
+		expect(result.content?.[0]?.attrs).toMatchObject({
 			src: '/uncial/docs/uploads/abc.png',
 			alt: 'A diagram',
-			caption: 'Figure 1'
+			caption: 'Figure 1',
+			id: expect.any(String)
 		});
 	});
 });

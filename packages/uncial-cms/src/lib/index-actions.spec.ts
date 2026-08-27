@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createBlockRegistry, createSchema, normalizeDocument } from 'uncial/core';
+import { createBlockRegistry, createSchema } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
 import { NotFoundError } from './errors.js';
 import { createPage, deletePage, listPages, uploadAsset, uploadImageAsset } from './index-actions.js';
@@ -37,9 +37,10 @@ describe('createPage', () => {
 		expect(writeOpts.sha).toBeUndefined(); // create mode
 		expect(writeOpts.message).toBe('uncial-cms: create team/new-page');
 		expect(writeOpts.author).toEqual(author);
-		expect(JSON.parse(content as string)).toEqual(
-			normalizeDocument({ type: 'doc', content: [{ type: 'paragraph' }] }, blocks, schema)
-		);
+		expect(JSON.parse(content as string)).toMatchObject({
+			type: 'doc',
+			content: [{ type: 'paragraph', attrs: { id: expect.any(String) } }]
+		});
 	});
 
 	it('aborts with no write call when the source file already exists', async () => {

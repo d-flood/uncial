@@ -5,6 +5,7 @@ import { normalizeBlockAttributes } from './attributes.js';
 import { normalizeMeta } from './meta.js';
 import { CURRENT_DOCUMENT_VERSION, runDocumentMigrations } from './migrations.js';
 import { isPlainObject } from '../shared/guards.js';
+import { stampNodeIdentity } from '../shared/documentIdentity.js';
 
 export { CURRENT_DOCUMENT_VERSION } from './migrations.js';
 
@@ -38,14 +39,15 @@ function normalizeMarks(marks: unknown, schema?: ContentSchema): PMMark[] | unde
 function normalizeContent(
 	content: unknown,
 	registryBlocks: ReadonlyMap<string, BlockDefinition>,
-	schema?: ContentSchema
+	schema?: ContentSchema,
+	ids?: Set<string>
 ): PMNode[] | undefined {
 	if (!Array.isArray(content)) return undefined;
 
 	const normalized: PMNode[] = [];
 
 	for (const child of content as unknown[]) {
-		const node = normalizeNode(child, registryBlocks, schema);
+		const node = normalizeNode(child, registryBlocks, schema, ids);
 		if (node) normalized.push(node);
 	}
 
@@ -55,7 +57,8 @@ function normalizeContent(
 function normalizeNode(
 	node: unknown,
 	registryBlocks: ReadonlyMap<string, BlockDefinition>,
-	schema?: ContentSchema
+	schema?: ContentSchema,
+	ids?: Set<string>
 ): PMNode | undefined {
 	if (!hasStringType(node)) {
 		return undefined;
@@ -76,21 +79,33 @@ function normalizeNode(
 
 	const attrs = isPlainObject(candidate.attrs) ? candidate.attrs : undefined;
 	const marks = normalizeMarks(candidate.marks, schema);
-	const content = normalizeContent(candidate.content, registryBlocks, schema);
+	const content = normalizeContent(candidate.content, registryBlocks, schema, ids);
 
 	const block = registryBlocks.get(candidate.type);
 	if (block) {
+		const identityAttrs =
+			ids && !block.behaviors.inline
+				? stampNodeIdentity({ ...candidate, content }, attrs, ids)
+				: undefined;
+		const normalizedAttrs = normalizeBlockAttributes(block, attrs ?? {});
 		return {
 			type: candidate.type,
-			attrs: normalizeBlockAttributes(block, attrs ?? {}),
+			attrs: identityAttrs
+				? {
+						...normalizedAttrs,
+						id: identityAttrs.id,
+						...(typeof identityAttrs.slug === 'string' ? { slug: identityAttrs.slug } : {})
+					}
+				: normalizedAttrs,
 			marks,
 			content: block.content ? content : undefined
 		};
 	}
 
+	const normalizedAttrs = ids ? stampNodeIdentity({ ...candidate, content }, attrs, ids) : attrs;
 	return {
 		...candidate,
-		attrs,
+		attrs: normalizedAttrs,
 		marks,
 		content
 	};
@@ -164,7 +179,7 @@ export function normalizeDocument(
 		// Never silently downgrade documents from a newer version; hosts are
 		// notified via validateDocument's UNSUPPORTED_VERSION issue.
 		version: sourceVersion > CURRENT_DOCUMENT_VERSION ? sourceVersion : CURRENT_DOCUMENT_VERSION,
-		content: normalizeContent(working.content, registryBlocks, effectiveSchema) ?? []
+		content: normalizeContent(working.content, registryBlocks, effectiveSchema, new Set<string>()) ?? []
 	};
 
 	if (metaFields.size > 0) {
