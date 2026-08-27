@@ -28,8 +28,12 @@
 <main class="mx-auto max-w-3xl px-6 py-10 sm:px-10">
 	<h1 class="font-vellum-display mb-4 text-2xl font-bold">Site index</h1>
 	<p class="mb-6">
-		This site edits <code>{data.config.repo}</code> on branch
-		<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
+		{#if data.config.forge === 'github'}
+			This site edits <code>{data.config.repo}</code> on branch
+			<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
+		{:else}
+			This site edits the local checkout (content in <code>{data.config.contentDir}</code>).
+		{/if}
 	</p>
 
 	<div bind:this={target}></div>
