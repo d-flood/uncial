@@ -4,6 +4,7 @@ import { Editor as TiptapEditor } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { createEditorExtensions } from '../shared/tiptap.js';
 import { createBlockRegistry, createSchema } from '../core/registry.js';
+import type { BlockDefinition } from '../core/types.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import { CODE_BLOCK_ID } from '../shared/codeBlockAttributes.js';
 import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
@@ -52,6 +53,14 @@ const badgeBlock = defineSvelteBlock({
 	component: EditorBlockFixture
 });
 
+const generatedBlock = defineSvelteBlock({
+	id: 'generatedTable',
+	label: 'Generated table',
+	readOnly: true,
+	attributes: { rows: '' },
+	component: EditorBlockFixture
+});
+
 interface Harness {
 	host: HTMLElement;
 	editor: TiptapEditor;
@@ -60,10 +69,13 @@ interface Harness {
 	cleanup(): void;
 }
 
-function createHarness(content: Record<string, unknown>): Harness {
+function createHarness(
+	content: Record<string, unknown>,
+	blocks: BlockDefinition[] = [containerBlock, atomBlock, badgeBlock]
+): Harness {
 	const host = document.createElement('div');
 	document.body.append(host);
-	const registry = createBlockRegistry([containerBlock, atomBlock, badgeBlock]);
+	const registry = createBlockRegistry(blocks);
 	const schema = createSchema(registry);
 	const editor = new TiptapEditor({
 		element: host,
@@ -450,6 +462,33 @@ describe('attributesController — one-shot auto-open suppression (event-based)'
 });
 
 describe('attributesController — draft editing and validation', () => {
+	it('refuses attribute edits for a read-only block while allowing deletion', () => {
+		const harness = createHarness(
+			{
+				type: 'doc',
+				content: [{ type: 'generatedTable', attrs: { id: 'generated-table', rows: 'A | B\n' } }]
+			},
+			[generatedBlock]
+		);
+		const pos = posOf(harness.editor, 'generatedTable');
+		harness.controller.openAttributesAt(pos);
+
+		expect(harness.host.querySelector<HTMLElement>('.uncial-nodeview')?.draggable).toBe(true);
+		expect(harness.host.querySelector('[data-drag-handle]')).not.toBeNull();
+
+		harness.controller.setDraftAttr('rows', 'changed');
+		expect(harness.editor.state.doc.nodeAt(pos)?.attrs.rows).toBe('A | B\n');
+		expect(harness.controller.updateSelectedBlockAttrs('generatedTable', { rows: 'changed' })).toBe(
+			false
+		);
+		expect(harness.controller.commit()).toBe(false);
+
+		expect(harness.controller.removeActiveBlock()).toBe(true);
+		expect(posOf(harness.editor, 'generatedTable')).toBe(-1);
+
+		harness.cleanup();
+	});
+
 	it('surfaces a required-field error and does not write it through to the doc', () => {
 		const harness = createHarness({
 			type: 'doc',

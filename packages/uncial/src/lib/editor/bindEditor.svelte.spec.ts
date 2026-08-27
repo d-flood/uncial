@@ -4,6 +4,16 @@ import { bindEditor, type BindEditorOptions } from './bindEditor.js';
 import { createBlockRegistry, createSchema } from '../core/registry.js';
 import { CURRENT_DOCUMENT_VERSION } from '../core/migrations.js';
 import type { ValidationIssue } from '../core/types.js';
+import { defineSvelteBlock } from '../runtime/svelte.js';
+import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
+
+const generatedTable = defineSvelteBlock({
+	id: 'generatedTable',
+	label: 'Generated table',
+	readOnly: true,
+	attributes: { rows: '', columns: '' },
+	component: EditorBlockFixture
+});
 
 interface BindHarness {
 	host: HTMLElement;
@@ -58,6 +68,35 @@ function appendParagraph(editor: TiptapEditor, text: string): void {
 }
 
 describe('bindEditor content guard', () => {
+	it('preserves read-only attributes byte-for-byte through an edit session', async () => {
+		const registry = createBlockRegistry([generatedTable]);
+		const schema = createSchema(registry);
+		const attrs = '{"id":"content-state-table","columns":"Status  \\n","rows":"A | B\\n"}';
+		const harness = bindHarness({
+			blocks: registry,
+			schema,
+			json: {
+				type: 'doc',
+				version: CURRENT_DOCUMENT_VERSION,
+				content: [
+					{ type: 'generatedTable', attrs: JSON.parse(attrs) },
+					{
+						type: 'paragraph',
+						attrs: { id: 'editable-copy' },
+						content: [{ type: 'text', text: 'Editable copy.' }]
+					}
+				]
+			} as JSONContent
+		});
+
+		appendParagraph(harness.editor(), 'An unrelated edit.');
+		await expect.poll(() => harness.changes.length).toBeGreaterThan(0);
+
+		expect(JSON.stringify(harness.changes.at(-1)?.content?.[0]?.attrs)).toBe(attrs);
+
+		harness.cleanup();
+	});
+
 	it('assigns an id and slug to a heading created in the editor', async () => {
 		const harness = bindHarness({
 			json: {

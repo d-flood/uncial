@@ -108,6 +108,9 @@ export function bindEditor(
 		controllerState = state;
 	});
 	let editor: TiptapEditor | null = null;
+	// ProseMirror rebuilds node attrs in schema order. Script-owned attrs must
+	// retain the source representation until their owning script changes them.
+	let readOnlyAttrs = new Map<string, Record<string, unknown>>();
 	// `lastSerialized` is the editor *body* serialization (meta/version stripped)
 	// and gates the `setContent` push in `syncEditorDocument`. `lastEmitted` is
 	// the *full* normalized serialization (body + meta + version) and gates the
@@ -134,6 +137,41 @@ export function bindEditor(
 		const normalized = normalize(document);
 		validate(normalized);
 		return normalized;
+	}
+
+	function rememberReadOnlyAttrs(document: PMDoc): void {
+		const next = new Map<string, Record<string, unknown>>();
+		const visit = (content: PMDoc['content']): void => {
+			for (const child of content ?? []) {
+				const id = child.attrs?.id;
+				if (registry.get(child.type)?.readOnly && typeof id === 'string' && child.attrs) {
+					next.set(id, child.attrs);
+				}
+				visit(child.content);
+			}
+		};
+
+		visit(document.content);
+		readOnlyAttrs = next;
+	}
+
+	function restoreReadOnlyAttrs(document: JSONContent): JSONContent {
+		const restore = (node: JSONContent): JSONContent => {
+			const content = node.content?.map(restore);
+			const id = node.attrs?.id;
+			const attrs =
+				typeof node.type === 'string' && registry.get(node.type)?.readOnly && typeof id === 'string'
+					? (readOnlyAttrs.get(id) ?? node.attrs)
+					: node.attrs;
+
+			return {
+				...node,
+				...(attrs ? { attrs } : {}),
+				...(content ? { content } : {})
+			};
+		};
+
+		return restore(document);
 	}
 
 	function setController(nextController: BlockAttributesController): void {
@@ -194,6 +232,7 @@ export function bindEditor(
 			options.extensions ?? []
 		);
 		const initialContent = normalizeAndValidate(options.json ?? emptyDocument());
+		rememberReadOnlyAttrs(initialContent);
 		const sanitized = sanitizeForEditorSchema(toEditorDocument(initialContent), getSchema(extensions));
 		sanitized.issues.forEach((issue) => options.onIssue?.(issue));
 		const initialEditorContent = sanitized.document;
@@ -206,8 +245,9 @@ export function bindEditor(
 			extensions,
 			content: initialEditorContent,
 			onUpdate: ({ editor: tiptap }) => {
-				const raw = tiptap.getJSON();
+				const raw = restoreReadOnlyAttrs(tiptap.getJSON());
 				const normalized = normalize(raw);
+				rememberReadOnlyAttrs(normalized);
 				const serialized = JSON.stringify(normalized);
 				// Skip the (comparatively expensive) validate + emit pass when the
 				// full normalized document (body + meta) is byte-identical to what
@@ -292,6 +332,7 @@ export function bindEditor(
 		}
 
 		const normalized = normalize(options.json ?? emptyDocument());
+		rememberReadOnlyAttrs(normalized);
 		const serialized = JSON.stringify(normalized);
 		// Same guard as `onUpdate`, keyed on the full document (body + meta): when
 		// the external document normalizes to exactly what we last emitted (the
