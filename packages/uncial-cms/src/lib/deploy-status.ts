@@ -97,7 +97,7 @@ export function describeDeployPhase(
 
 export type Schedule = (fn: () => void, ms: number) => () => void;
 
-const defaultSchedule: Schedule = (fn, ms) => {
+export const defaultSchedule: Schedule = (fn, ms) => {
 	const id = setTimeout(fn, ms);
 	return () => clearTimeout(id);
 };

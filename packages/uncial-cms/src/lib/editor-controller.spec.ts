@@ -11,6 +11,7 @@ import {
 	type EditorPageUi,
 	type StatusView
 } from './editor-controller.js';
+import type { Schedule } from './deploy-status.js';
 import type { ForgeAdapter, ForgeSession, UncialCmsSiteConfig } from './types.js';
 
 const blocks = createBlockRegistry([]);
@@ -59,10 +60,38 @@ function makeUi() {
 	return { ui, statuses, documents, saveStates, conflicts };
 }
 
+/**
+ * A hand-driven clock. Deploy polling and autosave share the injected
+ * scheduler, so tasks are recorded with their delay and fired by delay rather
+ * than all at once — firing everything would run a poll the test never asked
+ * for.
+ */
+function fakeClock() {
+	const tasks: Array<{ ms: number; fn: () => void; cancelled: boolean }> = [];
+	const schedule: Schedule = (fn, ms) => {
+		const task = { ms, fn, cancelled: false };
+		tasks.push(task);
+		return () => {
+			task.cancelled = true;
+		};
+	};
+	const fire = (ms: number) => {
+		const due = tasks.filter((task) => task.ms === ms && !task.cancelled);
+		for (const task of due) {
+			task.cancelled = true;
+			task.fn();
+		}
+		return due.length;
+	};
+	return { schedule, fire, pending: () => tasks.filter((task) => !task.cancelled).length };
+}
+
 function harness(overrides: {
 	adapter?: Partial<ForgeAdapter>;
 	confirm?: (message: string) => boolean;
 	download?: (payload: DownloadPayload) => void;
+	autosaveMs?: number;
+	schedule?: Schedule;
 }) {
 	const loaded = docWith('original');
 	const adapter: ForgeAdapter = {
@@ -85,8 +114,10 @@ function harness(overrides: {
 		ui: ui.ui,
 		confirm: overrides.confirm ?? (() => true),
 		download: overrides.download ?? vi.fn(),
-		// Never-firing scheduler: deploy polling stays inert in these unit tests.
-		schedule: () => () => {}
+		autosaveMs: overrides.autosaveMs,
+		// Never-firing scheduler by default: deploy polling stays inert in these
+		// unit tests.
+		schedule: overrides.schedule ?? (() => () => {})
 	};
 	const controller = createEditorController(options);
 	return { controller, adapter, ...ui };
@@ -183,5 +214,85 @@ describe('conflictDownloadFilename', () => {
 	it('uses the JSON basename', () => {
 		expect(conflictDownloadFilename('content/blog/hello.json')).toBe('hello.json');
 		expect(conflictDownloadFilename('weird')).toBe('weird.json');
+	});
+});
+
+describe('createEditorController — debounced autosave', () => {
+	it('does not save on a change when no autosave interval is set', async () => {
+		const clock = fakeClock();
+		const { controller, adapter } = harness({ schedule: clock.schedule });
+		await controller.load();
+
+		controller.documentChanged(docWith('typed'));
+
+		expect(clock.pending()).toBe(0);
+		expect(adapter.writeFile).not.toHaveBeenCalled();
+	});
+
+	it('saves the last change once when several land inside the debounce window', async () => {
+		const clock = fakeClock();
+		const writeFile = vi.fn().mockResolvedValue({ sha: 'sha-2', commitSha: 'commit' });
+		const { controller } = harness({
+			adapter: { writeFile },
+			autosaveMs: 400,
+			schedule: clock.schedule
+		});
+		await controller.load();
+
+		controller.documentChanged(docWith('t'));
+		controller.documentChanged(docWith('ty'));
+		controller.documentChanged(docWith('typed'));
+		expect(writeFile).not.toHaveBeenCalled(); // still waiting
+
+		expect(clock.fire(400)).toBe(1); // one timer, not three
+		await vi.waitFor(() => expect(writeFile).toHaveBeenCalledTimes(1));
+		expect(writeFile.mock.calls[0]![1]).toBe(serializeDocument(docWith('typed'), blocks, schema));
+		expect(controller.isDirty()).toBe(false);
+	});
+
+	it('coalesces a change that lands mid-save into a single follow-up save', async () => {
+		const clock = fakeClock();
+		let release: (() => void) | undefined;
+		const writeFile = vi.fn().mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					release = () => resolve({ sha: 'sha-2', commitSha: 'commit' });
+				})
+		);
+		const { controller } = harness({
+			adapter: { writeFile },
+			autosaveMs: 400,
+			schedule: clock.schedule
+		});
+		await controller.load();
+
+		controller.documentChanged(docWith('first'));
+		clock.fire(400);
+		await vi.waitFor(() => expect(writeFile).toHaveBeenCalledTimes(1));
+
+		controller.documentChanged(docWith('second'));
+		clock.fire(400);
+		expect(writeFile).toHaveBeenCalledTimes(1); // queued behind the in-flight write
+
+		release!();
+		await vi.waitFor(() => expect(writeFile).toHaveBeenCalledTimes(2));
+		expect(writeFile.mock.calls[1]![1]).toBe(serializeDocument(docWith('second'), blocks, schema));
+	});
+
+	it('cancels a pending autosave on stop', async () => {
+		const clock = fakeClock();
+		const writeFile = vi.fn().mockResolvedValue({ sha: 'sha-2', commitSha: 'commit' });
+		const { controller } = harness({
+			adapter: { writeFile },
+			autosaveMs: 400,
+			schedule: clock.schedule
+		});
+		await controller.load();
+		controller.documentChanged(docWith('typed'));
+
+		controller.stop();
+
+		expect(clock.fire(400)).toBe(0);
+		expect(writeFile).not.toHaveBeenCalled();
 	});
 });
