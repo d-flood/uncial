@@ -10,6 +10,7 @@ import { parseDocument, serializeDocument } from './document.js';
 import { ConflictError } from './errors.js';
 import {
 	DEFAULT_DEPLOY_STATUS_TIMINGS,
+	defaultSchedule,
 	describeDeployPhase,
 	githubCommitUrl,
 	startDeployPolling,
@@ -60,6 +61,13 @@ export interface EditorControllerOptions {
 	/** Trigger a file download of the given payload. */
 	download: (payload: DownloadPayload) => void;
 	timings?: DeployStatusTimings;
+	/**
+	 * Debounced autosave: every change schedules a save this many milliseconds
+	 * later, and a further change restarts the wait. Omitted leaves saving
+	 * manual. A backend with no second writer — the local filesystem — is what
+	 * this is for; on a forge every keystroke would become a commit.
+	 */
+	autosaveMs?: number;
 	schedule?: Schedule;
 	/** True once the owning surface has been torn down. */
 	isDestroyed?: () => boolean;
@@ -77,7 +85,7 @@ export interface EditorController {
 	/** Forwarded editor change events. */
 	documentChanged(doc: ContentDocument): void;
 	isDirty(): boolean;
-	/** Cancel any in-flight deploy polling. */
+	/** Cancel any pending autosave and any in-flight deploy polling. */
 	stop(): void;
 }
 
@@ -90,6 +98,7 @@ export function conflictDownloadFilename(sourcePath: string): string {
 export function createEditorController(opts: EditorControllerOptions): EditorController {
 	const { config, sourcePath, blocks, schema, adapter, sessionProvider, ui } = opts;
 	const timings = opts.timings ?? DEFAULT_DEPLOY_STATUS_TIMINGS;
+	const schedule = opts.schedule ?? defaultSchedule;
 	const destroyed = () => opts.isDestroyed?.() ?? false;
 	const branch = config.forge === 'github' ? config.branch : 'the local checkout';
 
@@ -98,6 +107,9 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	let currentDocument: ContentDocument | null = null;
 	let dirty = false;
 	let poll: DeployPollHandle | null = null;
+	let cancelAutosave: (() => void) | null = null;
+	let saving = false;
+	let saveAgain = false;
 
 	const editingStatus = () =>
 		ui.status({ tone: 'progress', text: `Editing ${sourcePath} as ${session?.user.login ?? '…'}` });
@@ -105,6 +117,11 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const stopPolling = () => {
 		poll?.cancel();
 		poll = null;
+	};
+
+	const cancelPendingAutosave = () => {
+		cancelAutosave?.();
+		cancelAutosave = null;
 	};
 
 	const startPolling = (commitSha: string) => {
@@ -145,6 +162,15 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 
 	const save = async () => {
 		if (!session || !currentDocument) return;
+		// Autosave makes overlapping writes reachable in a way manual saving did
+		// not: a keystroke landing mid-write would otherwise PUT against a sha the
+		// in-flight save is about to replace. Coalesce into one follow-up save.
+		if (saving) {
+			saveAgain = true;
+			return;
+		}
+		saving = true;
+		cancelPendingAutosave();
 		stopPolling();
 		ui.conflictVisible(false);
 		ui.saveEnabled(false);
@@ -171,7 +197,12 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 				ui.status({ tone: 'error', text: error instanceof Error ? error.message : 'Save failed.' });
 			}
 		} finally {
+			saving = false;
 			if (!destroyed()) ui.saveEnabled(true);
+			if (saveAgain && !destroyed()) {
+				saveAgain = false;
+				void save();
+			}
 		}
 	};
 
@@ -207,6 +238,12 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const documentChanged = (doc: ContentDocument) => {
 		currentDocument = doc;
 		dirty = true;
+		if (opts.autosaveMs === undefined) return;
+		cancelPendingAutosave();
+		cancelAutosave = schedule(() => {
+			cancelAutosave = null;
+			void save();
+		}, opts.autosaveMs);
 	};
 
 	return {
@@ -217,6 +254,9 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		dismissConflict,
 		documentChanged,
 		isDirty: () => dirty,
-		stop: stopPolling
+		stop: () => {
+			cancelPendingAutosave();
+			stopPolling();
+		}
 	};
 }

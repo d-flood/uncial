@@ -15,7 +15,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "pnpm exec svelte-kit sync || true",
-		"package": "svelte-kit sync && svelte-package --input src/lib --output dist",
+		"package": "PACKAGE=1 svelte-kit sync && PACKAGE=1 svelte-package --input src/lib --output dist",
 		"prepack": "pnpm run package && pnpm exec publint",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",

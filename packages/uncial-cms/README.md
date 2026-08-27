@@ -101,8 +101,20 @@ export default defineConfig({
 ```
 
 With `forge: 'local'`, `mountEditorPage` selects `createLocalAdapter` and
-`localSessionProvider` automatically. The adapter calls the fixed,
-development-only JSON endpoint at `/__uncial-cms/local`:
+`localSessionProvider` automatically. Pass `autosaveMs` to drop the Save button
+and write the document that many milliseconds after the last change instead —
+the file *is* the document on a local checkout, so there is nothing a save step
+would reconcile. Changes inside the window coalesce into one write, and a change
+arriving mid-write queues a single follow-up:
+
+```ts
+mountEditorPage(target, { config, sourcePath, blocks, schema, autosaveMs: 400 });
+```
+
+Leave `autosaveMs` unset on a forge, where every keystroke would become a commit.
+
+The adapter calls the fixed, development-only JSON endpoint at
+`/__uncial-cms/local`:
 
 - `POST /files/<path>` with `{}` reads a document and returns
   `{ content, sha }`.
@@ -163,7 +175,9 @@ export const load = handlers.load;
 mapping only; the document is loaded client-side:
 
 Pass `devOnly: true` to serve editor variants in development without prerendering
-or emitting them in a strict static production build.
+or emitting them in a strict static production build. Kit reports a
+prerenderable route it never crawled, so a consumer whose build is strict about
+that also names this route in `prerender.handleUnseenRoutes`.
 
 ```ts
 import { createEditorHandlers } from 'uncial-cms/sveltekit';
