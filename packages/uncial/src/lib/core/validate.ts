@@ -23,7 +23,11 @@ const BUILTIN_NODE_TYPES = new Set([
 	'hardBreak',
 	'bulletList',
 	'orderedList',
-	'listItem'
+	'listItem',
+	'table',
+	'tableRow',
+	'tableCell',
+	'tableHeader'
 ]);
 
 function validateMarks(

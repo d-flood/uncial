@@ -57,6 +57,32 @@
 	font-size: 0.9em;
 }
 
+.uncial-table-scroll {
+	max-width: 100%;
+	min-width: 0;
+	overflow-x: auto;
+	margin: 1rem 0;
+}
+
+.uncial-table-scroll table {
+	min-width: 100%;
+	width: max-content;
+	border-collapse: collapse;
+}
+
+.uncial-table-scroll th,
+.uncial-table-scroll td {
+	padding: 0.65rem 0.8rem;
+	border: 1px solid color-mix(in srgb, var(--uncial-color-text) 16%, transparent);
+	text-align: left;
+	vertical-align: top;
+}
+
+.uncial-table-scroll th {
+	background: var(--uncial-color-surface-elevated);
+	font-weight: var(--uncial-font-weight-strong);
+}
+
 .uncial-rich-content pre {
 	background: var(--uncial-color-code-bg, oklch(24% 0.04 45));
 	color: var(--uncial-color-code-text, oklch(96% 0.015 85));

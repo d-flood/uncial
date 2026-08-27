@@ -141,6 +141,26 @@
 	{:else}
 		<h6><RichContent nodes={node.content ?? []} {registry} {schema} /></h6>
 	{/if}
+{:else if node.type === 'table'}
+	<div class="uncial-table-scroll">
+		<table>
+			<tbody>
+				<RichContent nodes={node.content ?? []} {registry} {schema} />
+			</tbody>
+		</table>
+	</div>
+{:else if node.type === 'tableRow'}
+	<tr>
+		<RichContent nodes={node.content ?? []} {registry} {schema} />
+	</tr>
+{:else if node.type === 'tableHeader'}
+	<th>
+		<RichContent nodes={node.content ?? []} {registry} {schema} />
+	</th>
+{:else if node.type === 'tableCell'}
+	<td>
+		<RichContent nodes={node.content ?? []} {registry} {schema} />
+	</td>
 {:else if node.type === 'bulletList'}
 	<ul>
 		<RichContent nodes={node.content ?? []} {registry} {schema} />

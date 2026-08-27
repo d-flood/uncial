@@ -1,5 +1,6 @@
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import {
 	Extension,
 	Mark,
@@ -145,7 +146,16 @@ function createBlockNodeView(
 	}
 
 	let mounted: MountedComponent | null = null;
-	mounted = mountBlockEditorComponent(block, node, dom, contentDOM, mounted, editor, onActivate, getPos);
+	mounted = mountBlockEditorComponent(
+		block,
+		node,
+		dom,
+		contentDOM,
+		mounted,
+		editor,
+		onActivate,
+		getPos
+	);
 	syncBlockPosition();
 
 	return {
@@ -340,6 +350,10 @@ function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension 
 		'bulletList',
 		'orderedList',
 		'listItem',
+		'table',
+		'tableRow',
+		'tableCell',
+		'tableHeader',
 		...registry.blocks.filter((block) => !block.behaviors.inline).map((block) => block.id)
 	];
 
@@ -360,7 +374,7 @@ function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension 
 					}
 				}
 			];
-		},
+		}
 	});
 }
 
@@ -391,6 +405,10 @@ function createBaseExtensions(
 			link: false
 		}),
 		CodeBlockLowlight.configure({ lowlight }),
+		Table.configure({ resizable: false }),
+		TableRow,
+		TableHeader,
+		TableCell,
 		...(includeLink ? [LinkMark] : []),
 		...extensions
 	];

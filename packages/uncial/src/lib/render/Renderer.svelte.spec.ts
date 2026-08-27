@@ -30,6 +30,62 @@ describe('Renderer', () => {
 		await expect.element(strong).toBeInTheDocument();
 	});
 
+	it('renders tables with header and rich-text cells', async () => {
+		const rendered = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'table',
+						content: [
+							{
+								type: 'tableRow',
+								content: [
+									{
+										type: 'tableHeader',
+										content: [
+											{
+												type: 'paragraph',
+												content: [{ type: 'text', text: 'API' }]
+											}
+										]
+									}
+								]
+							},
+							{
+								type: 'tableRow',
+								content: [
+									{
+										type: 'tableCell',
+										content: [
+											{
+												type: 'paragraph',
+												content: [
+													{ type: 'text', text: 'createSchema', marks: [{ type: 'code' }] },
+													{ type: 'text', text: ' from ' },
+													{
+														type: 'text',
+														text: 'the core API',
+														marks: [{ type: 'link', attrs: { href: 'https://example.com/core' } }]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		});
+
+		const table = rendered.container.querySelector('table');
+		expect(table?.querySelector('th')?.textContent).toBe('API');
+		expect(table?.querySelector('td code')?.textContent).toBe('createSchema');
+		expect(table?.querySelector('td a')?.getAttribute('href')).toBe('https://example.com/core');
+	});
+
 	it('renders repeated identical text runs without duplicate-key crashes', async () => {
 		const rendered = render(Renderer, {
 			content: {
