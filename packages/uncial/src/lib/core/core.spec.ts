@@ -249,14 +249,86 @@ describe('core', () => {
 
 		expect(result.ok).toBe(true);
 
-		const unknown = result.issues.find(
-			(issue: ValidationIssue) => issue.code === 'UNKNOWN_BLOCK'
-		);
+		const unknown = result.issues.find((issue: ValidationIssue) => issue.code === 'UNKNOWN_BLOCK');
 		expect(unknown).toMatchObject({
 			path: ['content', 0],
 			severity: 'warning',
 			details: { block: 'mysteryWidget' }
 		});
+	});
+
+	it('admits tables with header and rich-text cells as built-in document nodes', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry);
+
+		const result = validateDocument(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'table',
+						content: [
+							{
+								type: 'tableRow',
+								content: [
+									{
+										type: 'tableHeader',
+										content: [
+											{
+												type: 'paragraph',
+												content: [{ type: 'text', text: 'API' }]
+											}
+										]
+									},
+									{
+										type: 'tableHeader',
+										content: [
+											{
+												type: 'paragraph',
+												content: [{ type: 'text', text: 'Description' }]
+											}
+										]
+									}
+								]
+							},
+							{
+								type: 'tableRow',
+								content: [
+									{
+										type: 'tableCell',
+										content: [
+											{
+												type: 'paragraph',
+												content: [{ type: 'text', text: 'createSchema', marks: [{ type: 'code' }] }]
+											}
+										]
+									},
+									{
+										type: 'tableCell',
+										content: [
+											{
+												type: 'paragraph',
+												content: [
+													{
+														type: 'text',
+														text: 'Schema reference',
+														marks: [{ type: 'link', attrs: { href: 'https://example.com/schema' } }]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			registry,
+			schema
+		);
+
+		expect(result).toEqual({ ok: true, issues: [] });
 	});
 
 	it('warns about documents from a newer version via UNSUPPORTED_VERSION', () => {

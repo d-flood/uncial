@@ -138,6 +138,87 @@ export function buildDemo() {
 				}
 			},
 			{
+				type: 'table',
+				content: [
+					{
+						type: 'tableRow',
+						content: [
+							{
+								type: 'tableHeader',
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Helper' }] }]
+							},
+							{
+								type: 'tableHeader',
+								content: [
+									{
+										type: 'paragraph',
+										content: [{ type: 'text', text: 'Module' }]
+									}
+								]
+							},
+							{
+								type: 'tableHeader',
+								content: [
+									{
+										type: 'paragraph',
+										content: [{ type: 'text', text: 'Description' }]
+									}
+								]
+							}
+						]
+					},
+					{
+						type: 'tableRow',
+						content: [
+							{
+								type: 'tableCell',
+								content: [
+									{
+										type: 'paragraph',
+										content: [
+											{
+												type: 'text',
+												text: 'createSchema(registry, options)',
+												marks: [{ type: 'code' }]
+											}
+										]
+									}
+								]
+							},
+							{
+								type: 'tableCell',
+								content: [
+									{
+										type: 'paragraph',
+										content: [
+											{
+												type: 'text',
+												text: '@uncial/core',
+												marks: [{ type: 'link', attrs: { href: 'https://example.com/core' } }]
+											}
+										]
+									}
+								]
+							},
+							{
+								type: 'tableCell',
+								content: [
+									{
+										type: 'paragraph',
+										content: [
+											{
+												type: 'text',
+												text: 'Admits the blocks and marks a document may use.'
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
 				type: 'row',
 				attrs: {},
 				content: [
@@ -219,7 +300,7 @@ let doc = $state({ type: 'doc', content: [{ type: 'paragraph' }] });`
 					),
 					showIcon: true
 				}
-			},
+			}
 		]
 	};
 
