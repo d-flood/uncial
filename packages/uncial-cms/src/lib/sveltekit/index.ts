@@ -87,14 +87,17 @@ export function createContentHandlers(opts: ContentHandlerOptions): {
 	};
 }
 
-export function createEditorHandlers(opts: ContentHandlerOptions): {
+export function createEditorHandlers(opts: ContentHandlerOptions & { devOnly?: boolean }): {
 	entries: () => RouteEntry[];
 	// Bakes the mapping only (PRD D9); document data is NEVER baked — the edit
 	// page component fetches it live from the forge via mountEditorPage().
 	load: (event: { params: { path: string } }) => Promise<{ sourcePath: string; path: string }>;
 } {
 	return {
-		entries: createEntries(opts),
+		// Prerendering a dynamic route walks `entries`: an empty list emits no editor pages.
+		// These routes are unlinked, so strict builds do not encounter them, while development
+		// servers still serve them on demand.
+		entries: () => (opts.devOnly && !import.meta.env.DEV ? [] : createEntries(opts)()),
 		load: async ({ params }) => ({
 			sourcePath: resolveSource(opts, params.path),
 			path: params.path
