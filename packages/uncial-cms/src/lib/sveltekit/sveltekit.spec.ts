@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import type { UncialCmsSiteConfig } from '../types.js';
 import {
@@ -102,8 +102,26 @@ describe('createContentHandlers', () => {
 describe('createEditorHandlers', () => {
 	const handlers = createEditorHandlers(opts);
 
+	afterEach(() => vi.unstubAllEnvs());
+
 	it('entries() matches the content route entry set', () => {
 		expect(handlers.entries()).toEqual(createContentHandlers(opts).entries());
+	});
+
+	it('omits editor variants from a production prerender when devOnly is set', () => {
+		vi.stubEnv('DEV', false);
+
+		const devOnlyHandlers = createEditorHandlers({ ...opts, devOnly: true });
+
+		expect(devOnlyHandlers.entries()).toEqual([]);
+	});
+
+	it('keeps editor variants available on the development server when devOnly is set', () => {
+		vi.stubEnv('DEV', true);
+
+		const devOnlyHandlers = createEditorHandlers({ ...opts, devOnly: true });
+
+		expect(devOnlyHandlers.entries()).toEqual(createContentHandlers(opts).entries());
 	});
 
 	it('load() bakes the mapped source path and never the document', async () => {
