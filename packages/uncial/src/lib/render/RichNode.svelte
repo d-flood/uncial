@@ -10,9 +10,17 @@
 		node: PMNode;
 		registry: BlockRegistry;
 		schema?: ContentSchema;
+		tabsGroup?: string;
+		tabsLabels?: string[];
 	}
 
-	let { node, registry, schema = undefined }: Props = $props();
+	let {
+		node,
+		registry,
+		schema = undefined,
+		tabsGroup = undefined,
+		tabsLabels = undefined
+	}: Props = $props();
 
 	const block = $derived(registry.get(node.type));
 	const blockAttrs = $derived((node.attrs ?? {}) as Record<string, unknown>);
@@ -25,6 +33,18 @@
 			.join('')
 	);
 	const highlightedCode = $derived(highlightCodeToHtml(codeText, codeLanguage));
+	const childTabsGroup = $derived.by(() => {
+		if (node.type !== 'tabs' || typeof node.attrs?.group !== 'string') return tabsGroup;
+		return node.attrs.group.trim() || undefined;
+	});
+	const childTabsLabels = $derived.by(() => {
+		if (node.type !== 'tabs') return tabsLabels;
+		return blockContent.flatMap((child) => {
+			if (child.type !== 'tab' || typeof child.attrs?.label !== 'string') return [];
+			const label = child.attrs.label.trim();
+			return label ? [label] : [];
+		});
+	});
 
 	function getActiveMarks(marks: PMMark[] = []): PMMark[] {
 		return schema ? marks.filter((mark) => schema.allowedMarks.has(mark.type)) : marks;
@@ -50,7 +70,13 @@
 </script>
 
 {#snippet blockChildren()}
-	<RichContent nodes={blockContent} {registry} {schema} />
+	<RichContent
+		nodes={blockContent}
+		{registry}
+		{schema}
+		tabsGroup={childTabsGroup}
+		tabsLabels={childTabsLabels}
+	/>
 {/snippet}
 
 {#snippet renderMarkedText(text: string, marks: PMMark[])}
@@ -92,6 +118,8 @@
 		{...blockAttrs}
 		{...(block as unknown as { renderProps?: Record<string, unknown> }).renderProps ?? {}}
 		content={blockContent}
+		{tabsGroup}
+		{tabsLabels}
 		children={block.content ? blockChildren : undefined}
 	/>
 {:else if node.type === 'paragraph'}

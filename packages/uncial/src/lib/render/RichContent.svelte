@@ -7,9 +7,17 @@
 		nodes?: PMNode[];
 		registry: BlockRegistry;
 		schema?: ContentSchema;
+		tabsGroup?: string;
+		tabsLabels?: string[];
 	}
 
-	let { nodes = [], registry, schema = undefined }: Props = $props();
+	let {
+		nodes = [],
+		registry,
+		schema = undefined,
+		tabsGroup = undefined,
+		tabsLabels = undefined
+	}: Props = $props();
 
 	function getNodeKey(node: PMNode, index: number): string {
 		const id = node.attrs?.id;
@@ -26,5 +34,5 @@
 </script>
 
 {#each nodes as node, index (getNodeKey(node, index))}
-	<RichNode {node} {registry} {schema} />
+	<RichNode {node} {registry} {schema} {tabsGroup} {tabsLabels} />
 {/each}
