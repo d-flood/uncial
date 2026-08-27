@@ -41,14 +41,18 @@ const schema = createSchema(blocks, { metaFields: { title: { default: '' } } });
 const opts = { config, blocks, schema, localContentDir };
 
 describe('default mapping', () => {
-	it('maps site paths to sources and back for nested paths', () => {
-		for (const [path, source] of [
-			['about', 'content/about.json'],
-			['blog/hello', 'content/blog/hello.json'],
-			['', 'content/index.json']
+	it('maps site paths to sources and back for default and non-default locales', () => {
+		for (const [path, source, locale] of [
+			['about', 'content/about.json', undefined],
+			['about', 'content/about.json', 'en'],
+			['blog/hello', 'content/blog/hello.json', 'en'],
+			['', 'content/index.json', 'en'],
+			['about', 'content/de/about.json', 'de'],
+			['blog/hello', 'content/de/blog/hello.json', 'de'],
+			['', 'content/de/index.json', 'de']
 		] as const) {
-			expect(defaultMapPathToSource(path, 'content')).toBe(source);
-			expect(defaultMapSourceToPath(source, 'content')).toBe(path);
+			expect(defaultMapPathToSource(path, 'content', locale)).toBe(source);
+			expect(defaultMapSourceToPath(source, 'content', locale)).toBe(path);
 		}
 	});
 
