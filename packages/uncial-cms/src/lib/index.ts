@@ -1,6 +1,7 @@
 export type {
 	ForgeAdapter,
 	ForgeSession,
+	GitHubSiteConfig,
 	SessionProvider,
 	UncialCmsSiteConfig
 } from './types.js';

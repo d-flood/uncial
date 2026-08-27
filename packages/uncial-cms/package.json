@@ -44,6 +44,10 @@
 			"types": "./dist/github/index.d.ts",
 			"default": "./dist/github/index.js"
 		},
+		"./local": {
+			"types": "./dist/local/index.d.ts",
+			"default": "./dist/local/index.js"
+		},
 		"./sveltekit": {
 			"types": "./dist/sveltekit/index.d.ts",
 			"default": "./dist/sveltekit/index.js"

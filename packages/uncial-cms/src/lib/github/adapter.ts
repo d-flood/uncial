@@ -5,6 +5,7 @@ import { clearCachedSession, readCachedSession, writeCachedSession } from '../se
 import type {
 	ForgeAdapter,
 	ForgeSession,
+	GitHubSiteConfig,
 	SessionProvider,
 	UncialCmsSiteConfig
 } from '../types.js';
@@ -16,11 +17,14 @@ function encodeRepoPath(path: string): string {
 }
 
 class GitHubAdapter implements ForgeAdapter {
-	#config: UncialCmsSiteConfig | null = null;
+	#config: GitHubSiteConfig | null = null;
 	#provider: SessionProvider | null = null;
 	#session: ForgeSession | null = null;
 
 	async authenticate(config: UncialCmsSiteConfig, provider: SessionProvider): Promise<ForgeSession> {
+		if (config.forge !== 'github') {
+			throw new Error('GitHub adapter requires a GitHub site configuration.');
+		}
 		this.#config = config;
 		this.#provider = provider;
 		this.#session = readCachedSession(config.repo) ?? (await this.#renewSession());

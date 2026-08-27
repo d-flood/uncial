@@ -1,4 +1,4 @@
-export interface UncialCmsSiteConfig {
+export interface GitHubSiteConfig {
 	forge: 'github';
 	repo: string; // 'owner/name'
 	branch: string; // commit target
@@ -7,6 +7,14 @@ export interface UncialCmsSiteConfig {
 	appSlug: string;
 	mediaDir?: string; // repo-root-relative dir uploaded images commit into; consumer-defined
 }
+
+export interface LocalSiteConfig {
+	forge: 'local';
+	contentDir: string;
+	mediaDir?: string;
+}
+
+export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig;
 
 export interface ForgeSession {
 	token: string;
