@@ -17,6 +17,14 @@ const imageBlock = defineSvelteBlock({
 	component: EditorBlockFixture
 });
 
+const generatedBlock = defineSvelteBlock({
+	id: 'generatedTable',
+	label: 'Generated table',
+	readOnly: true,
+	attributes: { rows: { default: '', input: 'textarea' } },
+	component: EditorBlockFixture
+});
+
 function editingImageState(): BlockAttributesState {
 	return {
 		...createInitialState(),
@@ -24,6 +32,16 @@ function editingImageState(): BlockAttributesState {
 		mode: 'edit',
 		selectedBlockId: 'image',
 		draftAttrs: { imageId: 0 }
+	};
+}
+
+function editingGeneratedBlockState(): BlockAttributesState {
+	return {
+		...createInitialState(),
+		open: true,
+		mode: 'edit',
+		selectedBlockId: 'generatedTable',
+		draftAttrs: { rows: 'A | B\n' }
 	};
 }
 
@@ -45,6 +63,16 @@ function chooseButton(container: HTMLElement): HTMLButtonElement {
 }
 
 describe('BlockAttributesPanel choose-attribute channel', () => {
+	it('offers no attribute controls for a read-only block', () => {
+		const panel = render(BlockAttributesPanel, {
+			controller: stubController(editingGeneratedBlockState()),
+			blocks: [generatedBlock]
+		});
+
+		expect(panel.container.querySelectorAll('input, textarea, select')).toHaveLength(0);
+		expect(panel.container.textContent).toContain('Remove Block');
+	});
+
 	it('routes a custom attribute request to the panel-scoped callback only', () => {
 		const windowSpy = vi.fn();
 		window.addEventListener(CHOOSE_ATTRIBUTE_EVENT, windowSpy);

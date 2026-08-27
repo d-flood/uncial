@@ -63,8 +63,9 @@ function buildBlockEditorProps(
 		// Deliberately no `.focus()` here: updates often originate from form
 		// controls inside the block component, and refocusing the editor view
 		// would steal focus from them on every keystroke.
-		updateAttributes: (attrs: Record<string, unknown>) =>
-			editor?.chain().updateAttributes(block.id, attrs).run(),
+		updateAttributes: block.readOnly
+			? undefined
+			: (attrs: Record<string, unknown>) => editor?.chain().updateAttributes(block.id, attrs).run(),
 		// ProseMirror's getPos can return undefined when the node is not currently
 		// in the document (e.g. mid-transaction); skip activation in that case
 		// rather than reporting a bogus position.

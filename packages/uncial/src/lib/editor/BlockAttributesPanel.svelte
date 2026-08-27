@@ -47,6 +47,9 @@
 			? (Object.entries(selectedBlock.attributes) as Array<[string, AttributeSpec<unknown>]>)
 			: []
 	);
+	const selectedBlockReadOnly = $derived(
+		Boolean(selectedBlock && 'readOnly' in selectedBlock && selectedBlock.readOnly)
+	);
 	let childBlockQuery = $state('');
 	const hasChildren = $derived(controllerState.containerChildren.length > 0);
 	const canRemoveChild = $derived(controllerState.containerChildren.length > 1);
@@ -162,16 +165,18 @@
 			{controllerState.mode === 'edit' ? 'Edit' : 'Configure'}
 			{selectedBlock.label || controllerState.selectedBlockId || 'block'}
 		</p>
-		{#each selectedAttributeSpecs as [name, spec] (name)}
-			<AttributeFieldControl
-				{name}
-				{spec}
-				value={controllerState.draftAttrs[name]}
-				error={controllerState.validationErrors[name]}
-				onChange={(value) => controller.setDraftAttr(name, value)}
-				onCustom={chooseCustomAttribute}
-			/>
-		{/each}
+		{#if !selectedBlockReadOnly}
+			{#each selectedAttributeSpecs as [name, spec] (name)}
+				<AttributeFieldControl
+					{name}
+					{spec}
+					value={controllerState.draftAttrs[name]}
+					error={controllerState.validationErrors[name]}
+					onChange={(value) => controller.setDraftAttr(name, value)}
+					onCustom={chooseCustomAttribute}
+				/>
+			{/each}
+		{/if}
 		<div class="uncial-panel__actions">
 			{#if controllerState.mode === 'edit'}
 				<button

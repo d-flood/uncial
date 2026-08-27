@@ -99,6 +99,7 @@ export interface BaseBlockConfig<Attrs extends BlockAttributes> {
 	label: string;
 	description?: string;
 	icon?: BlockIcon;
+	readOnly?: boolean;
 	attributes: {
 		[K in keyof Attrs]: AttributeConfig<Attrs[K]>;
 	};
@@ -127,6 +128,7 @@ export interface BlockDefinition<Attrs extends BlockAttributes = BlockAttributes
 	label: string;
 	description?: string;
 	icon?: BlockIcon;
+	readOnly: boolean;
 	attributes: NormalizedAttributes<Attrs>;
 	components: BlockComponents;
 	behaviors: BlockBehavior;

@@ -33,6 +33,19 @@ describe('serializeBlockAttributes', () => {
 		);
 	});
 
+	it('preserves read-only attributes byte-for-byte', () => {
+		const generatedTable: AttributeDefinition = {
+			readOnly: true,
+			attributes: {
+				rows: { default: '' },
+				columns: { default: '' }
+			}
+		};
+		const attrs = '{"id":"content-state-table","columns":"Status  \\n","rows":"A | B\\n"}';
+
+		expect(serializeBlockAttributes(generatedTable, JSON.parse(attrs))).toBe(attrs);
+	});
+
 	it('fills declared-but-missing attributes with their defaults', () => {
 		expect(JSON.parse(serializeBlockAttributes(block, { caption: 'only caption' }))).toEqual({
 			caption: 'only caption',

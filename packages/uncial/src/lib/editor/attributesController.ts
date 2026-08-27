@@ -465,6 +465,8 @@ export function createBlockAttributesController(): BlockAttributesController {
 
 	function setDraftAttr(name: string, value: unknown): void {
 		const current = get(state);
+		if (current.selectedBlockId && targets.get(current.selectedBlockId)?.readOnly) return;
+
 		const nextDraftAttrs = {
 			...current.draftAttrs,
 			[name]: value
@@ -516,7 +518,10 @@ export function createBlockAttributesController(): BlockAttributesController {
 	function canEditSelectedBlock(blockId: string): boolean {
 		const current = get(state);
 		const explicitActive = resolveActiveBlock(current);
-		return (explicitActive ?? findActiveBlock(editor, targets))?.id === blockId;
+		return (
+			!targets.get(blockId)?.readOnly &&
+			(explicitActive ?? findActiveBlock(editor, targets))?.id === blockId
+		);
 	}
 
 	function insertBlock(blockId: string, attrs: Record<string, unknown> = {}): boolean {
@@ -547,6 +552,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		if (!current.selectedBlockId) return false;
 		const block = targets.get(current.selectedBlockId);
 		if (!block) return false;
+		if (current.mode === 'edit' && block.readOnly) return false;
 
 		const { attrs, validationErrors } = parseAndValidateDraft(block, current.draftAttrs);
 

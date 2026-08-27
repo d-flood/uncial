@@ -82,6 +82,21 @@ describe('core', () => {
 		expect(block.components.render.component).toBe(Dummy);
 	});
 
+	it('uses the render component for a read-only block in the editor', () => {
+		const EditorComponent = (() => ({})) as unknown as Component<Record<string, unknown>>;
+		const RenderComponent = (() => ({})) as unknown as Component<Record<string, unknown>>;
+		const block = defineSvelteBlock({
+			id: 'generatedTable',
+			label: 'Generated table',
+			readOnly: true,
+			attributes: {},
+			components: { editor: EditorComponent, render: RenderComponent }
+		});
+
+		expect(block.components.editor.component).toBe(RenderComponent);
+		expect(block.components.render.component).toBe(RenderComponent);
+	});
+
 	it('builds a registry and rejects duplicate ids', () => {
 		const block = defineSvelteBlock({
 			id: 'image',

@@ -60,6 +60,33 @@ describe('normalizeDocument', () => {
 		expect(normalized.content?.[0]?.attrs).not.toHaveProperty('ignored');
 	});
 
+	it('preserves read-only block attributes byte-for-byte', () => {
+		const generatedTable = defineSvelteBlock({
+			id: 'generatedTable',
+			label: 'Generated table',
+			readOnly: true,
+			attributes: {
+				rows: '',
+				columns: ''
+			},
+			component: Dummy
+		});
+		const attrs = '{"id":"content-state-table","columns":"Status  \\n","rows":"A | B\\n"}';
+		const registry = createBlockRegistry([generatedTable]);
+		const schema = createSchema(registry);
+		const normalized = normalizeDocument(
+			{
+				type: 'doc',
+				version: CURRENT_DOCUMENT_VERSION,
+				content: [{ type: 'generatedTable', attrs: JSON.parse(attrs) }]
+			},
+			registry,
+			schema
+		);
+
+		expect(JSON.stringify(normalized.content?.[0]?.attrs)).toBe(attrs);
+	});
+
 	it('filters disallowed marks while preserving the document shape', () => {
 		const registry = createBlockRegistry([]);
 		const schema = createSchema(registry, { allowedMarks: ['bold'] });
