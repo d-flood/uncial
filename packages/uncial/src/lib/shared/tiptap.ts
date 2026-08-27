@@ -1,6 +1,13 @@
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Mark, mergeAttributes, Node, type AnyExtension, type Editor as TiptapEditor } from '@tiptap/core';
+import {
+	Extension,
+	Mark,
+	mergeAttributes,
+	Node,
+	type AnyExtension,
+	type Editor as TiptapEditor
+} from '@tiptap/core';
 import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type {
@@ -322,6 +329,40 @@ const LinkMark = Mark.create({
 	}
 });
 
+function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension {
+	const blockTypes = [
+		'paragraph',
+		'heading',
+		'blockquote',
+		'codeBlock',
+		'horizontalRule',
+		'bulletList',
+		'orderedList',
+		'listItem',
+		...registry.blocks.filter((block) => !block.behaviors.inline).map((block) => block.id)
+	];
+
+	return Extension.create({
+		name: 'documentIdentity',
+		addGlobalAttributes() {
+			return [
+				{
+					types: blockTypes,
+					attributes: {
+						id: { default: null, rendered: false }
+					}
+				},
+				{
+					types: ['heading'],
+					attributes: {
+						slug: { default: null, rendered: false }
+					}
+				}
+			];
+		},
+	});
+}
+
 function createBaseExtensions(
 	schema?: ContentSchema,
 	extensions: AnyExtension[] = []
@@ -385,5 +426,10 @@ export function createEditorExtensions(
 		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
 		.map((block: BlockDefinition) => createBlockNodeExtension(block, onActivateBlock));
 
-	return [...createBaseExtensions(schema), ...blockExtensions, ...extensions];
+	return [
+		...createBaseExtensions(schema),
+		createDocumentIdentityExtension(registry),
+		...blockExtensions,
+		...extensions
+	];
 }

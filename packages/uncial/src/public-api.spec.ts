@@ -48,11 +48,12 @@ describe('public api', () => {
 		expect(bindEditor).toBeTypeOf('function');
 		expect(createDocumentMetaController).toBeTypeOf('function');
 		expect(normalizeMeta).toBeTypeOf('function');
-		expect(normalized.content?.[0]?.attrs).toEqual({
+		expect(normalized.content?.[0]?.attrs).toMatchObject({
 			title: 'Hello',
 			featured: true,
 			count: 2
 		});
+		expect(normalized.content?.[0]?.attrs).toHaveProperty('id', expect.any(String));
 	});
 
 	it('exposes the web component entrypoint', async () => {

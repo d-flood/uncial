@@ -1,11 +1,12 @@
 import type { PMDoc } from '../shared/document.js';
+import { stampDocumentIdentity } from '../shared/documentIdentity.js';
 
 /**
  * The document version stamped onto documents produced by `normalizeDocument`.
  * Bump this when the persisted document shape changes, and register a
  * migration for each intermediate version so older documents can be upgraded.
  */
-export const CURRENT_DOCUMENT_VERSION = 1;
+export const CURRENT_DOCUMENT_VERSION = 2;
 
 export interface DocumentMigration {
 	/** The document version this migration upgrades from (to `from + 1`). */
@@ -14,7 +15,7 @@ export interface DocumentMigration {
 	migrate: (document: PMDoc) => PMDoc;
 }
 
-const migrations = new Map<number, DocumentMigration['migrate']>();
+const migrations = new Map<number, DocumentMigration['migrate']>([[1, stampDocumentIdentity]]);
 
 /**
  * Registers a migration that upgrades documents from version `from` to
@@ -26,11 +27,16 @@ export function registerDocumentMigration(migration: DocumentMigration): () => v
 		throw new Error(`Document migration "from" must be an integer, got ${migration.from}`);
 	}
 
+	const previous = migrations.get(migration.from);
 	migrations.set(migration.from, migration.migrate);
 
 	return () => {
 		if (migrations.get(migration.from) === migration.migrate) {
-			migrations.delete(migration.from);
+			if (previous) {
+				migrations.set(migration.from, previous);
+			} else {
+				migrations.delete(migration.from);
+			}
 		}
 	};
 }
