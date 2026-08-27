@@ -116,11 +116,20 @@ export const load = handlers.load;
 **2. Editor variant** — `src/routes/[...path]/edit/+page.server.ts` bakes the
 mapping only; the document is loaded client-side:
 
+Pass `devOnly: true` to serve editor variants in development without prerendering
+or emitting them in a strict static production build.
+
 ```ts
 import { createEditorHandlers } from 'uncial-cms/sveltekit';
 import { blocks, localContentDir, schema, siteConfig } from '../../site.js';
 
-const handlers = createEditorHandlers({ config: siteConfig, blocks, schema, localContentDir });
+const handlers = createEditorHandlers({
+  config: siteConfig,
+  blocks,
+  schema,
+  localContentDir,
+  devOnly: true
+});
 export const entries = handlers.entries;
 export const load = handlers.load;
 ```
