@@ -10,15 +10,23 @@ const config = {
 		// svelte-check: the published exports point at packages/uncial/dist,
 		// which does not exist on a fresh checkout (CI). Mirrors the vite-level
 		// aliases in vite.config.ts (which non-kit tooling needs).
-		alias: {
-			'uncial/styles': '../uncial/src/lib/styles/index.css',
-			'uncial/core': '../uncial/src/lib/core/index.ts',
-			'uncial/render': '../uncial/src/lib/render/index.ts',
-			'uncial/editor': '../uncial/src/lib/editor/index.ts',
-			'uncial/runtime/svelte': '../uncial/src/lib/runtime/svelte.ts',
-			'uncial/web-components': '../uncial/src/lib/web-components/index.ts',
-			uncial: '../uncial/src/lib/index.ts'
-		},
+		//
+		// Dropped for the packaging build (`PACKAGE=1`, set by `pnpm run
+		// package`): svelte-package applies kit aliases to its output, so leaving
+		// them on publishes relative paths into a sibling package's source in
+		// place of the `uncial` peer specifier — which resolves for nobody who
+		// installs this package.
+		alias: process.env.PACKAGE
+			? {}
+			: {
+					'uncial/styles': '../uncial/src/lib/styles/index.css',
+					'uncial/core': '../uncial/src/lib/core/index.ts',
+					'uncial/render': '../uncial/src/lib/render/index.ts',
+					'uncial/editor': '../uncial/src/lib/editor/index.ts',
+					'uncial/runtime/svelte': '../uncial/src/lib/runtime/svelte.ts',
+					'uncial/web-components': '../uncial/src/lib/web-components/index.ts',
+					uncial: '../uncial/src/lib/index.ts'
+				},
 		// Fully prerendered demo site; no fallback — every route is static.
 		adapter: adapter({
 			// BUILD_DIR lets the e2e setup produce the plain and base-path builds

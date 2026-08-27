@@ -24,6 +24,13 @@ export interface MountEditorPageOptions {
 	schema: unknown; // site schema, passed through to the element
 	sessionProvider?: SessionProvider;
 	/**
+	 * Debounced autosave in milliseconds. When set, the page saves on its own
+	 * this long after the last change and renders no Save button — the mode a
+	 * local-filesystem backend wants, where the file is the document and there
+	 * is nothing to reconcile. Omitted keeps the Save button and manual saving.
+	 */
+	autosaveMs?: number;
+	/**
 	 * Stylesheet URLs to load inside the editor's shadow root. Defaults to
 	 * mirroring every stylesheet of the host page (WYSIWYG parity: the editor
 	 * renders behind a shadow boundary, which page styles do not cross).
@@ -82,6 +89,8 @@ export function mountEditorPage(
 	const chrome = document.createElement('div');
 	chrome.className = 'uncial-cms-chrome';
 
+	const manualSave = opts.autosaveMs === undefined;
+
 	const saveButton = document.createElement('button');
 	saveButton.type = 'button';
 	saveButton.textContent = 'Save';
@@ -130,7 +139,8 @@ export function mountEditorPage(
 	// schema declares metaFields gets no metadata UI.
 	editor.metaFields = schema.metaFields;
 
-	chrome.append(saveButton, status);
+	if (manualSave) chrome.append(saveButton);
+	chrome.append(status);
 	root.append(chrome, banner, editor);
 	target.append(root);
 
@@ -173,6 +183,7 @@ export function mountEditorPage(
 		schema,
 		adapter: createAdapter(config),
 		sessionProvider,
+		autosaveMs: opts.autosaveMs,
 		ui,
 		confirm: (message) => window.confirm(message),
 		download: triggerDownload,
@@ -184,7 +195,7 @@ export function mountEditorPage(
 	};
 	editor.addEventListener('uncial-change', onChange);
 
-	saveButton.addEventListener('click', () => void controller.save());
+	if (manualSave) saveButton.addEventListener('click', () => void controller.save());
 	downloadButton.addEventListener('click', () => controller.downloadMyVersion());
 	reloadButton.addEventListener('click', () => void controller.reloadLatest());
 	dismissButton.addEventListener('click', () => controller.dismissConflict());
