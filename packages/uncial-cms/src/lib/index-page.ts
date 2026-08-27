@@ -9,6 +9,8 @@ import type { PageRef } from './index-actions.js';
 import { mountEditorPage } from './mount.js';
 import { hashForPagePath, pagePathFromHash, validatePagePath } from './paths.js';
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
+import { createLocalAdapter } from './local/adapter.js';
+import { localSessionProvider } from './local/session.js';
 import { defaultMapPathToSource } from './sveltekit/mapping.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
@@ -31,14 +33,20 @@ export interface MountIndexPageOptions {
 
 function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 	if (config.forge === 'github') return createGitHubAdapter();
-	throw new Error(`Unknown forge "${config.forge}".`);
+	if (config.forge === 'local') return createLocalAdapter();
+	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
 }
 
 export function mountIndexPage(
 	target: HTMLElement,
 	opts: MountIndexPageOptions
 ): { destroy(): void } {
-	const { config, sessionProvider = popupSessionProvider, basePath = '' } = opts;
+	const { config, basePath = '' } = opts;
+	const sessionProvider =
+		opts.sessionProvider ?? (config.forge === 'local' ? localSessionProvider : popupSessionProvider);
+	const locationLabel =
+		config.forge === 'github' ? `${config.repo}@${config.branch}` : 'the local checkout';
+	const branchLabel = config.forge === 'github' ? config.branch : 'the local checkout';
 	const mapPathToSource =
 		opts.mapPathToSource ?? ((path: string) => defaultMapPathToSource(path, config.contentDir));
 
@@ -136,7 +144,7 @@ export function mountIndexPage(
 		const pages = await listPages(adapter, config.contentDir, opts.mapSourceToPath);
 		if (destroyed) return;
 		renderList(pages);
-		setStatus(`Editing ${config.repo}@${config.branch} as ${session!.user.login}`);
+		setStatus(`Editing ${locationLabel} as ${session!.user.login}`);
 	};
 
 	const onCreate = async (raw: string, message: HTMLElement, submit: HTMLButtonElement) => {
@@ -169,7 +177,7 @@ export function mountIndexPage(
 	const onDelete = async (page: PageRef) => {
 		if (!adapter) return;
 		const confirmed = window.confirm(
-			`Delete ${page.sourcePath} from ${config.branch}? This commits the deletion immediately.`
+			`Delete ${page.sourcePath} from ${branchLabel}? This commits the deletion immediately.`
 		);
 		if (!confirmed) return;
 		try {

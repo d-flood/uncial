@@ -91,6 +91,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const { config, sourcePath, blocks, schema, adapter, sessionProvider, ui } = opts;
 	const timings = opts.timings ?? DEFAULT_DEPLOY_STATUS_TIMINGS;
 	const destroyed = () => opts.isDestroyed?.() ?? false;
+	const branch = config.forge === 'github' ? config.branch : 'the local checkout';
 
 	let session: ForgeSession | null = null;
 	let sha: string | null = null;
@@ -107,12 +108,12 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	};
 
 	const startPolling = (commitSha: string) => {
-		const commitUrl = githubCommitUrl(config.repo, commitSha);
+		const commitUrl = config.forge === 'github' ? githubCommitUrl(config.repo, commitSha) : '';
 		poll = startDeployPolling({
 			check: () => adapter.commitStatus(commitSha),
 			onPhase: (phase) => {
 				if (destroyed()) return;
-				const view = describeDeployPhase(phase, { branch: config.branch, commitSha, commitUrl });
+				const view = describeDeployPhase(phase, { branch, commitSha, commitUrl });
 				ui.status({ text: view.text, href: view.commitUrl, tone: view.tone });
 			},
 			timings,
@@ -164,7 +165,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 				ui.conflictVisible(true);
 				ui.status({
 					tone: 'error',
-					text: `Save conflicted — this page changed on ${config.branch} since you loaded it.`
+					text: `Save conflicted — this page changed on ${branch} since you loaded it.`
 				});
 			} else {
 				ui.status({ tone: 'error', text: error instanceof Error ? error.message : 'Save failed.' });
@@ -176,7 +177,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 
 	const reloadLatest = async () => {
 		const proceed = opts.confirm(
-			`Reload the latest version from ${config.branch}? This discards your unsaved changes` +
+			`Reload the latest version from ${branch}? This discards your unsaved changes` +
 				' unless you have downloaded them.'
 		);
 		if (!proceed) return; // Only "Reload latest" (confirmed) replaces content + sha.

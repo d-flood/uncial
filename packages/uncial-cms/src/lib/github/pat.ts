@@ -1,5 +1,5 @@
 import { GITHUB_API_URL } from './adapter.js';
-import type { SessionProvider } from '../types.js';
+import type { GitHubSiteConfig, SessionProvider } from '../types.js';
 
 /**
  * Zero-backend session provider: prompts for a fine-grained personal access
@@ -7,9 +7,10 @@ import type { SessionProvider } from '../types.js';
  * mode; the worker-based provider (issue 03) is layered on the same seam.
  */
 export const patSessionProvider: SessionProvider = async (config) => {
+	const githubConfig = config as GitHubSiteConfig;
 	const token = window
 		.prompt(
-			`Paste a GitHub personal access token with contents read/write access to ${config.repo}:`
+			`Paste a GitHub personal access token with contents read/write access to ${githubConfig.repo}:`
 		)
 		?.trim();
 	if (!token) throw new Error('A personal access token is required to edit this page.');
@@ -29,7 +30,7 @@ export const patSessionProvider: SessionProvider = async (config) => {
 	return {
 		token,
 		expiresAt: null,
-		repo: config.repo,
+		repo: githubConfig.repo,
 		user: {
 			login: user.login,
 			name: user.name ?? user.login,
