@@ -48,6 +48,9 @@ bun add uncial-cms uncial
   (`UncialCmsSiteConfig`, `ForgeSession`, `SessionProvider`, `ForgeAdapter`).
 - `uncial-cms/github` — the GitHub `ForgeAdapter` (`createGitHubAdapter`) over
   the Contents API, plus the two session providers.
+- `uncial-cms/local` — the local filesystem `ForgeAdapter`
+  (`createLocalAdapter`), its unauthenticated `localSessionProvider`, and
+  `createLocalVitePlugin` for the development endpoint.
 - `uncial-cms/sveltekit` — build-time route factories for prerendered SvelteKit
   sites (`createContentHandlers`, `createEditorHandlers`, `createIndexHandlers`,
   and the default path↔source mapping).
@@ -70,6 +73,49 @@ export const siteConfig: UncialCmsSiteConfig = {
 	mediaDir: 'static/uploads'    // optional; repo-root-relative dir for uploads
 };
 ```
+
+For development against a local checkout, use the local config instead. It has
+no GitHub or authentication fields:
+
+```ts
+export const siteConfig: UncialCmsSiteConfig = {
+	forge: 'local',
+	contentDir: 'content'
+};
+```
+
+## Local development backend
+
+The `uncial-cms/local` subpath keeps local editing on the development server.
+Register its Vite plugin with the filesystem location of the configured content
+directory; it is serve-only and forces Vite to bind to `127.0.0.1`:
+
+```ts
+import { resolve } from 'node:path';
+import { defineConfig } from 'vite';
+import { createLocalVitePlugin } from 'uncial-cms/local';
+
+export default defineConfig({
+	plugins: [createLocalVitePlugin({ contentDir: resolve('content') })]
+});
+```
+
+With `forge: 'local'`, `mountEditorPage` selects `createLocalAdapter` and
+`localSessionProvider` automatically. The adapter calls the fixed,
+development-only JSON endpoint at `/__uncial-cms/local`:
+
+- `POST /files/<path>` with `{}` reads a document and returns
+  `{ content, sha }`.
+- `PUT /files/<path>` with `{ content }` writes UTF-8 text and returns
+  `{ sha, commitSha }`. Binary writes use `{ content, encoding: 'base64' }`.
+- `DELETE /files/<path>` with `{}` deletes a document.
+- `POST /dirs/<path>` with `{}` returns `{ entries }`, where each entry has
+  `path` and `type` (`'file'` or `'dir'`).
+
+All requests use `Content-Type: application/json`; contents are capped at
+`MAX_CONTENT_BYTES`. The middleware resolves each URL path before checking that
+it remains beneath `contentDir`, and writes through a temporary file followed
+by rename, so a watcher never sees a partial document at its target path.
 
 ## Quick start: SvelteKit route factories
 
@@ -334,10 +380,11 @@ Deliberately out of scope for v1 (tracked as future design rounds):
 - **No drafts / PR workflows.** Save commits directly to the configured branch.
   Editorial review in v1 is git **branch protection**, configured by the site
   owner. A save-to-branch toggle is a candidate for v1.x.
-- **GitHub only.** v1 ships the forge-adapter *interface* (validated on paper
-  against GitLab's client-side PKCE) and the GitHub implementation only. **GitLab**
-  / Gitea adapters are future work; nothing outside the adapter assumes a worker
-  exists.
+- **GitHub and local files only.** v1 ships the forge-adapter *interface*
+  (validated on paper against GitLab's client-side PKCE), the GitHub
+  implementation, and a development-only local filesystem implementation.
+  **GitLab** / Gitea adapters are future work; nothing outside the adapter
+  assumes a worker exists.
 
 ## Development
 
