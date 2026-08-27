@@ -34,7 +34,12 @@ const session: ForgeSession = {
 
 function docWith(text: string): ContentDocument {
 	return normalizeDocument(
-		{ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] },
+		{
+			type: 'doc',
+			content: [
+				{ type: 'paragraph', attrs: { id: `paragraph-${text}` }, content: [{ type: 'text', text }] }
+			]
+		},
 		blocks,
 		schema
 	);

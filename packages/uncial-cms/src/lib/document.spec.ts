@@ -16,9 +16,10 @@ describe('parseDocument', () => {
 
 		expect(document.type).toBe('doc');
 		expect(document.version).toBe(CURRENT_DOCUMENT_VERSION);
-		expect(document.content).toEqual([
+		expect(document.content).toMatchObject([
 			{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }
 		]);
+		expect(document.content?.[0]?.attrs).toHaveProperty('id', expect.any(String));
 	});
 
 	it('rejects content that is not JSON', () => {

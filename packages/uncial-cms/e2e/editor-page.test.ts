@@ -85,12 +85,13 @@ test('loads a document with a PAT, edits it, and saves the edit as a commit', as
 		email: '583231+octocat@users.noreply.github.com'
 	});
 	const savedDocument = JSON.parse(fromBase64(String(put.content)));
-	expect(savedDocument.content).toEqual([
+	expect(savedDocument.content).toMatchObject([
 		{
 			type: 'paragraph',
 			content: [{ type: 'text', text: 'Hello from GitHub — edited in e2e' }]
 		}
 	]);
+	expect(savedDocument.content[0].attrs).toHaveProperty('id', expect.any(String));
 });
 
 test('surfaces a conflict banner when the save is rejected with 409', async ({ page }) => {

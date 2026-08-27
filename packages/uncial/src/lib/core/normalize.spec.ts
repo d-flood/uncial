@@ -50,12 +50,14 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content?.[0]?.attrs).toEqual({
+		expect(normalized.content?.[0]?.attrs).toMatchObject({
 			name: '42',
 			featured: true,
 			order: 7,
 			metadata: { tone: 'cool' }
 		});
+		expect(normalized.content?.[0]?.attrs).toHaveProperty('id', expect.any(String));
+		expect(normalized.content?.[0]?.attrs).not.toHaveProperty('ignored');
 	});
 
 	it('filters disallowed marks while preserving the document shape', () => {
@@ -183,7 +185,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content?.[0]?.content).toEqual([
+		expect(normalized.content?.[0]?.content).toMatchObject([
 			{
 				type: 'paragraph',
 				content: [{ type: 'text', text: 'Nested' }]
@@ -203,7 +205,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content).toEqual([{ type: 'paragraph' }]);
+		expect(normalized.content).toMatchObject([{ type: 'paragraph' }]);
 	});
 
 	it('coerces non-array marks, non-array content, and non-object attrs', () => {
@@ -224,7 +226,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content?.[0]).toEqual({ type: 'paragraph' });
+		expect(normalized.content?.[0]).toMatchObject({ type: 'paragraph' });
 		expect(normalized.content?.[1]?.content?.[0]?.marks).toEqual([{ type: 'bold' }]);
 	});
 
@@ -247,7 +249,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content?.[0]?.attrs).toEqual({ title: 'Untitled' });
+		expect(normalized.content?.[0]?.attrs).toMatchObject({ title: 'Untitled' });
 	});
 
 	it('drops marks with non-object attrs values while keeping the mark', () => {
@@ -299,7 +301,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content).toEqual([
+		expect(normalized.content).toMatchObject([
 			{
 				type: 'blockquote',
 				content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Kept' }] }]
@@ -333,7 +335,7 @@ describe('normalizeDocument', () => {
 			schema
 		);
 
-		expect(normalized.content).toEqual([
+		expect(normalized.content).toMatchObject([
 			{ type: 'paragraph', content: [{ type: 'text', text: 'Kept' }] }
 		]);
 	});
@@ -364,6 +366,112 @@ describe('normalizeDocument', () => {
 		expect(normalized.content?.[0]?.content?.[0]?.marks).toEqual([
 			{ type: 'bold' },
 			{ type: 'link' }
+		]);
+	});
+
+	it('stamps block ids and heading slugs without changing persisted values', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry);
+		const normalized = normalizeDocument(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'heading',
+						attrs: { level: 2 },
+						content: [{ type: 'text', text: 'Adding a Plugin to Your Viewer' }]
+					},
+					{
+						type: 'blockquote',
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'A nested block.' }]
+							}
+						]
+					}
+				]
+			},
+			registry,
+			schema
+		);
+
+		const heading = normalized.content?.[0];
+		const quote = normalized.content?.[1];
+		const paragraph = quote?.content?.[0];
+		const ids = [heading?.attrs?.id, quote?.attrs?.id, paragraph?.attrs?.id];
+
+		expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(heading?.attrs?.slug).toBe('adding-a-plugin-to-your-viewer');
+		if (!heading || !quote) throw new Error('normalized document is missing blocks');
+
+		const retitled = normalizeDocument(
+			{
+				...normalized,
+				content: [
+					{
+						...heading,
+						content: [{ type: 'text', text: 'Install the Viewer Plugin' }]
+					},
+					quote
+				]
+			},
+			registry,
+			schema
+		);
+
+		expect(retitled.content?.[0]?.attrs).toEqual(heading?.attrs);
+	});
+
+	it('preserves an existing id on a custom block', () => {
+		const callout = defineSvelteBlock({
+			id: 'callout',
+			label: 'Callout',
+			attributes: { title: '' },
+			component: Dummy
+		});
+		const registry = createBlockRegistry([callout]);
+		const schema = createSchema(registry);
+		const normalized = normalizeDocument(
+			{
+				type: 'doc',
+				content: [{ type: 'callout', attrs: { id: 'callout-identity', title: 'Notice' } }]
+			},
+			registry,
+			schema
+		);
+
+		expect(normalized.content?.[0]?.attrs).toMatchObject({
+			id: 'callout-identity',
+			title: 'Notice'
+		});
+	});
+
+	it('preserves block ids when blocks are reordered', () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry);
+		const normalized = normalizeDocument(
+			{
+				type: 'doc',
+				content: [
+					{ type: 'paragraph', content: [{ type: 'text', text: 'First' }] },
+					{ type: 'paragraph', content: [{ type: 'text', text: 'Second' }] }
+				]
+			},
+			registry,
+			schema
+		);
+
+		const reordered = normalizeDocument(
+			{ ...normalized, content: [...(normalized.content ?? [])].reverse() },
+			registry,
+			schema
+		);
+
+		expect(reordered.content?.map((node) => node.attrs?.id)).toEqual([
+			normalized.content?.[1]?.attrs?.id,
+			normalized.content?.[0]?.attrs?.id
 		]);
 	});
 
@@ -411,7 +519,7 @@ describe('document versioning', () => {
 				schema
 			);
 			expect(normalized.version).toBe(CURRENT_DOCUMENT_VERSION);
-			expect(normalized.content).toEqual([{ type: 'paragraph' }]);
+			expect(normalized.content).toMatchObject([{ type: 'paragraph' }]);
 		}
 	});
 
@@ -446,7 +554,7 @@ describe('document versioning', () => {
 
 			expect(calls).toEqual([]);
 			expect(normalized.version).toBe(CURRENT_DOCUMENT_VERSION);
-			expect(normalized.content).toEqual([{ type: 'paragraph' }]);
+			expect(normalized.content).toMatchObject([{ type: 'paragraph' }]);
 		} finally {
 			unregister();
 		}
@@ -474,6 +582,29 @@ describe('document versioning', () => {
 		} finally {
 			unregister();
 		}
+	});
+
+	it('migrates pre-identity block ids and heading slugs', () => {
+		const migrated = migrateDocument(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'heading',
+						attrs: { level: 2 },
+						content: [{ type: 'text', text: 'Migration Guide' }]
+					},
+					{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }
+				]
+			},
+			1
+		);
+
+		expect(migrated.content?.[0]?.attrs).toMatchObject({
+			id: expect.any(String),
+			slug: 'migration-guide'
+		});
+		expect(migrated.content?.[1]?.attrs).toMatchObject({ id: expect.any(String) });
 	});
 
 	it('sanitizes hostile shapes before handing the document to migrations', () => {
@@ -607,6 +738,6 @@ describe('document versioning', () => {
 		);
 
 		expect(normalized.version).toBe(futureVersion);
-		expect(normalized.content).toEqual([{ type: 'paragraph' }]);
+		expect(normalized.content).toMatchObject([{ type: 'paragraph' }]);
 	});
 });
