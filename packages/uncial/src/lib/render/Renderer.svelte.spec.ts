@@ -30,6 +30,24 @@ describe('Renderer', () => {
 		await expect.element(strong).toBeInTheDocument();
 	});
 
+	it('anchors a heading at its persisted slug, not at its text', async () => {
+		render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'heading',
+						attrs: { level: 2, slug: 'adding-a-plugin-to-your-viewer' },
+						content: [{ type: 'text', text: 'Adding a plugin (renamed)' }]
+					}
+				]
+			}
+		});
+
+		const heading = page.getByRole('heading', { level: 2 });
+		await expect.element(heading).toHaveAttribute('id', 'adding-a-plugin-to-your-viewer');
+	});
+
 	it('renders tables with header and rich-text cells', async () => {
 		const rendered = render(Renderer, {
 			content: {

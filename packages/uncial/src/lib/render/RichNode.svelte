@@ -128,18 +128,26 @@
 	</p>
 {:else if node.type === 'heading'}
 	{@const level = Math.min(6, Math.max(1, Number(node.attrs?.level ?? 1)))}
+	<!-- The anchor is the heading's persisted slug, never its text: a slug is
+	     stamped once at authoring time so that retitling a section leaves every
+	     link into it resolving. A heading that carries no slug gets no id
+	     rather than a text-derived one, which would rot on the next edit. -->
+	{@const anchor =
+		typeof node.attrs?.slug === 'string' && node.attrs.slug.length > 0
+			? node.attrs.slug
+			: undefined}
 	{#if level === 1}
-		<h1><RichContent nodes={node.content ?? []} {registry} {schema} /></h1>
+		<h1 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h1>
 	{:else if level === 2}
-		<h2><RichContent nodes={node.content ?? []} {registry} {schema} /></h2>
+		<h2 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h2>
 	{:else if level === 3}
-		<h3><RichContent nodes={node.content ?? []} {registry} {schema} /></h3>
+		<h3 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h3>
 	{:else if level === 4}
-		<h4><RichContent nodes={node.content ?? []} {registry} {schema} /></h4>
+		<h4 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h4>
 	{:else if level === 5}
-		<h5><RichContent nodes={node.content ?? []} {registry} {schema} /></h5>
+		<h5 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h5>
 	{:else}
-		<h6><RichContent nodes={node.content ?? []} {registry} {schema} /></h6>
+		<h6 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h6>
 	{/if}
 {:else if node.type === 'table'}
 	<div class="uncial-table-scroll">
