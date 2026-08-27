@@ -3,6 +3,7 @@ import type { Editor as TiptapEditor, JSONContent } from '@tiptap/core';
 import { bindEditor, type BindEditorOptions } from './bindEditor.js';
 import { createBlockRegistry, createSchema } from '../core/registry.js';
 import { CURRENT_DOCUMENT_VERSION } from '../core/migrations.js';
+import { normalizeDocument } from '../core/normalize.js';
 import type { ValidationIssue } from '../core/types.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
@@ -68,6 +69,74 @@ function appendParagraph(editor: TiptapEditor, text: string): void {
 }
 
 describe('bindEditor content guard', () => {
+	it('round-trips tables with inline code and links through normalization and serialization', async () => {
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry);
+		const table = {
+			type: 'table',
+			attrs: { id: 'api-reference' },
+			content: [
+				{
+					type: 'tableRow',
+					attrs: { id: 'api-reference-header' },
+					content: [
+						{
+							type: 'tableHeader',
+							attrs: { id: 'api-header', colspan: 1, rowspan: 1, colwidth: null },
+							content: [
+								{
+									type: 'paragraph',
+									attrs: { id: 'api-header-copy' },
+									content: [{ type: 'text', text: 'API' }]
+								}
+							]
+						}
+					]
+				},
+				{
+					type: 'tableRow',
+					attrs: { id: 'api-reference-row' },
+					content: [
+						{
+							type: 'tableCell',
+							attrs: { id: 'api-cell', colspan: 1, rowspan: 1, colwidth: null },
+							content: [
+								{
+									type: 'paragraph',
+									attrs: { id: 'api-cell-copy' },
+									content: [
+										{ type: 'text', text: 'createSchema', marks: [{ type: 'code' }] },
+										{ type: 'text', text: ' from ' },
+										{
+											type: 'text',
+											text: 'the core API',
+											marks: [{ type: 'link', attrs: { href: 'https://example.com/core' } }]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		};
+		const normalized = normalizeDocument(
+			{ type: 'doc', version: CURRENT_DOCUMENT_VERSION, content: [table] },
+			registry,
+			schema
+		);
+
+		expect(normalized.content?.[0]).toEqual(table);
+
+		const harness = bindHarness({ blocks: registry, schema, json: normalized });
+		appendParagraph(harness.editor(), 'An unrelated edit.');
+		await expect.poll(() => harness.changes.length).toBeGreaterThan(0);
+
+		expect(harness.changes.at(-1)?.content?.[0]).toMatchObject(table);
+
+		harness.cleanup();
+	});
+
 	it('preserves read-only attributes byte-for-byte through an edit session', async () => {
 		const registry = createBlockRegistry([generatedTable]);
 		const schema = createSchema(registry);
@@ -150,10 +219,9 @@ describe('bindEditor content guard', () => {
 
 		const heading = harness.editor().state.doc.firstChild;
 		if (!heading) throw new Error('editor is missing the heading');
-		harness.editor().commands.insertContentAt(
-			{ from: 1, to: heading.nodeSize - 1 },
-			'Install the Viewer Plugin'
-		);
+		harness
+			.editor()
+			.commands.insertContentAt({ from: 1, to: heading.nodeSize - 1 }, 'Install the Viewer Plugin');
 
 		await expect.poll(() => harness.changes.length).toBeGreaterThan(1);
 		const latest = harness.changes.at(-1) as JSONContent;
@@ -186,10 +254,12 @@ describe('bindEditor content guard', () => {
 		// Both sibling paragraphs render; the document was not wiped.
 		expect(harness.host.textContent).toContain('First paragraph');
 		expect(harness.host.textContent).toContain('Second paragraph');
-		expect(harness.editor().getJSON().content?.map((node) => node.type)).toEqual([
-			'paragraph',
-			'paragraph'
-		]);
+		expect(
+			harness
+				.editor()
+				.getJSON()
+				.content?.map((node) => node.type)
+		).toEqual(['paragraph', 'paragraph']);
 
 		// The stripped node was reported to the host as a warning.
 		const strip = harness.issues.find((issue) => issue.details?.block === 'mysteryEmbed');
