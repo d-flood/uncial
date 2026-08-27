@@ -26,9 +26,13 @@
 </svelte:head>
 
 <h1>Site index</h1>
-<p>
-	This site edits <code>{data.config.repo}</code> on branch
-	<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
-</p>
+{#if data.config.forge === 'github'}
+	<p>
+		This site edits <code>{data.config.repo}</code> on branch
+		<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
+	</p>
+{:else}
+	<p>This site edits the local checkout (content in <code>{data.config.contentDir}</code>).</p>
+{/if}
 
 <div bind:this={target}></div>
