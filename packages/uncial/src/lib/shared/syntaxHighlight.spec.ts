@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCodeLanguageClass, highlightCodeToHtml } from './syntaxHighlight.js';
+import { getCodeLanguageClass, highlightCodeToHtml, lowlight } from './syntaxHighlight.js';
 
 describe('getCodeLanguageClass', () => {
 	it('builds a language-<lang> class from a trimmed, lower-cased language', () => {
@@ -48,6 +48,16 @@ describe('highlightCodeToHtml', () => {
 		// Stripping the highlighter's own spans must leave no angle brackets.
 		const withoutSpans = html.replace(/<\/?span[^>]*>/g, '');
 		expect(withoutSpans).not.toMatch(/[<>]/);
+	});
+
+	it('leaves a plaintext block uncoloured rather than guessing at it', () => {
+		// `plaintext` is a declaration that the block is not code. Falling to
+		// highlightAuto would colour console output and directory trees against
+		// whichever grammar the guess landed on.
+		expect(lowlight.registered('plaintext')).toBe(true);
+		expect(highlightCodeToHtml('triiiceratops --version\n1.0.0', 'plaintext')).not.toContain(
+			'<span'
+		);
 	});
 
 	it('still escapes hostile text when the language is unknown (auto-highlight path)', () => {
