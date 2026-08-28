@@ -1,4 +1,11 @@
-import { common, createLowlight } from 'lowlight';
+import bash from 'highlight.js/lib/languages/bash';
+import css from 'highlight.js/lib/languages/css';
+import javascript from 'highlight.js/lib/languages/javascript';
+import json from 'highlight.js/lib/languages/json';
+import python from 'highlight.js/lib/languages/python';
+import typescript from 'highlight.js/lib/languages/typescript';
+import xml from 'highlight.js/lib/languages/xml';
+import { createLowlight } from 'lowlight';
 
 type HighlightNode = {
 	type?: string;
@@ -8,13 +15,32 @@ type HighlightNode = {
 	children?: HighlightNode[];
 };
 
-export const lowlight = createLowlight(common);
+/**
+ * Registered grammars, named one by one rather than lowlight's `common` set.
+ *
+ * `common` is 37 grammars and about 172 KB minified, and it lands in the chunk
+ * every page rendering a document hydrates — including pages that contain no
+ * code at all. These seven are the languages the alias table below maps, which
+ * is the set this renderer can actually name. A consumer needing more registers
+ * it on the exported instance.
+ */
+export const lowlight = createLowlight({
+	bash,
+	css,
+	javascript,
+	json,
+	python,
+	typescript,
+	xml
+});
 
 lowlight.registerAlias({
 	javascript: ['js', 'jsx'],
 	python: ['py'],
 	typescript: ['ts', 'tsx'],
-	xml: ['html', 'svelte']
+	// Vue single-file components are XML-shaped, and naming the alias keeps them
+	// off the auto-detect path, whose guess narrowed with the registry above.
+	xml: ['html', 'svelte', 'vue']
 });
 
 function escapeHtml(value: string): string {
