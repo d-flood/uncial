@@ -2,6 +2,7 @@ import bash from 'highlight.js/lib/languages/bash';
 import css from 'highlight.js/lib/languages/css';
 import javascript from 'highlight.js/lib/languages/javascript';
 import json from 'highlight.js/lib/languages/json';
+import plaintext from 'highlight.js/lib/languages/plaintext';
 import python from 'highlight.js/lib/languages/python';
 import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
@@ -20,15 +21,21 @@ type HighlightNode = {
  *
  * `common` is 37 grammars and about 172 KB minified, and it lands in the chunk
  * every page rendering a document hydrates — including pages that contain no
- * code at all. These seven are the languages the alias table below maps, which
- * is the set this renderer can actually name. A consumer needing more registers
- * it on the exported instance.
+ * code at all. These are the languages the alias table below maps, which is the
+ * set this renderer can actually name.
+ *
+ * `plaintext` is registered for the opposite reason to the rest: it matches
+ * nothing, and that is its job. An unregistered language falls to
+ * `highlightAuto`, so a block declared `plaintext` — console output, a directory
+ * tree, a licence key — would be guessed at and coloured, which is precisely
+ * what declaring it asks the renderer not to do.
  */
 export const lowlight = createLowlight({
 	bash,
 	css,
 	javascript,
 	json,
+	plaintext,
 	python,
 	typescript,
 	xml
