@@ -92,3 +92,46 @@ describe('default marks single source (slice 04 item 4)', () => {
 		expect(extensions.some((extension) => extension.name === 'link')).toBe(false);
 	});
 });
+
+describe('inline code combined with other marks', () => {
+	/*
+	 * Tiptap's Code ships `excludes: "_"`, which makes code+bold and code+link
+	 * invalid in the editor's schema. ProseMirror drops a node it cannot
+	 * represent rather than reporting it, so before this was fixed a document
+	 * holding bold code lost the whole block on the round trip through the
+	 * editor — silently, and under an autosave with no save step.
+	 *
+	 * The count is asserted, not just the marks: dropping the block is exactly
+	 * what the failure looked like, so a test that only inspected surviving
+	 * nodes would have passed against the bug.
+	 */
+	function roundTrip(marks: JSONContent['marks']): JSONContent {
+		const input: JSONContent = {
+			type: 'doc',
+			content: [
+				{ type: 'paragraph', content: [{ type: 'text', text: 'before' }] },
+				{ type: 'paragraph', content: [{ type: 'text', text: 'media-src', marks }] },
+				{ type: 'paragraph', content: [{ type: 'text', text: 'after' }] }
+			]
+		};
+		return generateJSON(generateHTML(input, extensions), extensions);
+	}
+
+	it('keeps a block whose code is also bold', () => {
+		const out = roundTrip([{ type: 'code' }, { type: 'bold' }]);
+		expect(out.content).toHaveLength(3);
+		expect(out.content?.[1].content?.[0].marks?.map((m) => m.type).sort()).toEqual([
+			'bold',
+			'code'
+		]);
+	});
+
+	it('keeps a block whose code is also a link', () => {
+		const out = roundTrip([{ type: 'code' }, { type: 'link', attrs: linkAttrs }]);
+		expect(out.content).toHaveLength(3);
+		expect(out.content?.[1].content?.[0].marks?.map((m) => m.type).sort()).toEqual([
+			'code',
+			'link'
+		]);
+	});
+});

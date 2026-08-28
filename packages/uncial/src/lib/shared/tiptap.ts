@@ -1,4 +1,5 @@
 import StarterKit from '@tiptap/starter-kit';
+import Code from '@tiptap/extension-code';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import {
@@ -378,6 +379,20 @@ function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension 
 	});
 }
 
+/**
+ * Inline code that may carry other marks.
+ *
+ * Tiptap's Code ships `excludes: "_"`, the wildcard, so code cannot combine
+ * with emphasis or a link. ProseMirror does not report that as an error: it
+ * drops the containing node while parsing, so a document holding bold code
+ * loses whole blocks on the round trip through the editor, silently.
+ *
+ * The renderer nests marks, and documents are authored against the renderer —
+ * bold code is what "**`media-src`**" means in prose — so the editor's schema
+ * is the side that has to give.
+ */
+const CombinableCode = Code.extend({ excludes: '' });
+
 function createBaseExtensions(
 	schema?: ContentSchema,
 	extensions: AnyExtension[] = []
@@ -394,7 +409,7 @@ function createBaseExtensions(
 			bold: includeBold ? {} : false,
 			italic: includeItalic ? {} : false,
 			strike: includeStrike ? {} : false,
-			code: includeCode ? {} : false,
+			code: false,
 			heading: { levels: [2, 3, 4, 5, 6] },
 			bulletList: {},
 			orderedList: {},
@@ -409,6 +424,7 @@ function createBaseExtensions(
 		TableRow,
 		TableHeader,
 		TableCell,
+		...(includeCode ? [CombinableCode] : []),
 		...(includeLink ? [LinkMark] : []),
 		...extensions
 	];
@@ -420,7 +436,7 @@ export function createRichTextExtensions(features: ReadonlySet<RichTextFeature>)
 			bold: features.has('bold') ? {} : false,
 			italic: features.has('italic') ? {} : false,
 			strike: features.has('strike') ? {} : false,
-			code: features.has('code') ? {} : false,
+			code: false,
 			heading: features.has('heading') ? {} : false,
 			bulletList: features.has('bulletList') ? {} : false,
 			orderedList: features.has('orderedList') ? {} : false,
@@ -430,6 +446,7 @@ export function createRichTextExtensions(features: ReadonlySet<RichTextFeature>)
 			hardBreak: features.has('hardBreak') ? {} : false,
 			link: false
 		}),
+		...(features.has('code') ? [CombinableCode] : []),
 		...(features.has('codeBlock') ? [CodeBlockLowlight.configure({ lowlight })] : [])
 	];
 }

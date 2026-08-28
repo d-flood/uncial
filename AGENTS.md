@@ -1,1 +1,1 @@
-use BUN, not npm
+use PNPM, not npm or bun
