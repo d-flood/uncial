@@ -253,12 +253,20 @@
 							>
 								<DotsSixVerticalIcon size={12} weight="bold" />
 							</button>
-							<div class="uncial-child-item__content">
+							<button
+								type="button"
+								class="uncial-child-item__content"
+								aria-current={child.pos === controllerState.activeBlock?.pos ? 'true' : undefined}
+								onclick={(event) => {
+									event.stopPropagation();
+									controller.openAttributesAt(child.pos);
+								}}
+							>
 								<span class="uncial-child-item__label">{child.label}</span>
 								{#if child.summary}
 									<span class="uncial-child-item__summary">{child.summary}</span>
 								{/if}
-							</div>
+							</button>
 							<div class="uncial-child-item__actions">
 								<button
 									type="button"
