@@ -219,6 +219,14 @@ function containerContentExpression(content: BlockContentDefinition): string {
 	// so "block*" mirrors what core considers valid flow content. Zero-or-more
 	// (not one-or-more) is deliberate: persisted documents commonly contain
 	// empty containers (`"content": []`), and those must stay schema-valid.
+
+	// A container that names its admissible children gets those names in place
+	// of the whole "block" group, which is what makes the constraint hold for
+	// paste and for any other route a child can take into the document.
+	if (content.allowedBlocks?.length) {
+		return `(${content.allowedBlocks.join(' | ')})*`;
+	}
+
 	switch (content.kind) {
 		case 'flow':
 		default:

@@ -72,6 +72,16 @@ const panelBlock = defineSvelteBlock({
 	content: { kind: 'flow' }
 });
 
+// A container that names its only admissible child, mirroring the site's Tabs
+// block. `panelBlock` is that child, and is itself a container.
+const constrainedContainerBlock = defineSvelteBlock({
+	id: 'tabs',
+	label: 'Tabs',
+	attributes: { group: '' },
+	component: EditorBlockFixture,
+	content: { kind: 'flow', allowedBlocks: ['panel'] }
+});
+
 interface Harness {
 	host: HTMLElement;
 	editor: TiptapEditor;
@@ -1093,6 +1103,79 @@ describe('attributesController — nested block selection', () => {
 
 		typeInto(harness.controller, 'title', 'deeper');
 		expect(harness.editor.state.doc.nodeAt(grandchild.pos)?.attrs.title).toBe('deeper');
+
+		harness.cleanup();
+	});
+});
+
+describe('attributesController — container child constraints', () => {
+	it('refuses to insert a child the container does not admit', () => {
+		const harness = createHarness(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'tabs',
+						attrs: { group: 'framework' },
+						content: [
+							{
+								type: 'panel',
+								attrs: { label: 'Svelte' },
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+							}
+						]
+					}
+				]
+			},
+			[constrainedContainerBlock, panelBlock, atomBlock]
+		);
+		const pos = posOf(harness.editor, 'tabs');
+		harness.controller.openAttributesAt(pos);
+
+		expect(harness.controller.insertContainerChild('note')).toBe(false);
+		expect(harness.controller.insertContainerChild('panel')).toBe(true);
+		expect(harness.editor.state.doc.nodeAt(pos)?.childCount).toBe(2);
+
+		harness.cleanup();
+	});
+
+	it('gives an inserted container child somewhere for the caret to land', () => {
+		const harness = createHarness(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'tabs',
+						attrs: { group: 'framework' },
+						content: [
+							{
+								type: 'panel',
+								attrs: { label: 'Svelte' },
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+							}
+						]
+					}
+				]
+			},
+			[constrainedContainerBlock, panelBlock, atomBlock]
+		);
+		const pos = posOf(harness.editor, 'tabs');
+		harness.controller.openAttributesAt(pos);
+		expect(harness.controller.insertContainerChild('panel', { label: 'Lit' })).toBe(true);
+
+		const tabs = harness.editor.state.doc.nodeAt(pos)!;
+		const inserted = tabs.child(1);
+		expect(inserted.type.name).toBe('panel');
+		expect(inserted.childCount).toBeGreaterThan(0);
+		expect(inserted.child(0).isTextblock).toBe(true);
+
+		// The caret goes into the new child and typing lands there, with no
+		// reload and no further repair.
+		const insertedStart = pos + 1 + tabs.child(0).nodeSize + 1;
+		harness.editor.commands.setTextSelection(insertedStart + 1);
+		harness.editor.commands.insertContent('typed');
+
+		expect(harness.editor.state.doc.nodeAt(pos)!.child(1).textContent).toBe('typed');
 
 		harness.cleanup();
 	});
