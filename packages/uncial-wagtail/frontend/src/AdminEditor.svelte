@@ -59,6 +59,7 @@
 			{toolbarFeatures}
 			{toolbarExtensions}
 			{attributesController}
+			attributesPanel={false}
 		/>
 	</div>
 	<aside class="uncial-wagtail-admin-attrs" aria-label="Block attributes">
