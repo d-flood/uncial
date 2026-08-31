@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { page, userEvent } from 'vitest/browser';
+import { Editor as TiptapEditor } from '@tiptap/core';
+import { createBlockRegistry, createSchema } from '../core/registry.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
 import BlockAttributesPanel from './BlockAttributesPanel.svelte';
+import { bindEditor } from './bindEditor.js';
 import {
+	createBlockAttributesController,
 	createInitialState,
 	type BlockAttributesController,
 	type BlockAttributesState
@@ -118,5 +123,94 @@ describe('BlockAttributesPanel choose-attribute channel', () => {
 		expect(received[0]?.name).toBe('imageId');
 
 		window.removeEventListener(CHOOSE_ATTRIBUTE_EVENT, listener);
+	});
+});
+
+describe('BlockAttributesPanel live attribute write-through', () => {
+	// A container block whose one attribute is a plain text field, mirroring the
+	// site's Tabs block `group` attribute that reproduced the defect.
+	const tabsBlock = defineSvelteBlock({
+		id: 'tabs',
+		label: 'Tabs',
+		attributes: { group: '' },
+		component: EditorBlockFixture,
+		content: { kind: 'flow' }
+	});
+
+	function mountEditorWithPanel(): {
+		editor: TiptapEditor;
+		pos: number;
+		cleanup(): void;
+	} {
+		const host = document.createElement('div');
+		document.body.append(host);
+		const registry = createBlockRegistry([tabsBlock]);
+		const schema = createSchema(registry);
+		const controller = createBlockAttributesController();
+		let editor: TiptapEditor | null = null;
+		const action = bindEditor(host, {
+			blocks: registry,
+			schema,
+			attributesController: controller,
+			json: {
+				type: 'doc',
+				content: [
+					{
+						type: 'tabs',
+						attrs: { group: '' },
+						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Tab body' }] }]
+					}
+				]
+			},
+			onEditor: (next) => {
+				if (next) editor = next;
+			}
+		});
+
+		const boundEditor = editor as TiptapEditor | null;
+		if (!boundEditor) throw new Error('editor was not attached');
+
+		render(BlockAttributesPanel, { controller, blocks: [tabsBlock] });
+
+		let pos = -1;
+		boundEditor.state.doc.descendants((node, at) => {
+			if (pos < 0 && node.type.name === 'tabs') pos = at;
+		});
+		controller.openAttributesAt(pos);
+
+		return {
+			editor: boundEditor,
+			pos,
+			cleanup() {
+				action.destroy?.();
+				host.remove();
+			}
+		};
+	}
+
+	it('lands every character typed into a text attribute field', async () => {
+		const harness = mountEditorWithPanel();
+		const input = await vi.waitFor(() => {
+			const found = document.querySelector<HTMLInputElement>(
+				'.uncial-attrs-panel .uncial-input--sm'
+			);
+			if (!found) throw new Error('the group attribute field never rendered');
+			return found;
+		});
+		const selectionBefore = harness.editor.state.selection.toJSON();
+
+		await userEvent.type(page.elementLocator(input), 'abcdef');
+
+		await expect
+			.poll(() => harness.editor.state.doc.nodeAt(harness.pos)?.attrs.group)
+			.toBe('abcdef');
+		// The panel stays open on the same block, and the field keeps its text,
+		// its DOM identity and the caret.
+		expect(input.value).toBe('abcdef');
+		expect(document.querySelector('.uncial-attrs-panel .uncial-input--sm')).toBe(input);
+		expect(document.activeElement).toBe(input);
+		expect(harness.editor.state.selection.toJSON()).toEqual(selectionBefore);
+
+		harness.cleanup();
 	});
 });
