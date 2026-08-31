@@ -804,3 +804,155 @@ describe('attributesController — auto-open suppression through real bindEditor
 		host.remove();
 	});
 });
+
+describe('attributesController — multi-character attribute edits', () => {
+	// The panel's text fields write through on every `input` event, so a typed
+	// value arrives as a sequence of setDraftAttr calls. Each write-through
+	// dispatch echoes back through bindEditor into syncFromSelection, so the
+	// second keystroke only lands if the first one left the selection and the
+	// active block exactly where they were.
+	function createBoundHarness(
+		json: Record<string, unknown>,
+		blocks: BlockDefinition[] = [containerBlock, atomBlock, badgeBlock]
+	): {
+		editor: TiptapEditor;
+		controller: ReturnType<typeof createBlockAttributesController>;
+		cleanup(): void;
+	} {
+		const host = document.createElement('div');
+		document.body.append(host);
+		const registry = createBlockRegistry(blocks);
+		const schema = createSchema(registry);
+		const controller = createBlockAttributesController();
+		let editor: TiptapEditor | null = null;
+		const action = bindEditor(host, {
+			blocks: registry,
+			schema,
+			attributesController: controller,
+			json,
+			onEditor: (next) => {
+				if (next) editor = next;
+			}
+		});
+		const boundEditor = editor as TiptapEditor | null;
+		if (!boundEditor) throw new Error('editor was not attached');
+
+		return {
+			editor: boundEditor,
+			controller,
+			cleanup() {
+				action.destroy?.();
+				host.remove();
+			}
+		};
+	}
+
+	/** Feed a value the way an `input` listener does: one call per character. */
+	function typeInto(
+		controller: ReturnType<typeof createBlockAttributesController>,
+		name: string,
+		value: string
+	): void {
+		for (let end = 1; end <= value.length; end += 1) {
+			controller.setDraftAttr(name, value.slice(0, end));
+		}
+	}
+
+	it('writes every character of a typed value into a leaf block and keeps the panel open', () => {
+		const harness = createBoundHarness({
+			type: 'doc',
+			content: [{ type: 'badge', attrs: { label: 'orig', weight: 1 } }]
+		});
+		const pos = posOf(harness.editor, 'badge');
+		harness.controller.openAttributesAt(pos);
+		const selectionBefore = harness.editor.state.selection.toJSON();
+
+		typeInto(harness.controller, 'label', 'abcdef');
+
+		expect(harness.editor.state.doc.nodeAt(pos)?.attrs.label).toBe('abcdef');
+		expect(get(harness.controller)).toMatchObject({
+			open: true,
+			mode: 'edit',
+			selectedBlockId: 'badge'
+		});
+		expect(get(harness.controller).draftAttrs.label).toBe('abcdef');
+		expect(harness.editor.state.selection.toJSON()).toEqual(selectionBefore);
+
+		harness.cleanup();
+	});
+
+	it('writes every character of a typed value into a container block and keeps the panel open', () => {
+		const harness = createBoundHarness({
+			type: 'doc',
+			content: [
+				{
+					type: 'section',
+					attrs: { title: 'orig' },
+					content: [{ type: 'paragraph', content: [{ type: 'text', text: 'body' }] }]
+				}
+			]
+		});
+		const pos = posOf(harness.editor, 'section');
+		harness.controller.openAttributesAt(pos);
+		const selectionBefore = harness.editor.state.selection.toJSON();
+
+		typeInto(harness.controller, 'title', 'abcdef');
+
+		expect(harness.editor.state.doc.nodeAt(pos)?.attrs.title).toBe('abcdef');
+		expect(get(harness.controller)).toMatchObject({
+			open: true,
+			mode: 'edit',
+			selectedBlockId: 'section'
+		});
+		expect(harness.editor.state.selection.toJSON()).toEqual(selectionBefore);
+
+		harness.cleanup();
+	});
+	it('does not remount the block node view for an attribute-only edit', () => {
+		const host = document.createElement('div');
+		document.body.append(host);
+		const registry = createBlockRegistry([containerBlock, atomBlock, badgeBlock]);
+		const schema = createSchema(registry);
+		const controller = createBlockAttributesController();
+		let editor: TiptapEditor | null = null;
+		const action = bindEditor(host, {
+			blocks: registry,
+			schema,
+			attributesController: controller,
+			json: {
+				type: 'doc',
+				content: [
+					{
+						type: 'section',
+						attrs: { title: 'orig' },
+						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'body' }] }]
+					}
+				]
+			},
+			onEditor: (next) => {
+				if (next) editor = next;
+			}
+		});
+
+		const boundEditor = editor as TiptapEditor | null;
+		if (!boundEditor) throw new Error('editor was not attached');
+		controller.openAttributesAt(posOf(boundEditor, 'section'));
+
+		// A remount replaces the node view's own element, the mounted block
+		// component's root, and the contentDOM the children live in.
+		const nodeView = host.querySelector('[data-uncial-block-id="section"]');
+		const mountedRoot = host.querySelector('[data-testid="editor-block-fixture"]');
+		const contentDOM = host.querySelector('.uncial-nodeview-content');
+		expect(nodeView).not.toBeNull();
+		expect(mountedRoot).not.toBeNull();
+
+		typeInto(controller, 'title', 'abcdef');
+
+		expect(host.querySelector('[data-uncial-block-id="section"]')).toBe(nodeView);
+		expect(host.querySelector('[data-testid="editor-block-fixture"]')).toBe(mountedRoot);
+		expect(host.querySelector('.uncial-nodeview-content')).toBe(contentDOM);
+
+		action.destroy?.();
+		host.remove();
+	});
+});
