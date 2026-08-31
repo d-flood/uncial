@@ -319,3 +319,64 @@ describe('BlockAttributesPanel nested block selection', () => {
 		harness.cleanup();
 	});
 });
+
+describe('BlockAttributesPanel nested block menu', () => {
+	const constrainedTabsBlock = defineSvelteBlock({
+		id: 'tabs',
+		label: 'Tabs',
+		attributes: { group: '' },
+		component: EditorBlockFixture,
+		content: { kind: 'flow', allowedBlocks: ['tab'] }
+	});
+	const noteBlock = defineSvelteBlock({
+		id: 'note',
+		label: 'Note',
+		attributes: { title: '' },
+		component: EditorBlockFixture
+	});
+
+	function menuLabels(): string[] {
+		return Array.from(
+			document.querySelectorAll<HTMLButtonElement>(
+				'.uncial-attrs-panel .uncial-dropdown__menu button'
+			)
+		).map((button) => button.textContent?.trim() ?? '');
+	}
+
+	const oneTabDoc = {
+		type: 'doc',
+		content: [
+			{
+				type: 'tabs',
+				attrs: { group: 'framework' },
+				content: [
+					{
+						type: 'tab',
+						attrs: { label: 'Svelte' },
+						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+					}
+				]
+			}
+		]
+	};
+
+	it('offers only the declared child for a container that names one', async () => {
+		const harness = mountEditorWithPanel(oneTabDoc, [
+			constrainedTabsBlock,
+			tabBlock,
+			noteBlock
+		]);
+
+		await expect.poll(() => menuLabels()).toEqual(['Tab']);
+
+		harness.cleanup();
+	});
+
+	it('offers every registered block for a container that names none', async () => {
+		const harness = mountEditorWithPanel(oneTabDoc, [tabsBlock, tabBlock, noteBlock]);
+
+		await expect.poll(() => menuLabels()).toEqual(['Tabs', 'Tab', 'Note']);
+
+		harness.cleanup();
+	});
+});

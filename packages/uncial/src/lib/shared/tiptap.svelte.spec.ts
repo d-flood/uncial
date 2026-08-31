@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { Editor as TiptapEditor } from '@tiptap/core';
+import { Fragment } from '@tiptap/pm/model';
+import { NodeSelection } from '@tiptap/pm/state';
 import { createEditorExtensions } from './tiptap.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import EditorBlockFixture from './EditorBlockFixture.svelte';
@@ -202,6 +204,103 @@ describe('container block content expression', () => {
 		});
 
 		cleanup();
+	});
+});
+
+describe('container child constraints', () => {
+	const tabBlock = defineSvelteBlock({
+		id: 'tab',
+		label: 'Tab',
+		attributes: { label: '' },
+		component: EditorBlockFixture,
+		content: { kind: 'flow' }
+	});
+	const tabsBlock = defineSvelteBlock({
+		id: 'tabs',
+		label: 'Tabs',
+		attributes: { group: '' },
+		component: EditorBlockFixture,
+		content: { kind: 'flow', allowedBlocks: ['tab'] }
+	});
+
+	function constrainedSchema(): TiptapEditor['schema'] {
+		const host = document.createElement('div');
+		document.body.append(host);
+		const editor = new TiptapEditor({
+			element: host,
+			extensions: createEditorExtensions([tabsBlock, tabBlock, atomBlock]),
+			content: { type: 'doc', content: [{ type: 'paragraph' }] }
+		});
+		const { schema } = editor;
+		editor.destroy();
+		host.remove();
+		return schema;
+	}
+
+	it('admits only the declared child and rejects every other block', () => {
+		const schema = constrainedSchema();
+		const tab = schema.nodes.tab.createAndFill({ label: 'Svelte' })!;
+
+		expect(schema.nodes.tabs.validContent(Fragment.from(tab))).toBe(true);
+		expect(schema.nodes.tabs.validContent(Fragment.from(schema.nodes.paragraph.createAndFill()))).toBe(
+			false
+		);
+		expect(
+			schema.nodes.tabs.validContent(Fragment.from(schema.nodes.callout.createAndFill()))
+		).toBe(false);
+	});
+
+	it('keeps an unconstrained container admitting every block', () => {
+		const schema = constrainedSchema();
+
+		expect(
+			schema.nodes.tab.validContent(Fragment.from(schema.nodes.paragraph.createAndFill()))
+		).toBe(true);
+		expect(schema.nodes.tab.validContent(Fragment.from(schema.nodes.callout.createAndFill()))).toBe(
+			true
+		);
+	});
+
+	it('refuses a disallowed block pasted over a child of a constrained container', () => {
+		const host = document.createElement('div');
+		document.body.append(host);
+		const editor = new TiptapEditor({
+			element: host,
+			extensions: createEditorExtensions([tabsBlock, tabBlock, atomBlock]),
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'tabs',
+						attrs: { group: 'framework' },
+						content: [
+							{
+								type: 'tab',
+								attrs: { label: 'Svelte' },
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+							}
+						]
+					}
+				]
+			}
+		});
+
+		// Select the tab itself, so a paste would land a callout directly in the
+		// tabs container's content.
+		const tabPos = 1;
+		editor.view.dispatch(
+			editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, tabPos))
+		);
+		editor.view.pasteHTML('<div data-uncial-block="callout"></div>');
+
+		const tabs = editor.state.doc.child(0);
+		expect(tabs.type.name).toBe('tabs');
+		for (let index = 0; index < tabs.childCount; index += 1) {
+			expect(tabs.child(index).type.name).toBe('tab');
+		}
+
+		editor.destroy();
+		host.remove();
 	});
 });
 

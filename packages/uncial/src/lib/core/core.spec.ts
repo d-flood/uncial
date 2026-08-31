@@ -70,6 +70,50 @@ describe('core', () => {
 		expect(collapsible.content).toEqual({ kind: 'flow' });
 	});
 
+	it('carries a container’s admissible child ids through registration', () => {
+		const tab = defineSvelteBlock({
+			id: 'tab',
+			label: 'Tab',
+			attributes: { label: '' },
+			component: Dummy,
+			content: { kind: 'flow' }
+		});
+		const tabs = defineSvelteBlock({
+			id: 'tabs',
+			label: 'Tabs',
+			attributes: { group: '' },
+			component: Dummy,
+			content: { kind: 'flow', allowedBlocks: ['tab'] }
+		});
+
+		expect(tabs.content).toEqual({ kind: 'flow', allowedBlocks: ['tab'] });
+		expect(createBlockRegistry([tabs, tab]).get('tabs')?.content?.allowedBlocks).toEqual(['tab']);
+	});
+
+	it('leaves a container that declares nothing unconstrained', () => {
+		const row = defineSvelteBlock({
+			id: 'row',
+			label: 'Row',
+			attributes: {},
+			component: Dummy,
+			content: { kind: 'flow' }
+		});
+
+		expect(row.content?.allowedBlocks).toBeUndefined();
+	});
+
+	it('fails registration when a container names an unregistered child id', () => {
+		const tabs = defineSvelteBlock({
+			id: 'tabs',
+			label: 'Tabs',
+			attributes: { group: '' },
+			component: Dummy,
+			content: { kind: 'flow', allowedBlocks: ['tab'] }
+		});
+
+		expect(() => createBlockRegistry([tabs])).toThrow(/unregistered child block id\(s\): "tab"/);
+	});
+
 	it('normalizes partial component configs', () => {
 		const block = defineSvelteBlock({
 			id: 'note',

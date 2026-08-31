@@ -19,7 +19,7 @@ export const tabsBlock = defineSvelteBlock({
 		}
 	},
 	component: Tabs,
-	content: { kind: 'flow' }
+	content: { kind: 'flow', allowedBlocks: ['tab'] }
 });
 
 export const tabBlock = defineSvelteBlock({

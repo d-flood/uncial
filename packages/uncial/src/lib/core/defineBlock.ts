@@ -125,8 +125,15 @@ function normalizeContent(
 		return undefined;
 	}
 
+	// An empty `allowedBlocks` names no block and cannot be meant as "admits
+	// nothing", so it normalizes to unconstrained.
+	const allowedBlocks = content.allowedBlocks?.length
+		? Object.freeze([...content.allowedBlocks])
+		: undefined;
+
 	return {
-		kind: content.kind
+		kind: content.kind,
+		...(allowedBlocks ? { allowedBlocks } : {})
 	};
 }
 

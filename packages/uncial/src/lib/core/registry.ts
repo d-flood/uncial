@@ -38,6 +38,21 @@ export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 		});
 	}
 
+	// A container naming a child id nothing registers would silently admit
+	// nothing at all, so it fails here rather than at the reader's first click.
+	for (const block of blocks) {
+		const declared = block.content?.allowedBlocks;
+		if (!declared) continue;
+		const unknown = declared.filter((id) => !byId.has(id));
+		if (unknown.length > 0) {
+			throw new Error(
+				`Block "${block.id}" admits unregistered child block id(s): ${unknown
+					.map((id) => `"${id}"`)
+					.join(', ')}. Known ids: ${blocks.map((known) => `"${known.id}"`).join(', ')}.`
+			);
+		}
+	}
+
 	return {
 		blocks,
 		byId,

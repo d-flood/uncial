@@ -72,6 +72,12 @@ export type BlockContentKind = 'flow';
 
 export interface BlockContentDefinition {
 	kind: BlockContentKind;
+	/**
+	 * Block ids this container admits as children. Omitted means unconstrained:
+	 * every registered block is admissible. Every id must name a block in the
+	 * same registry; `createBlockRegistry` throws otherwise.
+	 */
+	allowedBlocks?: readonly string[];
 }
 
 export interface BlockComponentProps {

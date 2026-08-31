@@ -65,9 +65,18 @@
 			Boolean(controllerState.activeBlock) &&
 			Boolean(selectedBlock && 'content' in selectedBlock && selectedBlock.content)
 	);
+	// The open container's own declaration narrows what "Add block" may offer;
+	// a container declaring nothing offers everything the schema allows.
+	const admissibleChildBlocks = $derived.by(() => {
+		const declared =
+			selectedBlock && 'content' in selectedBlock ? selectedBlock.content?.allowedBlocks : undefined;
+		return declared ? activeBlocks.filter((block) => declared.includes(block.id)) : activeBlocks;
+	});
 	const filteredChildBlocks = $derived.by(() => {
 		const query = childBlockQuery.trim().toLowerCase();
-		return activeBlocks.filter((block) => !query || block.label.toLowerCase().includes(query));
+		return admissibleChildBlocks.filter(
+			(block) => !query || block.label.toLowerCase().includes(query)
+		);
 	});
 	let draggingChildIndex = $state<number | null>(null);
 	let draggingPointerId = $state<number | null>(null);
@@ -205,7 +214,7 @@
 		<div class="uncial-children-section">
 			<div class="uncial-children-section__header">
 				<p class="uncial-section-label">Nested blocks</p>
-				{#if activeBlocks.length > 0}
+				{#if admissibleChildBlocks.length > 0}
 					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
 						<summary class="uncial-btn uncial-btn--primary uncial-btn--xs">
 							<PlusIcon size={12} weight="bold" />

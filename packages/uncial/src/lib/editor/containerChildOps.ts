@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/core';
+import { Fragment, type NodeType, type Node as PMModelNode } from '@tiptap/pm/model';
 import type { Transaction } from '@tiptap/pm/state';
 import type { BlockRegistry, ContentSchema } from '../core/types.js';
 import { getBlockDefaultAttrs } from '../shared/tiptap.js';
@@ -26,6 +27,24 @@ export interface ContainerChildOpsContext {
 	dispatch(tr: Transaction): void;
 	/** Re-derive controller state after the doc changed (an 'update' sync). */
 	sync(): void;
+}
+
+/**
+ * Build a node of `type` that the reader can put a caret in straight away.
+ *
+ * `createAndFill` only satisfies the content expression, and a container's
+ * expression is zero-or-more (persisted documents carry empty containers), so a
+ * fresh container comes back childless with nowhere for the caret. Seeding one
+ * node of the expression's default type — recursively, until a textblock is
+ * reached — makes the inserted child editable without a reload.
+ */
+function createEditableNode(type: NodeType, attrs?: Record<string, unknown>): PMModelNode | null {
+	const node = type.createAndFill(attrs ?? null);
+	if (!node || node.isTextblock || node.childCount > 0 || !type.spec.content) return node;
+
+	const childType = type.contentMatch.defaultType;
+	const child = childType ? createEditableNode(childType) : null;
+	return child ? (type.createAndFill(attrs ?? null, Fragment.from(child)) ?? node) : node;
 }
 
 /**
@@ -86,6 +105,9 @@ export function createContainerChildOps(ctx: ContainerChildOpsContext): Containe
 		const containerBlock = registry.get(active.id);
 		if (!containerBlock?.content) return false;
 
+		const admissible = containerBlock.content.allowedBlocks;
+		if (admissible && !admissible.includes(blockId)) return false;
+
 		const containerNode = editor.state.doc.nodeAt(active.pos);
 		if (!containerNode) return false;
 
@@ -93,7 +115,7 @@ export function createContainerChildOps(ctx: ContainerChildOpsContext): Containe
 		const childNodeType = editor.schema.nodes[blockId];
 		if (!childBlock || !childNodeType) return false;
 
-		const childNode = childNodeType.createAndFill(attrs ?? getBlockDefaultAttrs(childBlock));
+		const childNode = createEditableNode(childNodeType, attrs ?? getBlockDefaultAttrs(childBlock));
 		if (!childNode) return false;
 
 		ctx.dispatch(editor.state.tr.insert(active.pos + containerNode.nodeSize - 1, childNode));
