@@ -17,6 +17,7 @@
 	import LinkAttributesPanel from './LinkAttributesPanel.svelte';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
 	import { dropdownDismiss } from './dropdownDismiss.js';
+	import { dropdownFloat } from './dropdownFloat.js';
 	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
 
 	interface Props {
@@ -215,7 +216,11 @@
 			<div class="uncial-children-section__header">
 				<p class="uncial-section-label">Nested blocks</p>
 				{#if admissibleChildBlocks.length > 0}
-					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
+					<details
+						class="uncial-dropdown uncial-dropdown--end"
+						use:dropdownDismiss
+						use:dropdownFloat
+					>
 						<summary class="uncial-btn uncial-btn--primary uncial-btn--xs">
 							<PlusIcon size={12} weight="bold" />
 							<span>Add block</span>
