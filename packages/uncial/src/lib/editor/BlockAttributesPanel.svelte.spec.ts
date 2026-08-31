@@ -372,6 +372,61 @@ describe('BlockAttributesPanel nested block menu', () => {
 		harness.cleanup();
 	});
 
+	it('opens a menu that is clickable inside the sidebar\'s scroll box', async () => {
+		const harness = mountEditorWithPanel(oneTabDoc, [tabsBlock, tabBlock, noteBlock]);
+		// The sidebar's panel is a sticky, capped scroll box, which used to clip the
+		// menu at its own edge.
+		const sidebar = document.createElement('div');
+		sidebar.className = 'uncial-editor-sidebar';
+		document.body.append(sidebar);
+		const panel = await vi.waitFor(() => {
+			const found = document.querySelector<HTMLElement>('.uncial-attrs-panel');
+			if (!found) throw new Error('the panel never rendered');
+			return found;
+		});
+		sidebar.append(panel);
+		panel.style.cssText =
+			'width: 18rem; max-height: 96px; overflow-y: auto; position: sticky; top: 0;';
+
+		const summary = await vi.waitFor(() => {
+			const found = panel.querySelector<HTMLElement>('.uncial-dropdown > summary');
+			if (!found) throw new Error('the Add block trigger never rendered');
+			return found;
+		});
+		const details = summary.closest('details');
+		if (!details) throw new Error('the trigger is not a dropdown');
+		const toggled = new Promise<void>((resolve) => {
+			details.addEventListener('toggle', () => resolve(), { once: true });
+		});
+		summary.click();
+		await toggled;
+		await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+		const entries = await vi.waitFor(() => {
+			const found = Array.from(
+				panel.querySelectorAll<HTMLButtonElement>('.uncial-dropdown__menu button')
+			);
+			if (found.length !== 3) throw new Error('the menu never listed every block');
+			return found;
+		});
+		const unreachable = entries.filter((entry) => {
+			const rect = entry.getBoundingClientRect();
+			return (
+				document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) !== entry
+			);
+		});
+		expect(unreachable).toEqual([]);
+
+		// The entry a click lands on inserts the child it names.
+		entries.find((entry) => entry.textContent?.trim() === 'Tab')!.click();
+		await expect
+			.poll(() => document.querySelectorAll('.uncial-attrs-panel .uncial-child-item').length)
+			.toBe(2);
+
+		sidebar.remove();
+		harness.cleanup();
+	});
+
 	it('offers every registered block for a container that names none', async () => {
 		const harness = mountEditorWithPanel(oneTabDoc, [tabsBlock, tabBlock, noteBlock]);
 
