@@ -1,4 +1,8 @@
 import 'uncial/web-components';
+// The editor's own chrome: tokens, shell layout and controls. The host page's
+// stylesheets are mirrored in below for prose parity, but they style the
+// document, not the toolbar and panels around it — nothing else loads these.
+import 'uncial/styles/chrome';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { UncialEditorElement } from 'uncial/web-components';
 import {

@@ -180,7 +180,15 @@
 			<div class="min-w-0">
 				{#if activeTab === 'editor'}
 					<div class="min-w-0" role="region" aria-label="Editor" bind:this={editorRegion}>
-						<Editor {blocks} {schema} {attributesController} {metaController} bind:json={doc} bind:meta />
+						<Editor
+							{blocks}
+							{schema}
+							{attributesController}
+							{metaController}
+							attributesPanel={false}
+							bind:json={doc}
+							bind:meta
+						/>
 					</div>
 				{:else if activeTab === 'rendered'}
 					<article role="region" aria-label="Rendered">
