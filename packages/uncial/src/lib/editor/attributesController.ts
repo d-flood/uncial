@@ -507,9 +507,25 @@ export function createBlockAttributesController(): BlockAttributesController {
 			appliedAttrs[invalidName] = node.attrs?.[invalidName];
 		}
 
+		// Per-key attribute steps, never `setNodeMarkup`: replacing the node's
+		// markup rewrites the node, which maps a NodeSelection on it away (the
+		// caret lands in the document, taking focus out of the field being typed
+		// into) and forces the node view to re-render its whole subtree. An
+		// attrs-only edit must leave the document's shape, the selection and the
+		// mounted block component exactly where they are, because the panel
+		// writes through on every keystroke.
+		const tr = editor.state.tr;
+		let changed = false;
+		for (const [attrName, value] of Object.entries(appliedAttrs)) {
+			if (node.attrs?.[attrName] === value) continue;
+			tr.setNodeAttribute(active.pos, attrName, value);
+			changed = true;
+		}
+		if (!changed) return;
+
 		applyingDraftAttrs = true;
 		try {
-			editor.view.dispatch(editor.state.tr.setNodeMarkup(active.pos, undefined, appliedAttrs));
+			editor.view.dispatch(tr);
 		} finally {
 			applyingDraftAttrs = false;
 		}
