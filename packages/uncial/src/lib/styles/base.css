@@ -346,6 +346,26 @@
 .uncial-child-item__content {
 	min-width: 0;
 	flex: 1;
+	display: block;
+	border: none;
+	background: transparent;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	border-radius: var(--uncial-radius-sm);
+}
+
+.uncial-child-item__content:hover .uncial-child-item__label,
+.uncial-child-item__content:focus-visible .uncial-child-item__label {
+	color: var(--uncial-color-primary);
+}
+
+.uncial-child-item:has(.uncial-child-item__content[aria-current]) {
+	border-color: var(--uncial-color-primary);
+	background: color-mix(in srgb, var(--uncial-color-primary) 8%, transparent);
 }
 
 .uncial-child-item__label {

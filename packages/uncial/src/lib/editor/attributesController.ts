@@ -39,6 +39,11 @@ export interface ContainerChildInfo {
 	blockId: string;
 	label: string;
 	summary: string;
+	/**
+	 * Absolute document position of the child node, so the panel can select it
+	 * with `openAttributesAt` without re-walking the document.
+	 */
+	pos: number;
 }
 
 export interface BlockAttributesState {
@@ -268,7 +273,8 @@ export function createBlockAttributesController(): BlockAttributesController {
 				key: `${child.type.name}:${String(stableAttr ?? '')}:${offset}:${index}`,
 				blockId: child.type.name,
 				label,
-				summary
+				summary,
+				pos: active.pos + 1 + offset
 			});
 		});
 		return children;
