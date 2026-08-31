@@ -61,6 +61,17 @@ const generatedBlock = defineSvelteBlock({
 	component: EditorBlockFixture
 });
 
+// A container that nests inside another container, mirroring a tab inside a
+// tabs group: the case where the child the panel must reach is itself a
+// container with attributes of its own.
+const panelBlock = defineSvelteBlock({
+	id: 'panel',
+	label: 'Panel',
+	attributes: { label: '' },
+	component: EditorBlockFixture,
+	content: { kind: 'flow' }
+});
+
 interface Harness {
 	host: HTMLElement;
 	editor: TiptapEditor;
@@ -117,6 +128,53 @@ function selectNode(editor: TiptapEditor, pos: number): void {
 
 function paragraphDoc(text = 'Hello world'): Record<string, unknown> {
 	return { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
+}
+
+function createBoundHarness(
+	json: Record<string, unknown>,
+	blocks: BlockDefinition[] = [containerBlock, atomBlock, badgeBlock]
+): {
+	editor: TiptapEditor;
+	controller: ReturnType<typeof createBlockAttributesController>;
+	cleanup(): void;
+} {
+	const host = document.createElement('div');
+	document.body.append(host);
+	const registry = createBlockRegistry(blocks);
+	const schema = createSchema(registry);
+	const controller = createBlockAttributesController();
+	let editor: TiptapEditor | null = null;
+	const action = bindEditor(host, {
+		blocks: registry,
+		schema,
+		attributesController: controller,
+		json,
+		onEditor: (next) => {
+			if (next) editor = next;
+		}
+	});
+	const boundEditor = editor as TiptapEditor | null;
+	if (!boundEditor) throw new Error('editor was not attached');
+
+	return {
+		editor: boundEditor,
+		controller,
+		cleanup() {
+			action.destroy?.();
+			host.remove();
+		}
+	};
+}
+
+/** Feed a value the way an `input` listener does: one call per character. */
+function typeInto(
+	controller: ReturnType<typeof createBlockAttributesController>,
+	name: string,
+	value: string
+): void {
+	for (let end = 1; end <= value.length; end += 1) {
+		controller.setDraftAttr(name, value.slice(0, end));
+	}
 }
 
 describe('attributesController — attach/detach/subscribe lifecycle', () => {
@@ -811,53 +869,6 @@ describe('attributesController — multi-character attribute edits', () => {
 	// dispatch echoes back through bindEditor into syncFromSelection, so the
 	// second keystroke only lands if the first one left the selection and the
 	// active block exactly where they were.
-	function createBoundHarness(
-		json: Record<string, unknown>,
-		blocks: BlockDefinition[] = [containerBlock, atomBlock, badgeBlock]
-	): {
-		editor: TiptapEditor;
-		controller: ReturnType<typeof createBlockAttributesController>;
-		cleanup(): void;
-	} {
-		const host = document.createElement('div');
-		document.body.append(host);
-		const registry = createBlockRegistry(blocks);
-		const schema = createSchema(registry);
-		const controller = createBlockAttributesController();
-		let editor: TiptapEditor | null = null;
-		const action = bindEditor(host, {
-			blocks: registry,
-			schema,
-			attributesController: controller,
-			json,
-			onEditor: (next) => {
-				if (next) editor = next;
-			}
-		});
-		const boundEditor = editor as TiptapEditor | null;
-		if (!boundEditor) throw new Error('editor was not attached');
-
-		return {
-			editor: boundEditor,
-			controller,
-			cleanup() {
-				action.destroy?.();
-				host.remove();
-			}
-		};
-	}
-
-	/** Feed a value the way an `input` listener does: one call per character. */
-	function typeInto(
-		controller: ReturnType<typeof createBlockAttributesController>,
-		name: string,
-		value: string
-	): void {
-		for (let end = 1; end <= value.length; end += 1) {
-			controller.setDraftAttr(name, value.slice(0, end));
-		}
-	}
-
 	it('writes every character of a typed value into a leaf block and keeps the panel open', () => {
 		const harness = createBoundHarness({
 			type: 'doc',
@@ -954,5 +965,135 @@ describe('attributesController — multi-character attribute edits', () => {
 
 		action.destroy?.();
 		host.remove();
+	});
+});
+
+describe('attributesController — nested block selection', () => {
+	function nestedDoc(): Record<string, unknown> {
+		return {
+			type: 'doc',
+			content: [
+				{
+					type: 'section',
+					attrs: { title: 'Install' },
+					content: [
+						{ type: 'panel', attrs: { label: 'npm' }, content: [{ type: 'paragraph' }] },
+						{ type: 'panel', attrs: { label: '' }, content: [{ type: 'paragraph' }] }
+					]
+				}
+			]
+		};
+	}
+
+	/** Absolute document position of the nth child node of `parent`. */
+	function childPos(editor: TiptapEditor, parentPos: number, index: number): number {
+		const parent = editor.state.doc.nodeAt(parentPos);
+		if (!parent) throw new Error('no parent node at ' + parentPos);
+		let pos = parentPos + 1;
+		for (let i = 0; i < index; i += 1) pos += parent.child(i).nodeSize;
+		return pos;
+	}
+
+	it('reports each nested child at the position that selects it', () => {
+		const harness = createBoundHarness(nestedDoc(), [containerBlock, atomBlock, panelBlock]);
+		const sectionPos = posOf(harness.editor, 'section');
+		harness.controller.openAttributesAt(sectionPos);
+
+		expect(get(harness.controller).containerChildren.map((child) => child.pos)).toEqual([
+			childPos(harness.editor, sectionPos, 0),
+			childPos(harness.editor, sectionPos, 1)
+		]);
+
+		harness.cleanup();
+	});
+
+	it('selecting a nested child edits that child, and a typed attribute lands on its node', () => {
+		const harness = createBoundHarness(nestedDoc(), [containerBlock, atomBlock, panelBlock]);
+		const sectionPos = posOf(harness.editor, 'section');
+		harness.controller.openAttributesAt(sectionPos);
+		const secondChildPos = get(harness.controller).containerChildren[1].pos;
+
+		harness.controller.openAttributesAt(secondChildPos);
+
+		expect(get(harness.controller)).toMatchObject({
+			open: true,
+			mode: 'edit',
+			selectedBlockId: 'panel'
+		});
+		expect(get(harness.controller).activeBlock?.pos).toBe(secondChildPos);
+
+		typeInto(harness.controller, 'label', 'pnpm');
+
+		expect(harness.editor.state.doc.nodeAt(secondChildPos)?.attrs.label).toBe('pnpm');
+		expect(harness.editor.state.doc.nodeAt(sectionPos)?.attrs.title).toBe('Install');
+		expect(get(harness.controller).draftAttrs.label).toBe('pnpm');
+
+		harness.cleanup();
+	});
+
+	it('returns to the container after editing a child', () => {
+		const harness = createBoundHarness(nestedDoc(), [containerBlock, atomBlock, panelBlock]);
+		const sectionPos = posOf(harness.editor, 'section');
+		harness.controller.openAttributesAt(sectionPos);
+		harness.controller.openAttributesAt(get(harness.controller).containerChildren[1].pos);
+		typeInto(harness.controller, 'label', 'pnpm');
+
+		harness.controller.openAttributesAt(sectionPos);
+
+		expect(get(harness.controller)).toMatchObject({
+			open: true,
+			mode: 'edit',
+			selectedBlockId: 'section'
+		});
+		expect(get(harness.controller).draftAttrs.title).toBe('Install');
+		expect(get(harness.controller).containerChildren.map((child) => child.summary)).toEqual([
+			'npm',
+			'pnpm'
+		]);
+
+		typeInto(harness.controller, 'title', 'Getting started');
+		expect(harness.editor.state.doc.nodeAt(sectionPos)?.attrs.title).toBe('Getting started');
+
+		harness.cleanup();
+	});
+
+	it("keeps a selected child's own nested children reachable", () => {
+		const harness = createBoundHarness(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'section',
+						attrs: { title: 'Outer' },
+						content: [
+							{
+								type: 'panel',
+								attrs: { label: 'npm' },
+								content: [{ type: 'note', attrs: { title: 'deep' } }]
+							}
+						]
+					}
+				]
+			},
+			[containerBlock, atomBlock, panelBlock]
+		);
+		const sectionPos = posOf(harness.editor, 'section');
+		harness.controller.openAttributesAt(sectionPos);
+		harness.controller.openAttributesAt(get(harness.controller).containerChildren[0].pos);
+
+		const grandchild = get(harness.controller).containerChildren[0];
+		expect(grandchild).toMatchObject({ blockId: 'note', summary: 'deep' });
+
+		harness.controller.openAttributesAt(grandchild.pos);
+		expect(get(harness.controller)).toMatchObject({
+			open: true,
+			mode: 'edit',
+			selectedBlockId: 'note'
+		});
+
+		typeInto(harness.controller, 'title', 'deeper');
+		expect(harness.editor.state.doc.nodeAt(grandchild.pos)?.attrs.title).toBe('deeper');
+
+		harness.cleanup();
 	});
 });

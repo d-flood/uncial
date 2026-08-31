@@ -3,6 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
 import { Editor as TiptapEditor } from '@tiptap/core';
 import { createBlockRegistry, createSchema } from '../core/registry.js';
+import type { BlockDefinition } from '../core/types.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
 import BlockAttributesPanel from './BlockAttributesPanel.svelte';
@@ -126,67 +127,89 @@ describe('BlockAttributesPanel choose-attribute channel', () => {
 	});
 });
 
-describe('BlockAttributesPanel live attribute write-through', () => {
-	// A container block whose one attribute is a plain text field, mirroring the
-	// site's Tabs block `group` attribute that reproduced the defect.
-	const tabsBlock = defineSvelteBlock({
-		id: 'tabs',
-		label: 'Tabs',
-		attributes: { group: '' },
-		component: EditorBlockFixture,
-		content: { kind: 'flow' }
+// A container block whose one attribute is a plain text field, mirroring the
+// site's Tabs block `group` attribute that reproduced the write-through defect.
+const tabsBlock = defineSvelteBlock({
+	id: 'tabs',
+	label: 'Tabs',
+	attributes: { group: '' },
+	component: EditorBlockFixture,
+	content: { kind: 'flow' }
+});
+
+// One panel inside a tabs group: the nested block whose own attributes the panel
+// has to be able to reach.
+const tabBlock = defineSvelteBlock({
+	id: 'tab',
+	label: 'Tab',
+	attributes: { label: '' },
+	component: EditorBlockFixture,
+	content: { kind: 'flow' }
+});
+
+interface PanelHarness {
+	editor: TiptapEditor;
+	controller: BlockAttributesController;
+	pos: number;
+	cleanup(): void;
+}
+
+/**
+ * Mount a real editor bound to a real controller, with the panel rendered
+ * against it, and open the panel on the document's first `tabs` block.
+ */
+function mountEditorWithPanel(
+	json: Record<string, unknown> = {
+		type: 'doc',
+		content: [
+			{
+				type: 'tabs',
+				attrs: { group: '' },
+				content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Tab body' }] }]
+			}
+		]
+	},
+	blocks: BlockDefinition[] = [tabsBlock]
+): PanelHarness {
+	const host = document.createElement('div');
+	document.body.append(host);
+	const registry = createBlockRegistry(blocks);
+	const schema = createSchema(registry);
+	const controller = createBlockAttributesController();
+	let editor: TiptapEditor | null = null;
+	const action = bindEditor(host, {
+		blocks: registry,
+		schema,
+		attributesController: controller,
+		json,
+		onEditor: (next) => {
+			if (next) editor = next;
+		}
 	});
 
-	function mountEditorWithPanel(): {
-		editor: TiptapEditor;
-		pos: number;
-		cleanup(): void;
-	} {
-		const host = document.createElement('div');
-		document.body.append(host);
-		const registry = createBlockRegistry([tabsBlock]);
-		const schema = createSchema(registry);
-		const controller = createBlockAttributesController();
-		let editor: TiptapEditor | null = null;
-		const action = bindEditor(host, {
-			blocks: registry,
-			schema,
-			attributesController: controller,
-			json: {
-				type: 'doc',
-				content: [
-					{
-						type: 'tabs',
-						attrs: { group: '' },
-						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Tab body' }] }]
-					}
-				]
-			},
-			onEditor: (next) => {
-				if (next) editor = next;
-			}
-		});
+	const boundEditor = editor as TiptapEditor | null;
+	if (!boundEditor) throw new Error('editor was not attached');
 
-		const boundEditor = editor as TiptapEditor | null;
-		if (!boundEditor) throw new Error('editor was not attached');
+	render(BlockAttributesPanel, { controller, blocks });
 
-		render(BlockAttributesPanel, { controller, blocks: [tabsBlock] });
+	let pos = -1;
+	boundEditor.state.doc.descendants((node, at) => {
+		if (pos < 0 && node.type.name === 'tabs') pos = at;
+	});
+	controller.openAttributesAt(pos);
 
-		let pos = -1;
-		boundEditor.state.doc.descendants((node, at) => {
-			if (pos < 0 && node.type.name === 'tabs') pos = at;
-		});
-		controller.openAttributesAt(pos);
+	return {
+		editor: boundEditor,
+		controller,
+		pos,
+		cleanup() {
+			action.destroy?.();
+			host.remove();
+		}
+	};
+}
 
-		return {
-			editor: boundEditor,
-			pos,
-			cleanup() {
-				action.destroy?.();
-				host.remove();
-			}
-		};
-	}
+describe('BlockAttributesPanel live attribute write-through', () => {
 
 	it('lands every character typed into a text attribute field', async () => {
 		const harness = mountEditorWithPanel();
@@ -210,6 +233,88 @@ describe('BlockAttributesPanel live attribute write-through', () => {
 		expect(document.querySelector('.uncial-attrs-panel .uncial-input--sm')).toBe(input);
 		expect(document.activeElement).toBe(input);
 		expect(harness.editor.state.selection.toJSON()).toEqual(selectionBefore);
+
+		harness.cleanup();
+	});
+});
+
+describe('BlockAttributesPanel nested block selection', () => {
+	function nestedTabsHarness(): PanelHarness {
+		return mountEditorWithPanel(
+			{
+				type: 'doc',
+				content: [
+					{
+						type: 'tabs',
+						attrs: { group: 'framework' },
+						content: [
+							{
+								type: 'tab',
+								attrs: { label: 'Svelte' },
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+							},
+							{
+								type: 'tab',
+								attrs: { label: '' },
+								content: [{ type: 'paragraph', content: [{ type: 'text', text: 'two' }] }]
+							}
+						]
+					}
+				]
+			},
+			[tabsBlock, tabBlock]
+		);
+	}
+
+	function childRows(): HTMLButtonElement[] {
+		return Array.from(
+			document.querySelectorAll<HTMLButtonElement>(
+				'.uncial-attrs-panel .uncial-child-item__content'
+			)
+		);
+	}
+
+	async function attributeField(): Promise<HTMLInputElement> {
+		return vi.waitFor(() => {
+			const found = document.querySelector<HTMLInputElement>(
+				'.uncial-attrs-panel .uncial-input--sm'
+			);
+			if (!found) throw new Error('the attribute field never rendered');
+			return found;
+		});
+	}
+
+	it('labels the second tab through its nested row, then returns to the container', async () => {
+		const harness = nestedTabsHarness();
+		const rows = await vi.waitFor(() => {
+			const found = childRows();
+			if (found.length !== 2) throw new Error('the nested rows never rendered');
+			return found;
+		});
+
+		rows[1].click();
+
+		await expect
+			.poll(() => document.querySelector('.uncial-attrs-panel .uncial-attrs-title')?.textContent)
+			.toContain('Tab');
+		const secondTabPos = harness.editor.state.doc.nodeAt(harness.pos)!.child(0).nodeSize +
+			harness.pos +
+			1;
+		await userEvent.type(page.elementLocator(await attributeField()), 'Lit');
+		await expect
+			.poll(() => harness.editor.state.doc.nodeAt(secondTabPos)?.attrs.label)
+			.toBe('Lit');
+		expect(harness.editor.state.doc.nodeAt(harness.pos)?.attrs.group).toBe('framework');
+
+		// Selecting the container again brings the panel back to it, with the
+		// child's new label showing in its row.
+		harness.controller.openAttributesAt(harness.pos);
+		await expect
+			.poll(() => document.querySelector('.uncial-attrs-panel .uncial-attrs-title')?.textContent)
+			.toContain('Tabs');
+		await expect
+			.poll(() => childRows().map((row) => row.textContent?.replace(/\s+/g, ' ').trim()))
+			.toEqual(['Tab Svelte', 'Tab Lit']);
 
 		harness.cleanup();
 	});
