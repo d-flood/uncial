@@ -22,12 +22,46 @@
 	border: 1px solid var(--uncial-color-border);
 }
 
+/* The toolbar spans the full width; the document and the attributes sidebar
+   share the row beneath it. The sidebar is optional (`attributesPanel={false}`),
+   so the second track only exists when one is actually rendered. */
+.uncial-editor-shell {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-areas: 'toolbar' 'body';
+}
+
+.uncial-editor-shell:has(> .uncial-editor-sidebar) {
+	grid-template-columns: minmax(0, 1fr) var(--uncial-panel-width);
+	grid-template-areas: 'toolbar toolbar' 'body sidebar';
+}
+
 .uncial-editor-body {
+	grid-area: body;
 	position: relative;
 	min-width: 0;
 }
 
+.uncial-editor-sidebar {
+	grid-area: sidebar;
+	min-width: 0;
+	border-left: 1px solid var(--uncial-color-border);
+	padding: var(--uncial-space-4);
+	overflow-wrap: break-word;
+}
+
+/* The sidebar stretches to the document's full height, so the panel itself
+   sticks: on a long document the selected block's attributes stay on screen
+   however far down the block sits. */
+.uncial-editor-sidebar > .uncial-attrs-panel {
+	position: sticky;
+	top: var(--uncial-space-4);
+	max-height: calc(100dvh - 2 * var(--uncial-space-4));
+	overflow-y: auto;
+}
+
 .uncial-toolbar {
+	grid-area: toolbar;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -357,6 +391,21 @@
 }
 
 @media (max-width: 639px) {
+	.uncial-editor-shell:has(> .uncial-editor-sidebar) {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas: 'toolbar' 'body' 'sidebar';
+	}
+
+	.uncial-editor-sidebar {
+		border-left: none;
+		border-top: 1px solid var(--uncial-color-border);
+	}
+
+	.uncial-editor-sidebar > .uncial-attrs-panel {
+		position: static;
+		max-height: none;
+	}
+
 	.uncial-content.uncial-gutter-enabled {
 		padding-left: max(
 			var(--uncial-gutter-width-sm),

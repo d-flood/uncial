@@ -24,8 +24,10 @@
 		type DocumentMetaController,
 		type DocumentMetaState
 	} from './metaController.js';
+	import BlockAttributesPanel from './BlockAttributesPanel.svelte';
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import Toolbar from './Toolbar.svelte';
+	import type { ChooseAttributeRequest } from './chooseAttribute.js';
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
@@ -40,6 +42,15 @@
 		toolbarExtensions?: ToolbarFeature[];
 		attributesController?: BlockAttributesController | null;
 		metaController?: DocumentMetaController | null;
+		/**
+		 * Whether the editor renders its own block/link attributes panel beside
+		 * the document. Registering a block is meant to be all it takes to edit
+		 * one, so this is on by default; set it false in a host that places
+		 * `BlockAttributesPanel` itself, or the two panels both render.
+		 */
+		attributesPanel?: boolean;
+		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
+		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		onIssue?: (issue: ValidationIssue) => void;
 	}
 
@@ -54,6 +65,8 @@
 		toolbarExtensions = [],
 		attributesController = null,
 		metaController = null,
+		attributesPanel = true,
+		onChooseAttribute,
 		onIssue
 	}: Props = $props();
 
@@ -318,4 +331,9 @@
 			use:bindEditor={editorBinding}
 		></div>
 	</div>
+	{#if attributesPanel}
+		<aside class="uncial-editor-sidebar" aria-label="Block attributes">
+			<BlockAttributesPanel {controller} {blocks} {onChooseAttribute} />
+		</aside>
+	{/if}
 </div>
