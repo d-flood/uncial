@@ -19,11 +19,17 @@ const openMock = vi.fn<(url?: string, target?: string, features?: string) => Win
 let messageListeners: Array<(event: MessageEvent) => void>;
 let popup: { closed: boolean };
 
-async function emitMessage(origin: string, data: unknown): Promise<void> {
-	// The provider registers its listener after async PKCE setup; wait for it.
+// The provider registers its message listener and its closed-popup poll in the
+// same synchronous block, but only after async PKCE setup, so the listener
+// appearing is the signal that both are live.
+async function waitForRelayRegistration(): Promise<void> {
 	await vi.waitFor(() => {
 		if (messageListeners.length === 0) throw new Error('no message listener yet');
 	});
+}
+
+async function emitMessage(origin: string, data: unknown): Promise<void> {
+	await waitForRelayRegistration();
 	for (const listener of [...messageListeners]) {
 		listener({ origin, data } as MessageEvent);
 	}
@@ -119,7 +125,7 @@ describe('popupSessionProvider', () => {
 		vi.useFakeTimers();
 		const pending = popupSessionProvider(config);
 		pending.catch(() => {}); // avoid unhandled rejection while timers advance
-		await vi.advanceTimersByTimeAsync(1); // let async setup register the poll
+		await waitForRelayRegistration();
 		popup.closed = true;
 		await vi.advanceTimersByTimeAsync(600);
 		await expect(pending).rejects.toThrow(/closed before completing/i);
