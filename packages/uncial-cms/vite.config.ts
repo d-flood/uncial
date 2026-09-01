@@ -7,7 +7,11 @@ import { defineConfig } from 'vitest/config';
 const uncialSrc = (path: string) => new URL(`../uncial/src/lib/${path}`, import.meta.url).pathname;
 
 export const uncialAliases = [
-	{ find: 'uncial/styles', replacement: uncialSrc('styles/index.css') },
+	// The styles entries are anchored regexes because a string `find` also matches
+	// its subpaths, which would rewrite 'uncial/styles/chrome' to index.css/chrome.
+	// The subpath form mirrors the package's './styles/*' exports, which add .css.
+	{ find: /^uncial\/styles\/(.+)$/, replacement: uncialSrc('styles/$1.css') },
+	{ find: /^uncial\/styles$/, replacement: uncialSrc('styles/index.css') },
 	{ find: 'uncial/core', replacement: uncialSrc('core/index.ts') },
 	{ find: 'uncial/render', replacement: uncialSrc('render/index.ts') },
 	{ find: 'uncial/editor', replacement: uncialSrc('editor/index.ts') },
