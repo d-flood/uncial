@@ -374,8 +374,8 @@ describe('BlockAttributesPanel nested block menu', () => {
 
 	it('opens a menu that is clickable inside the sidebar\'s scroll box', async () => {
 		const harness = mountEditorWithPanel(oneTabDoc, [tabsBlock, tabBlock, noteBlock]);
-		// The sidebar's panel is a sticky, capped scroll box, which used to clip the
-		// menu at its own edge.
+		// The sidebar's panel is a sticky, capped scroll box, which clips a menu laid
+		// out inside it at its own edge.
 		const sidebar = document.createElement('div');
 		sidebar.className = 'uncial-editor-sidebar';
 		document.body.append(sidebar);
