@@ -5,17 +5,10 @@ import 'uncial/web-components';
 import 'uncial/styles/chrome';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { UncialEditorElement } from 'uncial/web-components';
-import {
-	createEditorController,
-	type DownloadPayload,
-	type EditorPageUi,
-	type StatusView
-} from './editor-controller.js';
-import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
-import { createLocalAdapter } from './local/adapter.js';
-import { localSessionProvider } from './local/session.js';
+import { type EditorPageUi, type StatusView } from './editor-controller.js';
+import { createEditorSession, defaultSessionProvider } from './editor-session.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
-import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
+import type { SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { clearActiveForge } from './upload-context.js';
 
 export interface MountEditorPageOptions {
@@ -58,31 +51,12 @@ function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: stri
 	}
 }
 
-function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
-	if (config.forge === 'github') return createGitHubAdapter();
-	if (config.forge === 'local') return createLocalAdapter();
-	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
-}
-
-function triggerDownload(payload: DownloadPayload): void {
-	const blob = new Blob([payload.content], { type: payload.mimeType });
-	const url = URL.createObjectURL(blob);
-	const anchor = document.createElement('a');
-	anchor.href = url;
-	anchor.download = payload.filename;
-	document.body.append(anchor);
-	anchor.click();
-	anchor.remove();
-	URL.revokeObjectURL(url);
-}
-
 export function mountEditorPage(
 	target: HTMLElement,
 	opts: MountEditorPageOptions
 ): { destroy(): void; isDirty(): boolean } {
 	const { config, sourcePath } = opts;
-	const sessionProvider =
-		opts.sessionProvider ?? (config.forge === 'local' ? localSessionProvider : popupSessionProvider);
+	const sessionProvider = opts.sessionProvider ?? defaultSessionProvider(config);
 	const blocks = opts.blocks as BlockRegistry;
 	const schema = opts.schema as ContentSchema;
 
@@ -179,18 +153,15 @@ export function mountEditorPage(
 		}
 	};
 
-	const controller = createEditorController({
+	const controller = createEditorSession({
 		config,
 		sourcePath,
 		pagePath: opts.pagePath,
 		blocks,
 		schema,
-		adapter: createAdapter(config),
 		sessionProvider,
 		autosaveMs: opts.autosaveMs,
 		ui,
-		confirm: (message) => window.confirm(message),
-		download: triggerDownload,
 		isDestroyed: () => destroyed
 	});
 

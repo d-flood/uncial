@@ -40,6 +40,10 @@
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
 		},
+		"./session": {
+			"types": "./dist/editor-session.d.ts",
+			"default": "./dist/editor-session.js"
+		},
 		"./github": {
 			"types": "./dist/github/index.d.ts",
 			"default": "./dist/github/index.js"
