@@ -52,6 +52,17 @@
 		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		onIssue?: (issue: ValidationIssue) => void;
+		/**
+		 * The document after an edit, and the metadata after one.
+		 *
+		 * `json` and `meta` are bindable, so a host that only mirrors them needs
+		 * neither of these. A host that has to *act* on an edit — persist it,
+		 * mark itself dirty, debounce a save — does: binding alone cannot tell
+		 * an edit the user made from a document the host itself just loaded, and
+		 * every such host would otherwise reimplement the same guard flag.
+		 */
+		onChange?: (json: JSONContent) => void;
+		onMetaChange?: (meta: Record<string, unknown>) => void;
 	}
 
 	let {
@@ -67,7 +78,9 @@
 		metaController = null,
 		attributesPanel = true,
 		onChooseAttribute,
-		onIssue
+		onIssue,
+		onChange,
+		onMetaChange
 	}: Props = $props();
 
 	let editorHost: HTMLDivElement;
@@ -84,6 +97,20 @@
 		dirty: false
 	});
 	let committedMetaSerialized = JSON.stringify(meta);
+	/**
+	 * Whether the metadata controller has been told what the document's metadata
+	 * is.
+	 *
+	 * The two effects that keep the `meta` prop and the controller in step are a
+	 * pair, and neither may assume it runs first. Until the controller has been
+	 * seeded it holds the schema's defaults, and pushing those outward would
+	 * overwrite the metadata it has not been given yet. That is invisible to a
+	 * host that mounts the editor first and supplies `meta` afterwards — the
+	 * prop changes, so the sync runs — and fatal to one that has the document in
+	 * hand before it renders, where the prop never changes and the seeding
+	 * comparison below would otherwise match on the first pass and skip.
+	 */
+	let metaSeeded = $state(false);
 
 	const registry = $derived(resolveRegistry(blocks));
 	const controller = $derived(attributesController ?? internalController);
@@ -103,10 +130,10 @@
 		attributesController: controller,
 		onIssue,
 		onChange: (nextDocument) => {
-			json = nextDocument;
+			setDocument(nextDocument);
 		},
 		onMetaChange: (nextMeta) => {
-			meta = nextMeta;
+			setMeta(nextMeta);
 			committedMetaSerialized = JSON.stringify(nextMeta);
 			documentMetaController.reset(nextMeta);
 		},
@@ -121,13 +148,25 @@
 				: !schema || schema.allowedBlocks.has(block.id)
 		)
 	);
+	/**
+	 * Room for the block labels the gutter draws.
+	 *
+	 * A label wraps, so what has to fit on one line is its longest word, not the
+	 * whole label. Reserving the whole label let one long block name in the
+	 * registry take that width away from every document — "Content State
+	 * conformance table" is thirty-one characters, which reserved about 365px of
+	 * every editing surface, including in documents that never use the block.
+	 */
 	const editorGutterWidth = $derived.by(() => {
-		const longestLabelLength = registry.blocks.reduce(
-			(longest, block) => Math.max(longest, block.label.length),
+		const longestWord = registry.blocks.reduce(
+			(longest, block) =>
+				block.label
+					.split(/\s+/)
+					.reduce((widest, word) => Math.max(widest, word.length), longest),
 			0
 		);
 
-		return `max(var(--uncial-gutter-width), ${longestLabelLength * 0.68 + 1.75}rem)`;
+		return `max(var(--uncial-gutter-width), ${longestWord * 0.68 + 1.75}rem)`;
 	});
 	function insertBlock(blockId: string): void {
 		const ok = controller.insertBlock(blockId);
@@ -143,9 +182,27 @@
 		});
 	}
 
+	/**
+	 * Assign the document and tell the host, in that order.
+	 *
+	 * Metadata is part of the document, so a metadata commit has to reach a host
+	 * that persists on `onChange` exactly as a keystroke does. Assigning `json`
+	 * directly is what would silently drop it.
+	 */
+	function setDocument(next: JSONContent): void {
+		json = next;
+		onChange?.(next);
+	}
+
+	/** The same for metadata: assign, then tell the host. */
+	function setMeta(next: Record<string, unknown>): void {
+		meta = next;
+		onMetaChange?.(next);
+	}
+
 	function commitMeta(nextMeta: Record<string, unknown>): void {
-		meta = nextMeta;
-		json = { ...json, meta: nextMeta };
+		setMeta(nextMeta);
+		setDocument({ ...json, meta: nextMeta });
 		committedMetaSerialized = JSON.stringify(nextMeta);
 		metaTriggerEl?.closest('details')?.removeAttribute('open');
 	}
@@ -207,8 +264,9 @@
 
 	$effect(() => {
 		const serialized = JSON.stringify(meta);
-		if (serialized === committedMetaSerialized) return;
+		if (metaSeeded && serialized === committedMetaSerialized) return;
 		committedMetaSerialized = serialized;
+		metaSeeded = true;
 		documentMetaController.reset(meta);
 	});
 
@@ -220,8 +278,16 @@
 		return unsubscribe;
 	});
 
+	/*
+	 * Reconcile the metadata panel's state into the document without reporting an
+	 * edit. This runs on mount, when the panel still holds the schema's defaults
+	 * and the loaded document's own metadata has not reached it yet: a host that
+	 * persists on `onChange` would take those defaults for an edit and save a
+	 * document whose required metadata is empty. A metadata change the author
+	 * actually made arrives through `commitMeta`, which does report it.
+	 */
 	$effect(() => {
-		if (metaState.dirty) return;
+		if (!metaSeeded || metaState.dirty) return;
 		const nextMeta = documentMetaController.getMeta();
 		const serialized = JSON.stringify(nextMeta);
 		if (serialized === committedMetaSerialized) return;

@@ -49,27 +49,22 @@
 	function dispatchIssue(issue: ValidationIssue): void {
 		onIssue?.(issue);
 	}
-
-	function setJson(nextDocument: JSONContent): void {
-		json = nextDocument;
-		onChange?.(nextDocument);
-	}
-
-	function setMeta(nextMeta: Record<string, unknown>): void {
-		meta = nextMeta;
-		onMetaChange?.(nextMeta);
-	}
 </script>
 
+<!-- `Editor` reports edits itself, so the bindings here only mirror its state.
+     They were get/set pairs while forwarding an edit meant intercepting the
+     assignment, which could not tell an edit from a document the host loaded. -->
 <Editor
 	{blocks}
 	{schema}
-	bind:json={() => json, setJson}
-	bind:meta={() => meta, setMeta}
+	bind:json
+	bind:meta
 	{metaFields}
 	{extensions}
 	{toolbarFeatures}
 	{toolbarExtensions}
 	{attributesController}
 	onIssue={dispatchIssue}
+	{onChange}
+	{onMetaChange}
 />
