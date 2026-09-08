@@ -16,8 +16,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The docs site is this repository's first consumer of the reusable workflow,
+  # and the live exercise of it. It uploads a plain artifact rather than the
+  # Pages one because the Pages site is the landing site with the docs nested
+  # under /docs, so the merge below has to happen before anything is deployed.
+  docs:
+    uses: ./.github/workflows/static-site.yml
+    with:
+      package-filter: uncial-docs
+      base-path: /${{ github.event.repository.name }}/docs
+      # The gate is uncial-cms's published bin, which lives in its dist. In a
+      # workspace that dist does not exist when pnpm links bins, so the link has
+      # to be made again after packaging; a consumer installing from npm gets
+      # dist in the tarball and needs none of this.
+      pre-build: pnpm --filter uncial-cms run package && pnpm --filter uncial-docs rebuild
+      pnpm-version: 11.15.1
+      artifact-name: docs-build
+      deploy: false
+
   build:
     runs-on: ubuntu-latest
+    needs: docs
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,21 +60,11 @@ jobs:
       - name: Build
         run: BASE_PATH=/${{ github.event.repository.name }} pnpm run build
 
-      # Own step so the docs build's BASE_PATH does not leak into the landing site.
-      - name: Build docs
-        run: BASE_PATH=/${{ github.event.repository.name }}/docs pnpm --filter uncial-docs run build
-
-      # The gate is uncial-cms's published bin, which lives in its dist.
-      - name: Build the uncial-cms package
-        run: pnpm --filter uncial-cms run package
-
-      - name: Assert docs content pages ship no CMS JS
-        run: pnpm --filter uncial-docs run assert:clean-pages
-
       - name: Merge docs into Pages artifact
-        run: |
-          mkdir -p packages/uncial/build/docs
-          cp -R packages/uncial-docs/build/. packages/uncial/build/docs/
+        uses: actions/download-artifact@v4
+        with:
+          name: docs-build
+          path: packages/uncial/build/docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
