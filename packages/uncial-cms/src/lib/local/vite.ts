@@ -102,10 +102,31 @@ async function handleWrite(
 	if (body.encoding !== undefined && body.encoding !== 'base64') {
 		throw new HttpError(400, 'Write encoding must be base64 when provided.');
 	}
+	if (body.sha !== undefined && typeof body.sha !== 'string') {
+		throw new HttpError(400, 'Write sha must be a string when provided.');
+	}
 	const target = contentPath(contentDir, encodedPath);
 	const content = Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8');
 	if (content.byteLength > MAX_CONTENT_BYTES) {
 		throw new HttpError(413, `Content exceeds ${MAX_CONTENT_BYTES} bytes.`);
+	}
+
+	// A sha means "replace the revision I read"; the GitHub Contents API answers
+	// a stale one with 409, and the editor's conflict recovery is written against
+	// that. Without the check an editor autosaving against the local checkout
+	// would silently overwrite a change made underneath it.
+	if (typeof body.sha === 'string') {
+		let current: Buffer | null;
+		try {
+			current = await readFile(target);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+			current = null;
+		}
+		const currentSha = current && createHash('sha256').update(current).digest('hex');
+		if (currentSha !== body.sha) {
+			throw new HttpError(409, 'The file changed on disk since it was read.');
+		}
 	}
 
 	await mkdir(dirname(target), { recursive: true });
@@ -178,7 +199,17 @@ export function createLocalVitePlugin({ contentDir }: LocalVitePluginOptions): P
 		},
 		config(_config, env) {
 			if (env.command !== 'serve') return;
-			return { server: { host: '127.0.0.1' } };
+			const root = resolve(contentDir);
+			return {
+				server: {
+					host: '127.0.0.1',
+					// Every write under the content directory arrives through this
+					// plugin's own endpoint, so a watcher event for one is the author's
+					// own autosave landing. Watched, it makes Vite full-reload the page
+					// mid-edit and the editing session goes with it.
+					watch: { ignored: [(path: string) => path === root || path.startsWith(`${root}${sep}`)] }
+				}
+			};
 		},
 		configureServer(server) {
 			server.middlewares.use((request, response, next) => {

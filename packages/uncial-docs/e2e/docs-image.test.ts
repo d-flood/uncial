@@ -73,9 +73,9 @@ test('uploading in the Image block commits the file and stores the served src, w
 
 	await page.goto('/getting-started/edit/');
 
-	// The Image block renders inside the editor's shadow root; its Upload input is
-	// visible because the document loaded with an empty src.
-	const editor = page.locator('uncial-editor');
+	// The Image block's Upload input is visible because the document loaded with
+	// an empty src.
+	const editor = page.locator('.uncial-cms-editor-page');
 	const fileInput = editor.locator('input[type="file"]');
 	await expect(fileInput).toBeVisible();
 
@@ -116,7 +116,7 @@ test('an oversize image is downscaled and commits as WebP under the limit', asyn
 
 	await page.goto('/getting-started/edit/');
 
-	const editor = page.locator('uncial-editor');
+	const editor = page.locator('.uncial-cms-editor-page');
 	const fileInput = editor.locator('input[type="file"]');
 	await expect(fileInput).toBeVisible();
 

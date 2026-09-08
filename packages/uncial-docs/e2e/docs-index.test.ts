@@ -86,7 +86,7 @@ test('a concurrent-edit 409 surfaces the conflict banner without losing the edit
 
 	await page.goto('/getting-started/edit/');
 
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.uncial-cms-editor-page .ProseMirror');
 	await expect(editor).toContainText(GETTING_STARTED_TEXT);
 
 	await editor.click();

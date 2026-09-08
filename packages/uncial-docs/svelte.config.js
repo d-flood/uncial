@@ -23,7 +23,12 @@ const config = {
 			'uncial/web-components': '../uncial/src/lib/web-components/index.ts',
 			uncial: '../uncial/src/lib/index.ts',
 			'uncial-cms/sveltekit': '../uncial-cms/src/lib/sveltekit/index.ts',
+			'uncial-cms/svelte': '../uncial-cms/src/lib/svelte/index.ts',
+			'uncial-cms/session': '../uncial-cms/src/lib/editor-session.ts',
+			'uncial-cms/paths': '../uncial-cms/src/lib/paths/index.ts',
+			'uncial-cms/vite': '../uncial-cms/src/lib/vite/index.ts',
 			'uncial-cms/github': '../uncial-cms/src/lib/github/index.ts',
+			'uncial-cms/local': '../uncial-cms/src/lib/local/index.ts',
 			'uncial-cms': '../uncial-cms/src/lib/index.ts'
 		},
 		// Fully prerendered docs site; no fallback — every route is static.

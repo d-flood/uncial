@@ -1,14 +1,13 @@
-// Docs blocks, schema and the config the route factories take. The site object
-// itself is $lib/site.ts, so a block can reach it without importing the block
-// registry back.
+// Docs blocks and schema, plus the site object the route factories take. The
+// site object itself is $lib/site.ts, so a block can reach it without importing
+// the block registry back.
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import { defineSvelteBlock } from 'uncial/runtime/svelte';
-import { site } from '$lib/site.js';
 import Callout from '$lib/blocks/Callout.svelte';
 import ImageFigure from '$lib/blocks/ImageFigure.svelte';
 
-export const siteConfig = site.config;
-export const localContentDir = site.localContentDir;
+// Re-exported so a route takes its blocks, schema and site from one module.
+export { site } from '$lib/site.js';
 
 // Callout: a note/warning/tip admonition whose body is a flow content region.
 const callout = defineSvelteBlock({

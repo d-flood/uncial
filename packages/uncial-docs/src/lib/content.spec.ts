@@ -3,23 +3,23 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { normalizeDocument, validateDocument } from 'uncial/core';
 import type { ContentDocument } from 'uncial/core';
-import { blocks, localContentDir, schema } from '../routes/site.js';
+import { blocks, schema, site } from '../routes/site.js';
 
 /**
  * Guards the ticket-05 content port: every committed Docs document must parse,
  * normalize, and validate against the docs schema/registry (built-in blocks plus
  * the Callout/Image custom blocks), and must carry the title/navGroup/navOrder
  * meta the sidebar (buildDocsNav) is built from. Vitest runs from the package
- * root, so localContentDir ('content/docs') resolves directly.
+ * root, so site.localContentDir ('content/docs') resolves directly.
  */
 function contentFiles(): string[] {
-	return readdirSync(localContentDir)
+	return readdirSync(site.localContentDir)
 		.filter((name) => name.endsWith('.json'))
 		.sort();
 }
 
 function loadDoc(name: string): ContentDocument {
-	return JSON.parse(readFileSync(join(localContentDir, name), 'utf-8')) as ContentDocument;
+	return JSON.parse(readFileSync(join(site.localContentDir, name), 'utf-8')) as ContentDocument;
 }
 
 describe('ported Docs content', () => {

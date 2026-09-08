@@ -1,7 +1,7 @@
 import { createEditorHandlers } from 'uncial-cms/sveltekit';
-import { blocks, localContentDir, schema, siteConfig } from '../../site.js';
+import { blocks, schema, site } from '../../site.js';
 
-const handlers = createEditorHandlers({ config: siteConfig, blocks, schema, localContentDir });
+const handlers = createEditorHandlers({ site, blocks, schema });
 
 export const entries = handlers.entries;
 export const load = handlers.load;

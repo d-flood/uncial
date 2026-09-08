@@ -1,49 +1,50 @@
 <script lang="ts">
-	// Editor variant: prerendered page shell; the document itself is always
-	// fetched live from the forge by mountEditorPage — never baked in. This route
-	// carries the uncial-cms runtime (and its sentinel).
-	import { onMount } from 'svelte';
-	import { mountEditorPage } from 'uncial-cms';
-	import { blocks, schema, siteConfig } from '../../site.js';
+	// Editor variant: the same sidebar, <main> and <article> shell the Content
+	// page draws, with EditorPage where the Renderer sits. That is the whole of
+	// the parity work — the editor's content box is the article's box because it
+	// is inside the article, in the site's own cascade.
+	import { base } from '$app/paths';
+	import { EditorPage } from 'uncial-cms/svelte';
+	import { blocks, schema, site } from '../../site.js';
 
 	let { data } = $props();
-	let target: HTMLElement;
 
-	onMount(() => {
-		const handle = mountEditorPage(target, {
-			config: siteConfig,
-			sourcePath: data.sourcePath,
-			pagePath: data.pagePath,
-			blocks,
-			schema
-			// Uses the default popupSessionProvider; authWorkerUrl is set in site.ts.
-		});
-		return () => handle.destroy();
-	});
+	const href = (path: string): string => `${base}/${path}${path === '' ? '' : '/'}`;
 </script>
 
 <svelte:head>
 	<title>Edit {data.pagePath === '' ? 'home' : data.pagePath} · Uncial Docs</title>
 </svelte:head>
 
-<main class="mx-auto max-w-3xl px-6 py-10 sm:px-10">
-	<h1 class="font-vellum-display mb-6 text-2xl font-bold">
-		Editing <code>{data.sourcePath}</code>
-	</h1>
-	<div bind:this={target}></div>
-</main>
+<div class="mx-auto flex max-w-368 flex-col gap-10 px-6 py-10 sm:px-10 lg:flex-row">
+	<aside class="lg:w-60 lg:shrink-0">
+		<nav aria-label="Docs navigation" class="lg:sticky lg:top-6">
+			{#each data.nav as group (group.group)}
+				<p class="mt-4 mb-1 text-xs font-bold uppercase tracking-wide opacity-60 first:mt-0">
+					{group.group}
+				</p>
+				<ul class="menu menu-sm w-full p-0">
+					{#each group.items as item (item.path)}
+						<li>
+							<a href={href(item.path)} class:menu-active={item.path === data.pagePath}>
+								{item.title}
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/each}
+		</nav>
+	</aside>
 
-<style>
-	div :global(.uncial-cms-chrome) {
-		display: flex;
-		gap: 0.75rem;
-		align-items: center;
-		margin-bottom: 1rem;
-	}
-	div :global(.uncial-cms-banner) {
-		border: 1px solid var(--color-error, #b91c1c);
-		color: var(--color-error, #b91c1c);
-		padding: 0.5rem 0.75rem;
-		margin-bottom: 1rem;
-	}
-</style>
+	<main class="min-w-0 flex-1">
+		<article class="uncial-rich-content space-y-6">
+			<EditorPage
+				{site}
+				{blocks}
+				{schema}
+				sourcePath={data.sourcePath}
+				pagePath={data.pagePath}
+			/>
+		</article>
+	</main>
+</div>

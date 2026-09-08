@@ -1,6 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+// From workspace source, not the 'uncial-cms/vite' specifier: Vite bundles this
+// config before `resolve.alias` exists, so the published export would be
+// resolved, and it points at a dist/ that a fresh checkout has not built.
+import { uncialCms } from '../uncial-cms/src/lib/vite/index.js';
+import { siteOptions } from './site.options.js';
 
 // Resolve uncial's + uncial-cms's subpath exports from workspace source (same
 // pattern as uncial-cms's own config): the published exports point at each
@@ -22,12 +27,17 @@ export const workspaceAliases = [
 	{ find: 'uncial/web-components', replacement: uncialSrc('web-components/index.ts') },
 	{ find: /^uncial$/, replacement: uncialSrc('index.ts') },
 	{ find: 'uncial-cms/sveltekit', replacement: cmsSrc('sveltekit/index.ts') },
+	{ find: 'uncial-cms/svelte', replacement: cmsSrc('svelte/index.ts') },
+	{ find: 'uncial-cms/session', replacement: cmsSrc('editor-session.ts') },
+	{ find: 'uncial-cms/paths', replacement: cmsSrc('paths/index.ts') },
+	{ find: 'uncial-cms/vite', replacement: cmsSrc('vite/index.ts') },
 	{ find: 'uncial-cms/github', replacement: cmsSrc('github/index.ts') },
+	{ find: 'uncial-cms/local', replacement: cmsSrc('local/index.ts') },
 	{ find: /^uncial-cms$/, replacement: cmsSrc('index.ts') }
 ];
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [tailwindcss(), ...uncialCms(siteOptions), sveltekit()],
 	resolve: { alias: workspaceAliases },
 	test: {
 		expect: { requireAssertions: true },

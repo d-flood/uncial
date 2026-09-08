@@ -11,8 +11,8 @@ test('content page renders the Docs document without any editor chrome', async (
 
 	await expect(page.locator('main h1')).toContainText('Getting started');
 	await expect(page.getByRole('heading', { name: GETTING_STARTED_TEXT })).toBeVisible();
-	// Production content page ships no uncial-cms runtime: no editor element.
-	await expect(page.locator('uncial-editor')).toHaveCount(0);
+	// Production content page ships no uncial-cms runtime: no editor page.
+	await expect(page.locator('.uncial-cms-editor-page')).toHaveCount(0);
 });
 
 test('editor variant mounts the WYSIWYG editor with the live document', async ({ page }) => {
@@ -21,7 +21,7 @@ test('editor variant mounts the WYSIWYG editor with the live document', async ({
 
 	await page.goto('/getting-started/edit/');
 
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.uncial-cms-editor-page .ProseMirror');
 	await expect(editor).toContainText(GETTING_STARTED_TEXT);
 	await expect(page.getByRole('status')).toContainText(
 		`Editing ${GETTING_STARTED_SOURCE} as octocat`

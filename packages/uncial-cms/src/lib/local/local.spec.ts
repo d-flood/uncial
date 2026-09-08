@@ -5,6 +5,7 @@ import { join, relative } from 'node:path';
 import { createServer, type ViteDevServer } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_CONTENT_BYTES } from '../constants.js';
+import { ConflictError } from '../errors.js';
 import type { UncialCmsSiteConfig } from '../types.js';
 import { createLocalAdapter, createLocalVitePlugin, localSessionProvider } from './index.js';
 
@@ -141,6 +142,32 @@ describe('createLocalVitePlugin', () => {
 
 		expect(response.status).toBe(413);
 		expect(readFileSync(target, 'utf8')).toBe('{"title":"Original"}');
+	});
+
+	it('refuses a write whose sha no longer matches what is on disk', async () => {
+		const contentDir = contentDirectory();
+		const target = join(contentDir, 'about.json');
+		const origin = await startServer(contentDir);
+		vi.stubGlobal('location', { origin });
+		const config: UncialCmsSiteConfig = { forge: 'local', contentDir: 'content' };
+		const adapter = createLocalAdapter();
+		const session = await adapter.authenticate(config, localSessionProvider);
+		const author = { name: session.user.name, email: session.user.email };
+
+		const first = await adapter.writeFile('content/about.json', '{"title":"About"}', {
+			message: 'ignored locally',
+			author
+		});
+		writeFileSync(target, '{"title":"Changed underneath"}');
+
+		await expect(
+			adapter.writeFile('content/about.json', '{"title":"Mine"}', {
+				message: 'ignored locally',
+				sha: first.sha,
+				author
+			})
+		).rejects.toBeInstanceOf(ConflictError);
+		expect(readFileSync(target, 'utf8')).toBe('{"title":"Changed underneath"}');
 	});
 
 	it('exposes only complete documents at the target while writing', async () => {
