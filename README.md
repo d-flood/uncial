@@ -453,9 +453,12 @@ This repository is a workspace that also ships:
 - **[`uncial-cms`](packages/uncial-cms)** — a git-forge-backed static CMS
   runtime. Every content page gets a generated editor variant; editors sign in
   with GitHub and save edits as commits, with the repository as the single
-  source of truth. Includes SvelteKit route factories and a framework-agnostic
-  web-component runtime. The [Uncial docs](https://d-flood.github.io/uncial/docs/)
-  are themselves managed by uncial-cms — the docs are the live demo.
+  source of truth. Includes SvelteKit route factories, the `EditorPage` Svelte
+  component, a framework-agnostic web-component runtime, and the `uncial-cms`
+  command. The [Uncial docs](https://d-flood.github.io/uncial/docs/) are
+  themselves managed by uncial-cms — the docs are the live demo, and
+  [A static site that edits itself](https://d-flood.github.io/uncial/docs/static-site/)
+  walks the whole pattern from install to the first committed edit.
 - **[`uncial-cms-auth`](packages/uncial-cms-auth)** — the stateless Cloudflare
   Worker behind uncial-cms's default auth, releasing single-repo-scoped GitHub
   App tokens to the browser. A canonical instance is hosted by the project;

@@ -15,6 +15,17 @@ test('content page renders the Docs document without any editor chrome', async (
 	await expect(page.locator('.uncial-cms-editor-page')).toHaveCount(0);
 });
 
+test('the sidebar files the static-site guide under Guides and reaches it', async ({ page }) => {
+	await page.goto('/getting-started/');
+
+	const nav = page.getByRole('navigation', { name: 'Docs navigation' });
+	await nav.getByRole('link', { name: 'A static site that edits itself' }).click();
+
+	await expect(page).toHaveURL(/\/static-site\/$/);
+	await expect(page.locator('main h1')).toContainText('A static site that edits itself');
+	await expect(page.getByRole('heading', { name: 'The first committed edit' })).toBeVisible();
+});
+
 test('editor variant mounts the WYSIWYG editor with the live document', async ({ page }) => {
 	await interceptDocsGitHub(page);
 	await seedDocsSession(page);

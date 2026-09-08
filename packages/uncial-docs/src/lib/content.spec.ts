@@ -26,7 +26,13 @@ describe('ported Docs content', () => {
 	const files = contentFiles();
 
 	it('ships the ported Docs pages (not just the ticket-01 seed)', () => {
-		expect(files).toEqual(['blocks.json', 'getting-started.json', 'integrations.json', 'rendering.json']);
+		expect(files).toEqual([
+			'blocks.json',
+			'getting-started.json',
+			'integrations.json',
+			'rendering.json',
+			'static-site.json'
+		]);
 	});
 
 	it.each(files)('%s validates against the docs schema with no errors', (name) => {
@@ -72,6 +78,37 @@ describe('ported Docs content', () => {
 		];
 		for (const marker of sectionMarkers) {
 			expect(corpus, `missing section marker: ${marker}`).toContain(marker);
+		}
+	});
+
+	it('files the static-site guide under Guides in the sidebar', () => {
+		const meta = loadDoc('static-site.json').meta ?? {};
+		expect(meta.title).toBe('A static site that edits itself');
+		expect(meta.navGroup).toBe('Guides');
+	});
+
+	it('walks the static-site path from install to the first committed edit', () => {
+		const corpus = JSON.stringify(loadDoc('static-site.json'));
+		// One marker per section the guide is contracted to carry, in the order
+		// a reader meets them; a dropped step fails here rather than in review.
+		const steps = [
+			'What you get',
+			'pnpm add uncial uncial-cms',
+			'defineSite',
+			'uncialCms(siteOptions)',
+			'createContentHandlers',
+			'EditorPage',
+			'mountIndexPage',
+			'uploadImageAsset',
+			'.uncial/cms.json',
+			'uncial-cms doctor',
+			'static-site.yml@main',
+			'The first committed edit',
+			'The local-only variant',
+			'assert-clean-pages build --local-only'
+		];
+		for (const step of steps) {
+			expect(corpus, `missing step: ${step}`).toContain(step);
 		}
 	});
 
