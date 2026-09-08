@@ -133,14 +133,17 @@ export default defineConfig({
 ```
 
 `uncialCms` installs two things: the development-only local editing endpoint,
-bound to the filesystem location of the content directory; and a `define` of
-the forge the build targets, which is how a local-only production build drops
-the editor stack statically rather than merely leaving it unrouted.
+rooted at the repository and permitting writes under the content directory and
+`mediaDir`; and a `define` of the forge the build targets, which is how a
+local-only production build drops the editor stack statically rather than merely
+leaving it unrouted.
 
 `createLocalVitePlugin` from `uncial-cms/local` is the same endpoint on its own,
-for a site that is not using `defineSite`. It is serve-only and forces Vite to
-bind to `127.0.0.1`. The adapter calls it at the fixed, development-only JSON
-endpoint `/__uncial-cms/local`:
+for a site that is not using `defineSite`; it takes the repository `root` and the
+repo-root-relative `permittedRoots` writes are confined to. It is serve-only and
+forces Vite to bind to `127.0.0.1`. Every path it takes is repo-root-relative,
+exactly as the GitHub adapter addresses one. The adapter calls it at the fixed,
+development-only JSON endpoint `/__uncial-cms/local`:
 
 - `POST /files/<path>` with `{}` reads a document and returns
   `{ content, sha }`.
@@ -152,7 +155,7 @@ endpoint `/__uncial-cms/local`:
 
 All requests use `Content-Type: application/json`; contents are capped at
 `MAX_CONTENT_BYTES`. The middleware resolves each URL path before checking that
-it remains beneath `contentDir`, and writes through a temporary file followed
+it remains beneath one of the permitted roots, and writes through a temporary file followed
 by rename, so a watcher never sees a partial document at its target path.
 
 ## Quick start: SvelteKit

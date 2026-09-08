@@ -50,33 +50,24 @@ class LocalAdapter implements ForgeAdapter {
 	}
 
 	async listDir(path: string): Promise<Array<{ path: string; type: 'file' | 'dir' }>> {
+		// The plugin roots at the repository, so the paths it reports are already
+		// the repo-root-relative ones every forge adapter speaks.
 		const response = await this.#request<{ entries: Array<{ path: string; type: 'file' | 'dir' }> }>(
 			'POST',
 			`dirs/${this.#path(path)}`,
 			{}
 		);
-		const contentDir = this.#config!.contentDir.replace(/^\/+|\/+$/g, '');
-		return response.entries.map((entry) => ({
-			...entry,
-			path: contentDir ? `${contentDir}/${entry.path}` : entry.path
-		}));
+		return response.entries;
 	}
 
 	async commitStatus(_commitSha: string): Promise<'pending' | 'success' | 'failure' | 'unknown'> {
 		return 'success';
 	}
 
+	/** Repo-root-relative, exactly as the GitHub adapter sends it. */
 	#path(path: string): string {
 		if (!this.#config) throw new Error('Local adapter is not authenticated; call authenticate() first.');
-		const contentDir = this.#config.contentDir.replace(/^\/+|\/+$/g, '');
-		const sourcePath = path.replace(/^\/+|\/+$/g, '');
-		const relativePath =
-			sourcePath === contentDir
-				? ''
-				: sourcePath.startsWith(`${contentDir}/`)
-					? sourcePath.slice(contentDir.length + 1)
-					: sourcePath;
-		return encodePath(relativePath);
+		return encodePath(path.replace(/^\/+|\/+$/g, ''));
 	}
 
 	async #request<T>(method: string, path: string, body: unknown): Promise<T> {
