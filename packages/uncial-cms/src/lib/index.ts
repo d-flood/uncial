@@ -43,5 +43,10 @@ export {
 	type UploadAssetResult
 } from './index-actions.js';
 export { MAX_CONTENT_BYTES } from './constants.js';
-export { hashForPagePath, pagePathFromHash, validatePagePath } from './paths.js';
+export {
+	hashForPagePath,
+	pagePathFromHash,
+	validatePagePath
+} from './paths/index.js';
+export { parseDocument, serializeDocument, type Blocks } from './document.js';
 export { patSessionProvider, popupSessionProvider } from './github/index.js';

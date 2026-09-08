@@ -52,6 +52,10 @@
 			"types": "./dist/local/index.d.ts",
 			"default": "./dist/local/index.js"
 		},
+		"./paths": {
+			"types": "./dist/paths/index.d.ts",
+			"default": "./dist/paths/index.js"
+		},
 		"./sveltekit": {
 			"types": "./dist/sveltekit/index.d.ts",
 			"default": "./dist/sveltekit/index.js"
