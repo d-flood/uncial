@@ -56,6 +56,10 @@
 			"types": "./dist/paths/index.d.ts",
 			"default": "./dist/paths/index.js"
 		},
+		"./vite": {
+			"types": "./dist/vite/index.d.ts",
+			"default": "./dist/vite/index.js"
+		},
 		"./sveltekit": {
 			"types": "./dist/sveltekit/index.d.ts",
 			"default": "./dist/sveltekit/index.js"

@@ -43,5 +43,5 @@ export const entries = handlers.entries;
 
 export const load = async (event: { params: { path: string } }) => {
 	const page = await handlers.load(event);
-	return { ...page, path: event.params.path, nav: buildDocsNav(listDocPages()) };
+	return { ...page, nav: buildDocsNav(listDocPages()) };
 };

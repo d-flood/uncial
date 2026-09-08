@@ -12,7 +12,7 @@
 		const handle = mountEditorPage(target, {
 			config: siteConfig,
 			sourcePath: data.sourcePath,
-			pagePath: data.path,
+			pagePath: data.pagePath,
 			blocks,
 			schema
 			// Uses the default popupSessionProvider; authWorkerUrl is set in site.ts.
@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.path === '' ? 'home' : data.path} · uncial-cms demo</title>
+	<title>Edit {data.pagePath === '' ? 'home' : data.pagePath} · uncial-cms demo</title>
 </svelte:head>
 
 <h1>Editing <code>{data.sourcePath}</code></h1>
