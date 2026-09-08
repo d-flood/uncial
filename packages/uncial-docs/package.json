@@ -14,7 +14,7 @@
 		"preview": "vite preview",
 		"prepare": "pnpm exec svelte-kit sync || true",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
+		"assert:clean-pages": "node ../uncial-cms/dist/cli/bin.js assert-clean-pages",
 		"test:unit": "vitest --project server",
 		"test": "pnpm run test:unit -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test"

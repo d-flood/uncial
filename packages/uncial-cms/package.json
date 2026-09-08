@@ -18,11 +18,15 @@
 		"package": "PACKAGE=1 svelte-kit sync && PACKAGE=1 svelte-package --input src/lib --output dist",
 		"prepack": "pnpm run package && pnpm exec publint",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"assert:clean-pages": "node scripts/assert-clean-pages.mjs",
+		"assert:clean-pages": "node dist/cli/bin.js assert-clean-pages",
 		"test:unit": "vitest --project server",
 		"test": "pnpm run test:unit -- --run && pnpm run test:browser -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test",
+		"test:cli": "node scripts/test-local-only-cli.mjs",
 		"test:browser": "vitest --project client"
+	},
+	"bin": {
+		"uncial-cms": "./dist/cli/bin.js"
 	},
 	"publishConfig": {
 		"access": "public",
@@ -34,6 +38,7 @@
 		"!dist/**/*.spec.*"
 	],
 	"type": "module",
+	"sideEffects": false,
 	"types": "./dist/index.d.ts",
 	"exports": {
 		"./package.json": "./package.json",
