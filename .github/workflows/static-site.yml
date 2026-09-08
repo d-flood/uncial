@@ -1,0 +1,159 @@
+# Reusable deploy for a static site that edits itself: check, unit tests, build,
+# the zero-CMS-JS gate, upload, deploy to Pages. A consumer's own workflow names
+# the trigger, the permissions and the call:
+#
+#   on: { push: { branches: [main] }, workflow_dispatch: {} }
+#   permissions: { contents: read, pages: write, id-token: write }
+#   jobs:
+#     site:
+#       uses: d-flood/uncial/.github/workflows/static-site.yml@main
+#       with: { base-path: /${{ github.event.repository.name }} }
+#
+# Permissions are the caller's: a reusable workflow inherits the calling job's
+# token scopes, so `contents: read`, `pages: write` and `id-token: write` must be
+# declared there. Nothing here re-declares them.
+#
+# A repository whose package.json sets `packageManager` must pass the same exact
+# version as `pnpm-version`; pnpm/action-setup refuses a version that disagrees
+# with the manifest.
+#
+# `artifact-name` is the seam for a caller that assembles a Pages site from more
+# than one build (this repository's own docs deploy is one): naming an artifact
+# switches the upload to a plain artifact the caller downloads and merges,
+# instead of the Pages artifact only `deploy-pages` can consume. `pre-build` is
+# the seam for a monorepo caller whose build needs a sibling package packaged
+# first. Both were preferred to teaching this workflow how to merge builds,
+# which would have cost every plain consumer the vocabulary.
+name: Static site
+
+on:
+  workflow_call:
+    inputs:
+      base-path:
+        description: Site-root-relative base path, exported as BASE_PATH to the build.
+        type: string
+        default: ''
+      package-filter:
+        description: pnpm --filter for a monorepo caller; empty runs the scripts at the root.
+        type: string
+        default: ''
+      build-dir:
+        description: Build output directory, relative to the filtered package.
+        type: string
+        default: build
+      local-only:
+        description: Gate the build as a local-only site (no editor stack anywhere).
+        type: boolean
+        default: false
+      node-version:
+        type: string
+        default: '24'
+      pnpm-version:
+        type: string
+        default: '11'
+      run-unit-tests:
+        description: Run test:unit when the package defines it.
+        type: boolean
+        default: true
+      deploy:
+        description: Deploy the artifact to Pages; false uploads and stops.
+        type: boolean
+        default: true
+      pre-build:
+        description: >-
+          Shell command run after install and before check, for a monorepo
+          caller whose build needs a sibling package packaged first.
+        type: string
+        default: ''
+      artifact-name:
+        description: >-
+          Upload a plain artifact under this name instead of the Pages artifact,
+          for a caller that merges several builds itself.
+        type: string
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FILTER: ${{ inputs.package-filter && format('--filter={0}', inputs.package-filter) || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ inputs.pnpm-version }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare
+        if: inputs.pre-build != ''
+        run: ${{ inputs.pre-build }}
+
+      - name: Check
+        run: |
+          # shellcheck disable=SC2086
+          pnpm $FILTER run check
+
+      - name: Unit tests
+        if: inputs.run-unit-tests
+        run: |
+          # shellcheck disable=SC2086
+          pnpm $FILTER run --if-present test:unit -- --run
+
+      - name: Build
+        env:
+          BASE_PATH: ${{ inputs.base-path }}
+        run: |
+          # shellcheck disable=SC2086
+          pnpm $FILTER run build
+
+      - name: Resolve the build directory
+        id: output
+        run: |
+          # shellcheck disable=SC2086
+          root=$(pnpm $FILTER exec pwd | tail -n 1)
+          echo "path=$root/${{ inputs.build-dir }}" >> "$GITHUB_OUTPUT"
+
+      - name: Assert the build ships no stray CMS JavaScript
+        run: |
+          # shellcheck disable=SC2086
+          pnpm $FILTER exec uncial-cms assert-clean-pages ${{ inputs.build-dir }} ${{ inputs.local-only && '--local-only' || '' }}
+
+      - name: Upload Pages artifact
+        if: inputs.artifact-name == ''
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.output.outputs.path }}
+
+      - name: Upload artifact
+        if: inputs.artifact-name != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          # A build's .nojekyll and other dotfiles are part of it; upload-artifact
+          # drops hidden files unless told otherwise, and the Pages artifact
+          # (which tars) keeps them, so this keeps the two uploads equivalent.
+          include-hidden-files: true
+          path: ${{ steps.output.outputs.path }}
+
+  deploy:
+    if: inputs.deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
