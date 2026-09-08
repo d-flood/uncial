@@ -9,11 +9,13 @@
  * `mountEditorPage` clears it on teardown. A block reads it through
  * {@link uploadImageAsset}, never directly.
  */
-import type { ForgeAdapter } from './types.js';
+import type { ForgeAdapter, UncialCmsSiteConfig } from './types.js';
 
 export interface ActiveForge {
 	adapter: ForgeAdapter;
 	author: { name: string; email: string };
+	/** The session's site config, so an upload can default its `mediaDir`. */
+	config: UncialCmsSiteConfig;
 }
 
 let active: ActiveForge | null = null;

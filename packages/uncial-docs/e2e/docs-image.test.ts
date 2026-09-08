@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { DOCS_REPO, GETTING_STARTED_SOURCE, fromBase64, seedDocsSession, toBase64 } from './docs-helpers.js';
+import { noisePng } from './noise-png.js';
 
 // A Docs document whose only block is an Image with no src yet, so the editor
 // renders the Image block's Upload affordance.
@@ -61,11 +62,8 @@ async function interceptImageGitHub(page: Page): Promise<{ puts: RecordedPut[] }
 	return { puts };
 }
 
-/** A minimal valid PNG payload (bytes only need to be stable, not a real image). */
-function pngBytes(size = 12): number[] {
-	const header = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-	return Array.from({ length: size }, (_, i) => header[i] ?? i % 256);
-}
+/** The forge's cap, mirrored here rather than imported into the e2e bundle. */
+const MAX_CONTENT_BYTES = 1024 * 1024;
 
 test('uploading in the Image block commits the file and stores the served src, with a local preview', async ({
 	page
@@ -84,7 +82,7 @@ test('uploading in the Image block commits the file and stores the served src, w
 	await fileInput.setInputFiles({
 		name: 'diagram.png',
 		mimeType: 'image/png',
-		buffer: Buffer.from(pngBytes())
+		buffer: noisePng(8, 8)
 	});
 
 	// Immediate local preview: the <img> shows an object URL before the commit
@@ -112,7 +110,7 @@ test('uploading in the Image block commits the file and stores the served src, w
 	expect(String(imageNode?.attrs?.src)).toMatch(/^\/uploads\/[0-9a-f]+\.png$/);
 });
 
-test('an over-limit image surfaces the rejection inline and commits nothing', async ({ page }) => {
+test('an oversize image is downscaled and commits as WebP under the limit', async ({ page }) => {
 	const { puts } = await interceptImageGitHub(page);
 	await seedDocsSession(page);
 
@@ -122,16 +120,20 @@ test('an over-limit image surfaces the rejection inline and commits nothing', as
 	const fileInput = editor.locator('input[type="file"]');
 	await expect(fileInput).toBeVisible();
 
-	// One byte over the GitHub Contents API limit → uploadAsset rejects before any
-	// network call.
-	await fileInput.setInputFiles({
-		name: 'huge.png',
-		mimeType: 'image/png',
-		buffer: Buffer.alloc(1024 * 1024 + 1)
-	});
+	// Noise at 900×700 deflates to well over the Contents API cap, which the
+	// upload used to reject outright; `fit` re-encodes it instead.
+	const oversize = noisePng(900, 700);
+	expect(oversize.byteLength).toBeGreaterThan(MAX_CONTENT_BYTES);
+	await fileInput.setInputFiles({ name: 'huge.png', mimeType: 'image/png', buffer: oversize });
 
-	await expect(editor.locator('.uncial-image-error')).toContainText('1 MB');
+	const assetPath = 'packages/uncial-docs/static/uploads/';
+	await expect
+		.poll(() => puts.find((put) => put.path.startsWith(assetPath))?.path)
+		.toMatch(/^packages\/uncial-docs\/static\/uploads\/[0-9a-f]+\.webp$/);
 
-	// Nothing was committed to the media dir.
-	expect(puts.some((put) => put.path.startsWith('packages/uncial-docs/static/uploads/'))).toBe(false);
+	const assetPut = puts.find((put) => put.path.startsWith(assetPath))!;
+	expect(Buffer.from(String(assetPut.body.content), 'base64').byteLength).toBeLessThanOrEqual(
+		MAX_CONTENT_BYTES
+	);
+	await expect(editor.locator('.uncial-image-error')).toHaveCount(0);
 });

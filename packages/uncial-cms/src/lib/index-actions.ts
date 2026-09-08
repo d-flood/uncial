@@ -6,8 +6,10 @@
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
+import type { Site } from './define-site.js';
 import { serializeDocument } from './document.js';
 import { NotFoundError } from './errors.js';
+import { fitImage, type FitOptions, type ImageEncoder } from './fit-image.js';
 import { defaultMapSourceToPath } from './paths/index.js';
 import type { ForgeAdapter } from './types.js';
 import { getActiveForge } from './upload-context.js';
@@ -70,7 +72,10 @@ export interface UploadAssetFile {
 }
 
 export interface UploadAssetOptions {
-	mediaDir: string; // repo-root-relative dir the asset is committed into
+	/** Repo-root-relative dir the asset is committed into; defaults from `site`. */
+	mediaDir?: string;
+	/** Supplies `mediaDir` when it is not passed explicitly. */
+	site?: Site;
 	author: { name: string; email: string };
 }
 
@@ -121,7 +126,7 @@ export async function uploadAsset(
 
 	const ext = assetExtension(file.filename, file.contentType);
 	const hash = await contentHash(file.bytes);
-	const dir = opts.mediaDir.replace(/\/+$/, '');
+	const dir = resolveMediaDir(opts.mediaDir, opts.site?.config.mediaDir).replace(/\/+$/, '');
 	const path = `${dir}/${hash}.${ext}`;
 
 	// Content-addressed: if the path already exists, the bytes are identical.
@@ -139,16 +144,56 @@ export async function uploadAsset(
 	return { path, sha, commitSha };
 }
 
+/** `mediaDir` from the most specific source that supplies one. */
+function resolveMediaDir(...candidates: Array<string | undefined>): string {
+	const dir = candidates.find((candidate) => candidate);
+	if (!dir) {
+		throw new Error(
+			'No media directory for the upload: pass `mediaDir`, or give a `site` whose config sets it.'
+		);
+	}
+	return dir;
+}
+
+/** Read a picked `File` (or a `Blob`) into the bytes `uploadAsset` commits. */
+async function assetFileFromBlob(file: Blob & { name?: string }): Promise<UploadAssetFile> {
+	return {
+		bytes: new Uint8Array(await file.arrayBuffer()),
+		filename: file.name || 'image',
+		contentType: file.type || 'application/octet-stream'
+	};
+}
+
+/** A `Blob` view of an already-read asset, for handing to {@link fitImage}. */
+function blobFromAssetFile(file: UploadAssetFile): Blob & { name?: string } {
+	const blob: Blob & { name?: string } = new Blob([file.bytes as BlobPart], {
+		type: file.contentType
+	});
+	blob.name = file.filename;
+	return blob;
+}
+
+export interface UploadImageAssetOptions {
+	mediaDir?: string;
+	site?: Site;
+	/**
+	 * Re-encode an oversize image to fit the forge's limit before committing.
+	 * `true` takes the defaults; the object form also accepts an `encoder`, the
+	 * seam {@link fitImage} decodes and encodes through.
+	 */
+	fit?: boolean | (FitOptions & { encoder?: ImageEncoder });
+}
+
 /**
- * Editor-facing convenience over {@link uploadAsset}: resolves the adapter and
- * author from the {@link getActiveForge active editor session} so a block's
- * Upload affordance only has to supply the file and its `mediaDir`. Throws a
- * clear error when no editor is mounted (e.g. called before sign-in). Import
- * this dynamically from a block so the reader bundle stays free of CMS runtime.
+ * Editor-facing convenience over {@link uploadAsset}: resolves the adapter,
+ * author and `mediaDir` from the {@link getActiveForge active editor session}
+ * so a block's Upload affordance only has to supply the file. Throws a clear
+ * error when no editor is mounted (e.g. called before sign-in). Import this
+ * dynamically from a block so the reader bundle stays free of CMS runtime.
  */
 export async function uploadImageAsset(
-	file: UploadAssetFile,
-	opts: { mediaDir: string }
+	file: UploadAssetFile | File,
+	opts: UploadImageAssetOptions = {}
 ): Promise<UploadAssetResult> {
 	const forge = getActiveForge();
 	if (!forge) {
@@ -156,10 +201,18 @@ export async function uploadImageAsset(
 			'No active editor session — open a page in the editor and sign in before uploading.'
 		);
 	}
-	return uploadAsset({ adapter: forge.adapter }, file, {
-		mediaDir: opts.mediaDir,
-		author: forge.author
-	});
+	const mediaDir = resolveMediaDir(opts.mediaDir, opts.site?.config.mediaDir, forge.config.mediaDir);
+
+	const asset = opts.fit
+		? await fitImage(
+				file instanceof Blob ? file : blobFromAssetFile(file),
+				opts.fit === true ? {} : opts.fit
+			)
+		: file instanceof Blob
+			? await assetFileFromBlob(file)
+			: file;
+
+	return uploadAsset({ adapter: forge.adapter }, asset, { mediaDir, author: forge.author });
 }
 
 /** Recursively list the content dir's JSON sources, sorted by page path. */

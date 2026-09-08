@@ -147,7 +147,8 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		// teardown.
 		setActiveForge({
 			adapter,
-			author: { name: session.user.name, email: session.user.email }
+			author: { name: session.user.name, email: session.user.email },
+			config
 		});
 		ui.status({ tone: 'progress', text: 'Loading…' });
 		const file = await adapter.readFile(sourcePath);
