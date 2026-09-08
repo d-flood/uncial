@@ -45,6 +45,10 @@ jobs:
       - name: Build docs
         run: BASE_PATH=/${{ github.event.repository.name }}/docs pnpm --filter uncial-docs run build
 
+      # The gate is uncial-cms's published bin, which lives in its dist.
+      - name: Build the uncial-cms package
+        run: pnpm --filter uncial-cms run package
+
       - name: Assert docs content pages ship no CMS JS
         run: pnpm --filter uncial-docs run assert:clean-pages
 

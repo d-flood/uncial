@@ -1,0 +1,11 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "About this fixture" },
+	"content": [
+		{
+			"type": "paragraph",
+			"content": [{ "type": "text", "text": "A local-only site edits its own checkout." }]
+		}
+	]
+}

@@ -65,6 +65,7 @@
 	let conflict = $state(false);
 	let saveEnabled = $state(false);
 	let controller: EditorController | undefined;
+	let root: HTMLDivElement;
 
 	onMount(() => {
 		// The editor stack hangs off dynamic imports behind a statically decidable
@@ -72,6 +73,11 @@
 		// and drops it rather than merely leaving it unrouted. Vite replaces both
 		// operands with literals at build time.
 		if (!import.meta.env.DEV && import.meta.env.UNCIAL_CMS_FORGE === 'none') return;
+
+		// Marked here rather than in the markup so that the gate above leaves the
+		// sentinel unreferenced in a local-only production build, and Rollup drops
+		// it with the rest of the editor stack.
+		root.dataset.uncialCmsRuntime = UNCIAL_CMS_RUNTIME_SENTINEL;
 
 		let cancelled = false;
 
@@ -125,7 +131,7 @@
 	});
 </script>
 
-<div class="uncial-cms-editor-page" data-uncial-cms-runtime={UNCIAL_CMS_RUNTIME_SENTINEL}>
+<div class="uncial-cms-editor-page" bind:this={root}>
 	<div class="uncial-cms-chrome">
 		{#if manualSave}
 			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
