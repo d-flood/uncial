@@ -28,6 +28,18 @@ export interface MountEditorPageOptions {
 	 */
 	autosaveMs?: number;
 	/**
+	 * How the editor renders its block attributes panel — see uncial's
+	 * `attributesPanel`. A site whose Editor variant is meant to look like the
+	 * published page wants `'overlay'`, so the panel costs the document no width.
+	 */
+	attributesPanel?: UncialEditorElement['attributesPanel'];
+	/**
+	 * `'bare'` drops the editor's own surface and inline padding so the document
+	 * is laid out in exactly the box the host gives it — see uncial's
+	 * `presentation`. Pairs with `attributesPanel: 'overlay'` for WYSIWYG parity.
+	 */
+	presentation?: UncialEditorElement['presentation'];
+	/**
 	 * Stylesheet URLs to load inside the editor's shadow root. Defaults to
 	 * mirroring every stylesheet of the host page (WYSIWYG parity: the editor
 	 * renders behind a shadow boundary, which page styles do not cross).
@@ -110,6 +122,8 @@ export function mountEditorPage(
 
 	const editor = document.createElement('uncial-editor') as UncialEditorElement;
 	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
+	if (opts.attributesPanel !== undefined) editor.attributesPanel = opts.attributesPanel;
+	if (opts.presentation !== undefined) editor.presentation = opts.presentation;
 	editor.blocks = blocks;
 	editor.schema = schema;
 	// Forward the schema's declared meta fields so the editor renders (and edits)

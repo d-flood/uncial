@@ -31,7 +31,7 @@
 	grid-template-areas: 'toolbar' 'body';
 }
 
-.uncial-editor-shell:has(> .uncial-editor-sidebar) {
+.uncial-editor-shell:has(> .uncial-editor-sidebar:not(.uncial-editor-sidebar--overlay)) {
 	grid-template-columns: minmax(0, 1fr) var(--uncial-panel-width);
 	grid-template-areas: 'toolbar toolbar' 'body sidebar';
 }
@@ -384,6 +384,32 @@
 	gap: 0.125rem;
 }
 
+.uncial-list-field {
+	display: grid;
+	gap: var(--uncial-space-2);
+}
+
+.uncial-list-item {
+	border: 1px solid var(--uncial-color-border);
+	border-radius: var(--uncial-radius-lg);
+	background: color-mix(in srgb, var(--uncial-color-surface-elevated) 50%, transparent);
+	padding: var(--uncial-space-2);
+}
+
+.uncial-list-item__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--uncial-space-2);
+	margin-bottom: var(--uncial-space-2);
+}
+
+/* The item's own fields are the last thing in its box; the box supplies the
+   spacing the field's bottom margin would otherwise double. */
+.uncial-list-item > .uncial-field:last-child {
+	margin-bottom: 0;
+}
+
 .uncial-richtext-wrapper {
 	border-radius: var(--uncial-radius-lg);
 }
@@ -411,7 +437,7 @@
 }
 
 @media (max-width: 639px) {
-	.uncial-editor-shell:has(> .uncial-editor-sidebar) {
+	.uncial-editor-shell:has(> .uncial-editor-sidebar:not(.uncial-editor-sidebar--overlay)) {
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-areas: 'toolbar' 'body' 'sidebar';
 	}
@@ -483,5 +509,87 @@
 	.uncial-gutter-label {
 		max-width: none;
 		word-break: normal;
+	}
+}
+
+/* An overlay attributes panel: outside the shell's grid, against the viewport
+   edge, so selecting a block costs the document no width. */
+.uncial-editor-sidebar--overlay {
+	position: fixed;
+	inset-block: 0;
+	right: 0;
+	z-index: 30;
+	width: min(var(--uncial-panel-width), 100vw);
+	overflow-y: auto;
+	border-left: 1px solid var(--uncial-color-border);
+	background: var(--uncial-color-surface);
+	box-shadow: var(--uncial-shadow-md);
+}
+
+.uncial-editor-sidebar__head {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.uncial-editor-sidebar--overlay > .uncial-attrs-panel {
+	position: static;
+	max-height: none;
+}
+
+/* Bare presentation: the editor draws no surface of its own and reserves no
+   inline space, so `.uncial-content`'s content box is the box the host gave the
+   shell — the premise every width the host's CSS derives from its container
+   (bleed, measure, container queries) depends on. The block handles are the
+   other half of that promise: they float over each block's top-left corner
+   rather than pushing the document inwards, which also keeps them on screen for
+   a block that bleeds past the document column. */
+.uncial-editor-shell--bare {
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+}
+
+.uncial-editor-shell--bare .uncial-content,
+.uncial-editor-shell--bare .uncial-content.uncial-gutter-enabled {
+	padding: 0;
+}
+
+.uncial-editor-shell--bare .uncial-nodeview-gutter {
+	/* The block's own body is positioned and comes later in the DOM, so the
+	   handles need a layer of their own to sit above it. */
+	z-index: 5;
+	left: 0.5rem;
+	top: 0.5rem;
+	bottom: auto;
+	width: auto;
+	flex-direction: row;
+	gap: 0.35rem;
+	border-radius: var(--uncial-radius-md);
+	padding: 0.15rem 0.4rem;
+	background: color-mix(in srgb, var(--uncial-color-surface) 88%, transparent);
+	box-shadow: var(--uncial-shadow-sm);
+	opacity: 0.55;
+	transition: opacity var(--uncial-transition);
+}
+
+.uncial-editor-shell--bare .uncial-nodeview-gutter:hover,
+.uncial-editor-shell--bare .uncial-nodeview-gutter:focus-within {
+	opacity: 1;
+}
+
+.uncial-editor-shell--bare .uncial-gutter-label {
+	max-width: none;
+	white-space: nowrap;
+	word-break: normal;
+}
+
+@media (max-width: 639px) {
+	/* No room beside the panel on a phone: the overlay becomes a bottom sheet. */
+	.uncial-editor-sidebar--overlay {
+		inset: auto 0 0 0;
+		width: auto;
+		max-height: 60dvh;
+		border-left: none;
+		border-top: 1px solid var(--uncial-color-border);
 	}
 }

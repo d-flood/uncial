@@ -26,6 +26,8 @@
 		toolbarFeatures?: ToolbarFeatureSelection;
 		toolbarExtensions?: ToolbarFeature[];
 		attributesController?: BlockAttributesController | null;
+		attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
+		presentation?: 'card' | 'bare';
 		onIssue?: (issue: ValidationIssue) => void;
 		onChange?: (document: JSONContent) => void;
 		onMetaChange?: (meta: Record<string, unknown>) => void;
@@ -41,6 +43,8 @@
 		toolbarFeatures = undefined,
 		toolbarExtensions = [],
 		attributesController = null,
+		attributesPanel = true,
+		presentation = 'card',
 		onIssue,
 		onChange,
 		onMetaChange
@@ -64,6 +68,8 @@
 	{toolbarFeatures}
 	{toolbarExtensions}
 	{attributesController}
+	{attributesPanel}
+	{presentation}
 	onIssue={dispatchIssue}
 	{onChange}
 	{onMetaChange}

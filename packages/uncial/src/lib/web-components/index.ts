@@ -28,6 +28,8 @@ type EditorProps = {
 	toolbarFeatures?: ToolbarFeatureSelection;
 	toolbarExtensions?: ToolbarFeature[];
 	attributesController?: BlockAttributesController | null;
+	attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
+	presentation?: 'card' | 'bare';
 };
 
 type EditorHostProps = EditorProps & {
@@ -202,6 +204,20 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 	}
 	set attributesController(value: EditorProps['attributesController']) {
 		this.setProp('attributesController', value);
+	}
+
+	get attributesPanel(): EditorProps['attributesPanel'] {
+		return this.props.attributesPanel;
+	}
+	set attributesPanel(value: EditorProps['attributesPanel']) {
+		this.setProp('attributesPanel', value);
+	}
+
+	get presentation(): EditorProps['presentation'] {
+		return this.props.presentation;
+	}
+	set presentation(value: EditorProps['presentation']) {
+		this.setProp('presentation', value);
 	}
 
 	protected mountComponent(target: ShadowRoot): Record<string, unknown> {

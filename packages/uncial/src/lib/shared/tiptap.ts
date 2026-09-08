@@ -175,7 +175,15 @@ function createBlockNodeView(
 			if (mounted?.update) {
 				// Update the mounted component's props in place so DOM state (focus,
 				// selection, scroll position) inside the block component survives.
-				mounted.update(buildBlockEditorProps(block, nextNode, editor, onActivate, getPos));
+				//
+				// Queued, not applied here: this runs inside `view.dispatch`, itself
+				// inside the event handler that edited the attribute, and a prop
+				// written to a separately mounted component in that window does not
+				// reach it — the block would keep rendering its old attributes until
+				// something else re-rendered it. A microtask is outside that window
+				// and still lands before paint.
+				const nextProps = buildBlockEditorProps(block, nextNode, editor, onActivate, getPos);
+				queueMicrotask(() => mounted?.update?.(nextProps));
 			} else {
 				// Fall back to a full remount for runtimes without update support.
 				mounted = mountBlockEditorComponent(

@@ -43,12 +43,28 @@
 		attributesController?: BlockAttributesController | null;
 		metaController?: DocumentMetaController | null;
 		/**
-		 * Whether the editor renders its own block/link attributes panel beside
-		 * the document. Registering a block is meant to be all it takes to edit
-		 * one, so this is on by default; set it false in a host that places
+		 * Whether, and how, the editor renders its own block/link attributes
+		 * panel. Registering a block is meant to be all it takes to edit one, so
+		 * a panel is on by default; set `'off'` in a host that places
 		 * `BlockAttributesPanel` itself, or the two panels both render.
+		 *
+		 * `'docked'` gives the panel a column of its own, which narrows the
+		 * document by the panel's width. `'overlay'` floats it against the
+		 * viewport edge for as long as a block is selected, so the document
+		 * keeps exactly the width the host gave it — what a host rendering the
+		 * document at its published width wants.
 		 */
-		attributesPanel?: boolean;
+		attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
+		/**
+		 * `'card'` draws the editor as a bordered, padded surface — right when
+		 * the editor sits in a page of its own chrome. `'bare'` draws no surface
+		 * and reserves no inline space: `.uncial-content`'s content box is
+		 * exactly the box the host gave the shell, and the block handles float
+		 * over each block instead of pushing it inwards. A host that renders the
+		 * document in its published layout wants `'bare'`, or every width the
+		 * page's CSS derives from the container is wrong under the editor.
+		 */
+		presentation?: 'card' | 'bare';
 		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		onIssue?: (issue: ValidationIssue) => void;
@@ -77,6 +93,7 @@
 		attributesController = null,
 		metaController = null,
 		attributesPanel = true,
+		presentation = 'card',
 		onChooseAttribute,
 		onIssue,
 		onChange,
@@ -114,6 +131,17 @@
 
 	const registry = $derived(resolveRegistry(blocks));
 	const controller = $derived(attributesController ?? internalController);
+	const panelMode = $derived.by(() => {
+		if (attributesPanel === true) return 'docked';
+		if (attributesPanel === false) return 'off';
+		return attributesPanel;
+	});
+	// An overlay panel covers the page, so it is only mounted while it has
+	// something to edit; a docked one holds its column either way.
+	const panelVisible = $derived(
+		panelMode === 'docked' ||
+			(panelMode === 'overlay' && (controllerState.open || controllerState.link.open))
+	);
 	const resolvedMetaFields = $derived.by(() => {
 		if (metaFields instanceof Map) return metaFields;
 		if (metaFields) return new Map(Object.entries(metaFields));
@@ -128,6 +156,7 @@
 		meta,
 		extensions,
 		attributesController: controller,
+		autoOpenAttributes: panelMode !== 'overlay',
 		onIssue,
 		onChange: (nextDocument) => {
 			setDocument(nextDocument);
@@ -334,7 +363,7 @@
 	});
 </script>
 
-<div class="uncial-editor-shell">
+<div class={['uncial-editor-shell', presentation === 'bare' && 'uncial-editor-shell--bare']}>
 	<div class="uncial-toolbar">
 		<Toolbar
 			{editor}
@@ -397,8 +426,28 @@
 			use:bindEditor={editorBinding}
 		></div>
 	</div>
-	{#if attributesPanel}
-		<aside class="uncial-editor-sidebar" aria-label="Block attributes">
+	{#if panelVisible}
+		<aside
+			class={[
+				'uncial-editor-sidebar',
+				panelMode === 'overlay' && 'uncial-editor-sidebar--overlay'
+			]}
+			aria-label="Block attributes"
+		>
+			{#if panelMode === 'overlay'}
+				<div class="uncial-editor-sidebar__head">
+					<button
+						type="button"
+						class="uncial-btn uncial-btn--ghost uncial-btn--sm"
+						onclick={() => {
+							controller.closeLinkAttributes();
+							controller.closeAttributes();
+						}}
+					>
+						Close
+					</button>
+				</div>
+			{/if}
 			<BlockAttributesPanel {controller} {blocks} {onChooseAttribute} />
 		</aside>
 	{/if}

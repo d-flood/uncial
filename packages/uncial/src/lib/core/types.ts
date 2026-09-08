@@ -12,6 +12,7 @@ export type AttributeInputKind =
 	| 'number'
 	| 'checkbox'
 	| 'json'
+	| 'list'
 	| 'richtext'
 	| 'select'
 	| 'hidden'
@@ -39,6 +40,19 @@ export type RichTextFeature =
 
 export type RichTextFeatureSelection = '*' | '__all__' | RichTextFeature[];
 
+/**
+ * The shape of one item in a list-valued attribute, which the editor renders as
+ * a stack of real fields with add/remove/reorder instead of raw JSON. Declare
+ * `fields` for items that are records and `value` for items that are single
+ * values; `defineBlock` rejects a list that declares neither.
+ */
+export interface AttributeListSpec {
+	fields?: Record<string, AttributeConfig<unknown>>;
+	value?: AttributeConfig<unknown>;
+	/** Singular noun for one item, used in the add button and item controls. */
+	itemLabel?: string;
+}
+
 export interface AttributeSpec<T> {
 	default: T;
 	required?: boolean;
@@ -48,6 +62,8 @@ export interface AttributeSpec<T> {
 	input?: AttributeInputKind;
 	placeholder?: string;
 	options?: ReadonlyArray<T | AttributeOption<T>>;
+	/** Item shape for an array-valued attribute; implies `input: 'list'`. */
+	list?: AttributeListSpec;
 	richText?: {
 		features?: RichTextFeatureSelection;
 		placeholder?: string;

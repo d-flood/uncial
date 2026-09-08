@@ -12,7 +12,10 @@ import {
 } from './index.js';
 import { defineSvelteBlock } from '../runtime/svelte.js';
 import {
+	attributeListFields,
+	attributeListValueSpec,
 	coerceAttributeValue,
+	createAttributeListItem,
 	inferAttributeInputKind,
 	normalizeAttributeOptions,
 	normalizeBlockAttributes,
@@ -457,6 +460,48 @@ describe('core', () => {
 		expect(inferAttributeInputKind(spec)).toBe('richtext');
 		expect(coerceAttributeValue(spec, 'Draft')).toEqual(richTextDocument('Draft'));
 		expect(toAttributeDraftValue(spec, 'Draft')).toEqual(richTextDocument('Draft'));
+	});
+
+	it('edits a list attribute as items rather than JSON text', () => {
+		const spec = {
+			default: [{ label: 'Hours', value: '3-6pm' }],
+			list: { itemLabel: 'fact', fields: { label: '', value: '' } }
+		};
+
+		expect(inferAttributeInputKind(spec)).toBe('list');
+		// The draft value is the array itself: the control edits items, and the
+		// parse back through `coerceAttributeValue` is the identity it expects.
+		const draft = toAttributeDraftValue(spec, [{ label: 'Location', value: 'Edgerton' }]);
+		expect(draft).toEqual([{ label: 'Location', value: 'Edgerton' }]);
+		expect(coerceAttributeValue(spec, draft)).toEqual(draft);
+
+		expect(attributeListFields(spec.list).map(([name]) => name)).toEqual(['label', 'value']);
+		expect(attributeListValueSpec(spec.list)).toBeNull();
+		expect(createAttributeListItem(spec.list)).toEqual({ label: '', value: '' });
+	});
+
+	it('edits a list of single values through one item spec', () => {
+		const spec = {
+			default: [] as string[],
+			list: { itemLabel: 'essay', value: { default: '', options: ['one', 'two'] } }
+		};
+
+		expect(inferAttributeInputKind(spec)).toBe('list');
+		expect(attributeListFields(spec.list)).toEqual([]);
+		expect(attributeListValueSpec(spec.list)?.options).toEqual(['one', 'two']);
+		expect(createAttributeListItem(spec.list)).toBe('');
+		expect(toAttributeDraftValue(spec, ['one'])).toEqual(['one']);
+	});
+
+	it('rejects a list attribute with no item shape', () => {
+		expect(() =>
+			defineSvelteBlock({
+				id: 'shapeless',
+				label: 'Shapeless',
+				attributes: { rows: { default: [] as string[], list: {} } },
+				component: Dummy
+			})
+		).toThrow(/neither "list.fields" nor "list.value"/);
 	});
 
 	it('resolves rich text feature selections defensively', () => {
