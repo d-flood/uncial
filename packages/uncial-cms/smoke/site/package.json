@@ -1,0 +1,11 @@
+{
+	"name": "uncial-smoke-site",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"dependencies": {
+		"uncial": "__UNCIAL_TARBALL__",
+		"uncial-cms": "__UNCIAL_CMS_TARBALL__"
+	},
+	"devDependencies": {}
+}

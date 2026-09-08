@@ -1,0 +1,7 @@
+# The fixture is its own workspace root: pnpm's upward search for a workspace
+# stops here, so the site never joins the repository's workspace however the
+# temp dir is placed. `--ignore-workspace` would isolate it too, but it also
+# discards this file's `allowBuilds`, leaving the install to fail on esbuild's
+# unapproved postinstall.
+allowBuilds:
+  esbuild: true
