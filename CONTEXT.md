@@ -41,9 +41,29 @@ hosts create/delete plus the Fallback editor.
 _Avoid_: Dashboard, admin home
 
 **Site config**:
-The per-site record (`siteConfig`) baked at build time naming the forge, repo,
-branch, content dir, auth worker URL, and app slug.
+The per-site record (`UncialCmsSiteConfig`) baked at build time naming the
+forge, repo, branch, content dir, auth worker URL, and app slug.
 _Avoid_: Settings, options
+
+**Site object**:
+What `defineSite(siteOptions)` returns: the Site config resolved for the current
+build, plus `localOnly`, `autosaveMs` and `localContentDir`. The thing the route
+factories, the Editor page component and the index mount are handed.
+_Avoid_: Site, config object
+
+**Local-only site**:
+A site declaring no GitHub half, so it has no forge to commit to and its Editor
+variants exist in development only — absent, with the whole editor stack, from
+the production build.
+_Avoid_: Dev-only site, offline site
+
+**Editor page component**:
+`EditorPage` from `uncial-cms/svelte`: the recommended door onto an Editor
+variant in a SvelteKit site. Renders the editor in the light DOM, in the host's
+own cascade, and owns the status line, conflict banner, metadata seeding and
+autosave. The shadow-root `mountEditorPage` remains the door for hosts without
+Svelte.
+_Avoid_: Editor component, EditorPage wrapper
 
 **Allowlist**:
 The in-repo `.uncial/cms.json` file, read by the auth worker, that authorizes
@@ -51,8 +71,8 @@ editor origins for a repo. Origin-keyed, not per-site.
 _Avoid_: Whitelist, config
 
 **Docs page**:
-One of the ~4–5 grouped CMS-managed documentation Content documents in
-`uncial-docs` (getting-started, blocks, rendering, advanced, …).
+One of the grouped CMS-managed documentation Content documents in `uncial-docs`
+(getting-started, blocks, rendering, integrations, static-site, …).
 _Avoid_: Doc, article, chapter
 
 **Callout block**:
@@ -61,8 +81,9 @@ A custom Block used in the docs for note/warning/tip admonitions — the canonic
 _Avoid_: Admonition, alert, aside
 
 **Image block**:
-A custom Block used in the docs to place a screenshot/figure by referencing a
-committed static asset path (no media upload — see the CMS media non-goal).
+A custom Block used in the docs to place a screenshot/figure. Its editor
+affordance uploads a file through `uploadImageAsset`, commits it under the
+site's media dir, and stores the `servedUrl` as `src`.
 _Avoid_: Figure, media, upload
 
 **Table of contents (TOC)**:
