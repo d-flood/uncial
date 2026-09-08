@@ -5,6 +5,13 @@ export type {
 	SessionProvider,
 	UncialCmsSiteConfig
 } from './types.js';
+export {
+	defineSite,
+	DEFAULT_APP_SLUG,
+	DEFAULT_AUTH_WORKER_URL,
+	type Site,
+	type SiteOptions
+} from './define-site.js';
 export { ConflictError, NotFoundError } from './errors.js';
 export { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 export { mountEditorPage, type MountEditorPageOptions } from './mount.js';
