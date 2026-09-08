@@ -1,5 +1,5 @@
 import { bytesToBase64 } from '../base64.js';
-import { NotFoundError } from '../errors.js';
+import { ConflictError, NotFoundError } from '../errors.js';
 import type {
 	ForgeAdapter,
 	ForgeSession,
@@ -35,11 +35,13 @@ class LocalAdapter implements ForgeAdapter {
 	async writeFile(
 		path: string,
 		content: string | Uint8Array,
-		_opts: { message: string; sha?: string; author: { name: string; email: string } }
+		opts: { message: string; sha?: string; author: { name: string; email: string } }
 	): Promise<{ sha: string; commitSha: string }> {
 		return this.#request('PUT', `files/${this.#path(path)}`, {
 			content: typeof content === 'string' ? content : bytesToBase64(content),
-			...(typeof content === 'string' ? {} : { encoding: 'base64' })
+			...(typeof content === 'string' ? {} : { encoding: 'base64' }),
+			// Absent = create or replace outright, as on the GitHub adapter.
+			...(opts.sha === undefined ? {} : { sha: opts.sha })
 		});
 	}
 
@@ -87,6 +89,7 @@ class LocalAdapter implements ForgeAdapter {
 
 		const error = (await response.json().catch(() => ({}))) as ApiError;
 		if (response.status === 404) throw new NotFoundError(error.error ?? 'File not found.');
+		if (response.status === 409) throw new ConflictError(error.error);
 		throw new Error(error.error ?? `Local request failed (${response.status}).`);
 	}
 }

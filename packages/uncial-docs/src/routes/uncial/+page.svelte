@@ -4,18 +4,19 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { mountIndexPage } from 'uncial-cms';
-	import { blocks, schema, siteConfig } from '../site.js';
+	import { blocks, schema, site } from '../site.js';
 
 	let { data } = $props();
 	let target: HTMLElement;
 
 	onMount(() => {
 		const handle = mountIndexPage(target, {
-			config: siteConfig,
+			config: site.config,
 			blocks,
 			schema,
 			basePath: base
-			// Uses the default popupSessionProvider; authWorkerUrl is set in site.ts.
+			// Uses the provider the resolved forge implies; the GitHub half's
+			// authWorkerUrl comes from site.options.ts.
 		});
 		return () => handle.destroy();
 	});
