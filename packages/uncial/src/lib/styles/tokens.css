@@ -4,25 +4,25 @@
 .uncial-link-panel,
 .uncial-richtext-wrapper,
 .uncial-block-menu {
-	--uncial-color-bg: oklch(99% 0.006 85);
-	--uncial-color-surface: oklch(99% 0.006 85);
-	--uncial-color-surface-elevated: oklch(96% 0.022 85);
-	--uncial-color-border: oklch(91% 0.032 82);
+	--uncial-color-bg: light-dark(oklch(99% 0.006 85), oklch(18% 0.015 60));
+	--uncial-color-surface: light-dark(oklch(99% 0.006 85), oklch(18% 0.015 60));
+	--uncial-color-surface-elevated: light-dark(oklch(96% 0.022 85), oklch(22% 0.02 60));
+	--uncial-color-border: light-dark(oklch(91% 0.032 82), oklch(27% 0.025 60));
 	--uncial-color-border-strong: color-mix(
 		in srgb,
 		var(--uncial-color-text) 22%,
 		var(--uncial-color-border)
 	);
-	--uncial-color-text: oklch(22% 0.04 45);
+	--uncial-color-text: light-dark(oklch(22% 0.04 45), oklch(92% 0.015 85));
 	--uncial-color-text-muted: color-mix(in srgb, var(--uncial-color-text) 62%, transparent);
-	--uncial-color-text-inverted: oklch(98% 0.015 85);
-	--uncial-color-primary: oklch(46% 0.14 260);
-	--uncial-color-primary-contrast: oklch(98% 0.015 85);
-	--uncial-color-accent: oklch(58% 0.12 75);
-	--uncial-color-danger: oklch(48% 0.18 25);
+	--uncial-color-text-inverted: light-dark(oklch(98% 0.015 85), oklch(16% 0.03 260));
+	--uncial-color-primary: light-dark(oklch(46% 0.14 260), oklch(72% 0.13 260));
+	--uncial-color-primary-contrast: light-dark(oklch(98% 0.015 85), oklch(16% 0.03 260));
+	--uncial-color-accent: light-dark(oklch(58% 0.12 75), oklch(78% 0.13 75));
+	--uncial-color-danger: light-dark(oklch(48% 0.18 25), oklch(72% 0.16 25));
 	--uncial-color-focus-ring: var(--uncial-color-primary);
-	--uncial-color-code-bg: oklch(24% 0.04 45);
-	--uncial-color-code-text: oklch(96% 0.015 85);
+	--uncial-color-code-bg: light-dark(oklch(24% 0.04 45), oklch(13% 0.015 60));
+	--uncial-color-code-text: light-dark(oklch(96% 0.015 85), oklch(94% 0.015 85));
 
 	--uncial-font-body: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
 	--uncial-font-display: var(--uncial-font-body);
@@ -52,26 +52,4 @@
 	--uncial-shadow-sm: 0 1px 2px color-mix(in srgb, black 8%, transparent);
 	--uncial-shadow-md: 0 10px 25px color-mix(in srgb, black 14%, transparent);
 	--uncial-transition: 140ms ease;
-}
-
-@media (prefers-color-scheme: dark) {
-	.uncial-editor-shell,
-	.uncial-renderer,
-	.uncial-attrs-panel,
-	.uncial-link-panel,
-	.uncial-richtext-wrapper,
-	.uncial-block-menu {
-		--uncial-color-bg: oklch(18% 0.015 60);
-		--uncial-color-surface: oklch(18% 0.015 60);
-		--uncial-color-surface-elevated: oklch(22% 0.02 60);
-		--uncial-color-border: oklch(27% 0.025 60);
-		--uncial-color-text: oklch(92% 0.015 85);
-		--uncial-color-text-inverted: oklch(16% 0.03 260);
-		--uncial-color-primary: oklch(72% 0.13 260);
-		--uncial-color-primary-contrast: oklch(16% 0.03 260);
-		--uncial-color-accent: oklch(78% 0.13 75);
-		--uncial-color-danger: oklch(72% 0.16 25);
-		--uncial-color-code-bg: oklch(13% 0.015 60);
-		--uncial-color-code-text: oklch(94% 0.015 85);
-	}
 }
