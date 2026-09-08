@@ -1,5 +1,18 @@
 # uncial-wagtail
 
+## 1.0.0
+
+### Minor Changes
+
+- c9f709a: Polish the editor and core runtime: live attribute edits now validate per-field, metadata support is available on `<uncial-editor>`, and browser-only editor code stays out of SSR imports.
+
+  Also tightens attribute defaults/schema guards, improves editor accessibility and Wagtail admin layout, and replaces global chooser events with scoped callbacks.
+
+### Patch Changes
+
+- Updated dependencies [c9f709a]
+  - uncial@1.0.0
+
 ## 0.0.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
 	"name": "uncial-cms-auth",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"license": "MIT",
 	"description": "Stateless Cloudflare Worker that exchanges a GitHub OAuth dance for a single-repo-scoped GitHub App installation token, for uncial-cms.",
 	"repository": {
