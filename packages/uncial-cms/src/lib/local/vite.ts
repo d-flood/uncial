@@ -7,8 +7,19 @@ import { MAX_CONTENT_BYTES } from '../constants.js';
 import { LOCAL_API_PATH } from './constants.js';
 
 export interface LocalVitePluginOptions {
-	contentDir: string;
+	/** Repository root: every path the endpoint receives resolves against it. */
+	root: string;
+	/** Repo-root-relative directories a request may address, as the site declares them. */
+	permittedRoots: string[];
 }
+
+/**
+ * A base64 body spends four bytes on every three of payload, and the JSON
+ * envelope adds its keys on top, so the request cap has to clear the envelope of
+ * a `MAX_CONTENT_BYTES` upload — which is exactly the size `fitImage` targets.
+ * The decoded cap in {@link handleWrite} is the one that enforces the limit.
+ */
+const MAX_REQUEST_BYTES = Math.ceil(MAX_CONTENT_BYTES / 3) * 4 + 1024;
 
 class HttpError extends Error {
 	constructor(readonly status: number, message: string) {
@@ -31,8 +42,8 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 	for await (const chunk of request) {
 		const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 		size += bytes.byteLength;
-		if (size > MAX_CONTENT_BYTES) {
-			throw new HttpError(413, `Request body exceeds ${MAX_CONTENT_BYTES} bytes.`);
+		if (size > MAX_REQUEST_BYTES) {
+			throw new HttpError(413, `Request body exceeds ${MAX_REQUEST_BYTES} bytes.`);
 		}
 		chunks.push(bytes);
 	}
@@ -44,7 +55,32 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 	}
 }
 
-function contentPath(contentDir: string, encodedPath: string): string {
+/**
+ * The absolute paths of the directories a request may address, and the resolver
+ * that confines a repo-root-relative path to them.
+ */
+interface Roots {
+	root: string;
+	permitted: Array<{ declared: string; absolute: string }>;
+}
+
+function resolveRoots({ root, permittedRoots }: LocalVitePluginOptions): Roots {
+	const repositoryRoot = resolve(root);
+	return {
+		root: repositoryRoot,
+		permitted: permittedRoots.map((declared) => ({
+			declared,
+			absolute: resolve(repositoryRoot, declared)
+		}))
+	};
+}
+
+function contains(directory: string, target: string): boolean {
+	const from = relative(directory, target);
+	return from === '' || (!from.startsWith(`..${sep}`) && from !== '..' && !isAbsolute(from));
+}
+
+function repositoryPath(roots: Roots, encodedPath: string): string {
 	let path: string;
 	try {
 		path = decodeURIComponent(encodedPath);
@@ -52,11 +88,10 @@ function contentPath(contentDir: string, encodedPath: string): string {
 		throw new HttpError(400, 'Path is not valid URL encoding.');
 	}
 
-	const root = resolve(contentDir);
-	const target = resolve(root, path);
-	const fromRoot = relative(root, target);
-	if (fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) {
-		throw new HttpError(403, 'Path must stay within the content directory.');
+	const target = resolve(roots.root, path);
+	if (!roots.permitted.some((permitted) => contains(permitted.absolute, target))) {
+		const names = roots.permitted.map((permitted) => permitted.declared).join(', ');
+		throw new HttpError(403, `Path must stay within ${names}.`);
 	}
 	return target;
 }
@@ -64,11 +99,11 @@ function contentPath(contentDir: string, encodedPath: string): string {
 async function handleRead(
 	request: IncomingMessage,
 	response: ServerResponse,
-	contentDir: string,
+	roots: Roots,
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = contentPath(contentDir, encodedPath);
+	const target = repositoryPath(roots, encodedPath);
 	let content: Buffer;
 	try {
 		content = await readFile(target);
@@ -91,7 +126,7 @@ async function handleRead(
 async function handleWrite(
 	request: IncomingMessage,
 	response: ServerResponse,
-	contentDir: string,
+	roots: Roots,
 	encodedPath: string
 ): Promise<void> {
 	const body = await readJson(request);
@@ -105,7 +140,7 @@ async function handleWrite(
 	if (body.sha !== undefined && typeof body.sha !== 'string') {
 		throw new HttpError(400, 'Write sha must be a string when provided.');
 	}
-	const target = contentPath(contentDir, encodedPath);
+	const target = repositoryPath(roots, encodedPath);
 	const content = Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8');
 	if (content.byteLength > MAX_CONTENT_BYTES) {
 		throw new HttpError(413, `Content exceeds ${MAX_CONTENT_BYTES} bytes.`);
@@ -145,11 +180,11 @@ async function handleWrite(
 async function handleDelete(
 	request: IncomingMessage,
 	response: ServerResponse,
-	contentDir: string,
+	roots: Roots,
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = contentPath(contentDir, encodedPath);
+	const target = repositoryPath(roots, encodedPath);
 	try {
 		await unlink(target);
 	} catch (error) {
@@ -164,11 +199,11 @@ async function handleDelete(
 async function handleList(
 	request: IncomingMessage,
 	response: ServerResponse,
-	contentDir: string,
+	roots: Roots,
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = contentPath(contentDir, encodedPath);
+	const target = repositoryPath(roots, encodedPath);
 	let entries: Array<{ name: string; isFile(): boolean; isDirectory(): boolean }>;
 	try {
 		entries = await readdir(target, { encoding: 'utf8', withFileTypes: true });
@@ -178,18 +213,18 @@ async function handleList(
 		}
 		throw error;
 	}
-	const root = resolve(contentDir);
 	sendJson(response, 200, {
 		entries: entries
 			.filter((entry) => entry.isFile() || entry.isDirectory())
 			.map((entry) => ({
-				path: relative(root, resolve(target, entry.name)).split(sep).join('/'),
+				path: relative(roots.root, resolve(target, entry.name)).split(sep).join('/'),
 				type: entry.isDirectory() ? 'dir' : 'file'
 			}))
 	});
 }
 
-export function createLocalVitePlugin({ contentDir }: LocalVitePluginOptions): Plugin {
+export function createLocalVitePlugin(options: LocalVitePluginOptions): Plugin {
+	const roots = resolveRoots(options);
 	const filePrefix = `${LOCAL_API_PATH}/files/`;
 	const directoryPrefix = `${LOCAL_API_PATH}/dirs/`;
 	return {
@@ -199,15 +234,20 @@ export function createLocalVitePlugin({ contentDir }: LocalVitePluginOptions): P
 		},
 		config(_config, env) {
 			if (env.command !== 'serve') return;
-			const root = resolve(contentDir);
+			const watched = roots.permitted.map((permitted) => permitted.absolute);
 			return {
 				server: {
 					host: '127.0.0.1',
-					// Every write under the content directory arrives through this
-					// plugin's own endpoint, so a watcher event for one is the author's
-					// own autosave landing. Watched, it makes Vite full-reload the page
+					// Every write under a permitted root arrives through this plugin's
+					// own endpoint, so a watcher event for one is the author's own
+					// autosave landing. Watched, it makes Vite full-reload the page
 					// mid-edit and the editing session goes with it.
-					watch: { ignored: [(path: string) => path === root || path.startsWith(`${root}${sep}`)] }
+					watch: {
+						ignored: [
+							(path: string) =>
+								watched.some((root) => path === root || path.startsWith(`${root}${sep}`))
+						]
+					}
 				}
 			};
 		},
@@ -237,7 +277,7 @@ export function createLocalVitePlugin({ contentDir }: LocalVitePluginOptions): P
 					return;
 				}
 				const encodedPath = path.slice((isDirectory ? directoryPrefix : filePrefix).length);
-				void handler(request, response, contentDir, encodedPath).catch((error) => {
+				void handler(request, response, roots, encodedPath).catch((error) => {
 					if (error instanceof HttpError) {
 						sendJson(response, error.status, { error: error.message });
 						return;
