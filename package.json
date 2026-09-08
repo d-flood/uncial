@@ -11,6 +11,7 @@
 		"wagtail:serve": "echo '>> Wagtail demo admin → http://localhost:8000/admin/  (login: admin / admin)' && pnpm --filter uncial-wagtail run demo",
 		"dev:wagtail": "pnpm run build:wagtail && pnpm run wagtail:setup && pnpm run wagtail:serve",
 		"prepack": "pnpm --filter uncial run prepack && pnpm --filter uncial-cms run prepack",
+		"smoke:packed": "node scripts/smoke-packed.mjs",
 		"version": "changeset version && node scripts/sync-py-versions.ts && uv lock --project packages/uncial-wagtail",
 		"release": "pnpm run prepack && changeset publish"
 	},

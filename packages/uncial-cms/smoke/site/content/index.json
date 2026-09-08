@@ -1,0 +1,20 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": { "title": "The packed-tarball fixture" },
+	"content": [
+		{
+			"type": "paragraph",
+			"content": [{ "type": "text", "text": "Installed from tarballs, not from source." }]
+		},
+		{
+			"type": "note",
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [{ "type": "text", "text": "A Svelte block, to exercise the runtime." }]
+				}
+			]
+		}
+	]
+}

@@ -65,6 +65,11 @@ jobs:
       - name: Tests (uncial-cms-auth)
         run: pnpm --filter uncial-cms-auth run test -- --run
 
+      # Packs both libraries and builds a bare SvelteKit site from the tarballs:
+      # the only exercise of dist/ and exports as an installer resolves them.
+      - name: Packed-tarball smoke test
+        run: pnpm run smoke:packed
+
       - name: Sync Python dependencies
         run: uv sync --locked
         working-directory: packages/uncial-wagtail
