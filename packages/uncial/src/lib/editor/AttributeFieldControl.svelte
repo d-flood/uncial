@@ -6,9 +6,21 @@
 </script>
 
 <script lang="ts">
-	import { inferAttributeInputKind, normalizeAttributeOptions } from '../core/attributes.js';
+	import {
+		attributeListFields,
+		attributeListValueSpec,
+		createAttributeListItem,
+		inferAttributeInputKind,
+		normalizeAttributeOptions
+	} from '../core/attributes.js';
 	import type { AttributeSpec } from '../core/types.js';
+	import ArrowUpIcon from 'phosphor-svelte/lib/ArrowUpIcon';
+	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
+	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
+	// A list item's fields are ordinary attributes, edited by this same control.
+	import AttributeFieldControl from './AttributeFieldControl.svelte';
 
 	interface Props {
 		name: string;
@@ -26,7 +38,9 @@
 	// The rich-text editor and custom choosers render a component / <button>,
 	// neither of which a <label for> can address, so only native form controls
 	// get an associated <label>.
-	const hasLabelableControl = $derived(isBuiltInInputKind(inputKind) && inputKind !== 'richtext');
+	const hasLabelableControl = $derived(
+		isBuiltInInputKind(inputKind) && inputKind !== 'richtext' && inputKind !== 'list'
+	);
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
 	const stringValue = $derived.by(() => {
 		if (typeof value === 'string') return value;
@@ -43,10 +57,49 @@
 		return [{ value: stringValue, label: `${stringValue} (current)` }, ...options];
 	});
 
+	const list = $derived(spec.list ?? {});
+	const listFields = $derived(attributeListFields(list));
+	const listValueSpec = $derived(attributeListValueSpec(list));
+	const itemLabel = $derived(list.itemLabel ?? 'item');
+	const items = $derived(Array.isArray(value) ? (value as unknown[]) : []);
+
 	function isBuiltInInputKind(kind: string): boolean {
-		return ['checkbox', 'number', 'richtext', 'select', 'textarea', 'json', 'text', 'hidden'].includes(
-			kind
-		);
+		return [
+			'checkbox',
+			'number',
+			'richtext',
+			'select',
+			'textarea',
+			'json',
+			'list',
+			'text',
+			'hidden'
+		].includes(kind);
+	}
+
+	function replaceItem(index: number, next: unknown): void {
+		onChange(items.map((item, position) => (position === index ? next : item)));
+	}
+
+	function setItemField(index: number, field: string, next: unknown): void {
+		const item = items[index];
+		replaceItem(index, { ...(item as Record<string, unknown>), [field]: next });
+	}
+
+	function moveItem(index: number, target: number): void {
+		if (target < 0 || target >= items.length) return;
+		const next = [...items];
+		const [moved] = next.splice(index, 1);
+		next.splice(target, 0, moved);
+		onChange(next);
+	}
+
+	function removeItem(index: number): void {
+		onChange(items.filter((_, position) => position !== index));
+	}
+
+	function addItem(): void {
+		onChange([...items, createAttributeListItem(list)]);
 	}
 </script>
 
@@ -109,6 +162,73 @@
 					<option value={String(option.value)}>{option.label ?? String(option.value)}</option>
 				{/each}
 			</select>
+		{:else if inputKind === 'list'}
+			<div class="uncial-list-field">
+				{#each items as item, index (index)}
+					<div class="uncial-list-item">
+						<div class="uncial-list-item__head">
+							<span class="uncial-section-label">{itemLabel} {index + 1}</span>
+							<div class="uncial-child-item__actions">
+								<button
+									type="button"
+									class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square"
+									aria-label={`Move ${itemLabel} up`}
+									disabled={index === 0}
+									onclick={() => moveItem(index, index - 1)}
+								>
+									<ArrowUpIcon size={12} weight="bold" />
+								</button>
+								<button
+									type="button"
+									class="uncial-btn uncial-btn--ghost uncial-btn--xs uncial-btn--square"
+									aria-label={`Move ${itemLabel} down`}
+									disabled={index === items.length - 1}
+									onclick={() => moveItem(index, index + 1)}
+								>
+									<ArrowDownIcon size={12} weight="bold" />
+								</button>
+								<button
+									type="button"
+									class="uncial-btn uncial-btn--ghost uncial-btn--danger uncial-btn--xs uncial-btn--square"
+									aria-label={`Remove ${itemLabel}`}
+									onclick={() => removeItem(index)}
+								>
+									<TrashIcon size={12} weight="bold" />
+								</button>
+							</div>
+						</div>
+						{#if listValueSpec}
+							<AttributeFieldControl
+								name={itemLabel}
+								spec={listValueSpec}
+								value={item}
+								onChange={(next) => replaceItem(index, next)}
+								{onCustom}
+							/>
+						{:else}
+							{#each listFields as [fieldName, fieldSpec] (fieldName)}
+								<AttributeFieldControl
+									name={fieldName}
+									spec={fieldSpec}
+									value={(item as Record<string, unknown>)?.[fieldName]}
+									onChange={(next) => setItemField(index, fieldName, next)}
+									{onCustom}
+								/>
+							{/each}
+						{/if}
+					</div>
+				{:else}
+					<p class="uncial-help-text">No {itemLabel}s yet.</p>
+				{/each}
+				<button
+					type="button"
+					class="uncial-btn uncial-btn--primary uncial-btn--xs uncial-btn--start"
+					onclick={addItem}
+				>
+					<PlusIcon size={12} weight="bold" />
+					<span>Add {itemLabel}</span>
+				</button>
+			</div>
 		{:else if inputKind === 'textarea' || inputKind === 'json'}
 			<textarea
 				id={fieldId}

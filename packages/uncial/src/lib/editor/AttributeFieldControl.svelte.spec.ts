@@ -85,3 +85,88 @@ describe('AttributeFieldControl select', () => {
 		expect(firstId).not.toBe(secondId);
 	});
 });
+
+describe('AttributeFieldControl list', () => {
+	const factsSpec: AttributeSpec<Array<{ label: string; value: string }>> = {
+		default: [],
+		list: { itemLabel: 'fact', fields: { label: '', value: '' } }
+	};
+
+	it('renders a field per item field instead of a JSON textarea', async () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'facts',
+			spec: factsSpec,
+			value: [
+				{ label: 'Hours', value: '3-6pm' },
+				{ label: 'Location', value: 'Edgerton' }
+			],
+			onChange: () => {}
+		});
+
+		expect(rendered.container.querySelector('textarea')).toBeNull();
+		const inputs = Array.from(rendered.container.querySelectorAll('input'));
+		expect(inputs.map((input) => input.value)).toEqual([
+			'Hours',
+			'3-6pm',
+			'Location',
+			'Edgerton'
+		]);
+	});
+
+	it('reports edits, additions, reordering and removal as whole arrays', async () => {
+		const changes: unknown[] = [];
+		const value = [
+			{ label: 'Hours', value: '3-6pm' },
+			{ label: 'Location', value: 'Edgerton' }
+		];
+		const rendered = render(AttributeFieldControl, {
+			name: 'facts',
+			spec: factsSpec,
+			value,
+			onChange: (next) => changes.push(next)
+		});
+
+		const input = rendered.container.querySelectorAll('input')[0] as HTMLInputElement;
+		input.value = 'Open';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(changes.at(-1)).toEqual([
+			{ label: 'Open', value: '3-6pm' },
+			{ label: 'Location', value: 'Edgerton' }
+		]);
+
+		const button = (label: string) =>
+			rendered.container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+		button('Move fact down')?.click();
+		expect(changes.at(-1)).toEqual([
+			{ label: 'Location', value: 'Edgerton' },
+			{ label: 'Hours', value: '3-6pm' }
+		]);
+
+		button('Remove fact')?.click();
+		expect(changes.at(-1)).toEqual([{ label: 'Location', value: 'Edgerton' }]);
+
+		rendered.container.querySelector<HTMLButtonElement>('.uncial-list-field > button')?.click();
+		expect(changes.at(-1)).toEqual([...value, { label: '', value: '' }]);
+	});
+
+	it('edits a list of single values with one control per item', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'slugs',
+			spec: {
+				default: [] as string[],
+				list: { itemLabel: 'essay', value: { default: '', options: ['one', 'two'] } }
+			},
+			value: ['two'],
+			onChange: (next) => changes.push(next)
+		});
+
+		const selects = Array.from(rendered.container.querySelectorAll('select'));
+		expect(selects).toHaveLength(1);
+		expect(selects[0].value).toBe('two');
+
+		selects[0].value = 'one';
+		selects[0].dispatchEvent(new Event('change', { bubbles: true }));
+		expect(changes.at(-1)).toEqual(['one']);
+	});
+});

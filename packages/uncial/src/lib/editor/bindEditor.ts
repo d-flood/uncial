@@ -26,6 +26,13 @@ export interface BindEditorOptions {
 	meta?: Record<string, unknown>;
 	extensions?: AnyExtension[];
 	attributesController?: BlockAttributesController | null;
+	/**
+	 * Whether selecting a block opens its attributes panel by itself. Right for
+	 * a panel that holds a column of its own; wrong for one that floats over the
+	 * document, where an unasked-for panel covers the page. Off, the block's own
+	 * gutter label opens it.
+	 */
+	autoOpenAttributes?: boolean;
 	onIssue?: (issue: ValidationIssue) => void;
 	onChange?: (json: JSONContent) => void;
 	onMetaChange?: (meta: Record<string, unknown>) => void;
@@ -191,6 +198,10 @@ export function bindEditor(
 	}
 
 	function shouldAutoOpenAttributesForSelection(nextEditor: TiptapEditor): boolean {
+		if (options.autoOpenAttributes === false) {
+			return false;
+		}
+
 		if (controller.isSelectionAutoOpenSuppressed()) {
 			return false;
 		}

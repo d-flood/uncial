@@ -10,43 +10,15 @@ import type {
 	RuntimeBlockConfig
 } from './types.js';
 import type { BlockRuntimePlugin } from './runtime.js';
-import { isAttributeOption, isPlainObject } from '../shared/guards.js';
-
-// The keys that mark an object as an AttributeSpec *configuration* rather than a
-// shorthand object default. An object carrying any of these is treated as a
-// config object; to use an object literal AS the default value, wrap it
-// explicitly: `{ default: { ... } }`.
-const CONFIG_KEYS = [
-	'default',
-	'required',
-	'validate',
-	'parse',
-	'serialize',
-	'input',
-	'placeholder',
-	'options',
-	'richText'
-] as const;
-
-/**
- * Distinguishes a spec/config object (`{ default, input, ... }`) from a bare
- * object used directly as the default value. Any plain object carrying a known
- * config key is a config; everything else is a shorthand default. This makes a
- * config object that forgot its `default` detectable (see {@link validateConfig})
- * instead of being silently misparsed as an object-valued default.
- */
-function looksLikeConfig<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
-	return isPlainObject(value) && CONFIG_KEYS.some((key) => key in value);
-}
+import { isAttributeOption } from '../shared/guards.js';
+import { isAttributeSpecConfig, toAttributeSpec } from './attributes.js';
 
 function optionValues<T>(options: ReadonlyArray<T | AttributeOption<T>>): T[] {
 	return options.map((option) => (isAttributeOption<T>(option) ? option.value : (option as T)));
 }
 
 function normalizeAttribute<T>(value: AttributeConfig<T>): AttributeSpec<T> {
-	const spec: AttributeSpec<T> = looksLikeConfig(value)
-		? { ...(value as AttributeSpec<T>) }
-		: ({ default: value } as AttributeSpec<T>);
+	const spec = toAttributeSpec(value);
 
 	if (spec.options && spec.options.length > 0 && !spec.validate) {
 		const allowed = optionValues(spec.options);
@@ -85,11 +57,20 @@ function validateConfig<Attrs extends BlockAttributes, Component>(
 		// object that forgot its default (previously misparsed as an object-valued
 		// default, making this check unreachable). Objects with no config keys are
 		// valid shorthand object defaults and pass through.
-		if (looksLikeConfig(attr) && !('default' in attr)) {
+		if (isAttributeSpecConfig(attr) && !('default' in attr)) {
 			throw new Error(
 				`Attribute "${name}" in block "${config.id}" is a configuration object but does not ` +
 					`define a "default" value. If you meant an object as the default value, wrap it ` +
 					`explicitly as { default: { ... } }.`
+			);
+		}
+
+		// A list with no item shape has nothing to render a field from, and would
+		// silently fall back to raw JSON — the thing `list` exists to replace.
+		if (isAttributeSpecConfig(attr) && attr.list && !attr.list.fields && attr.list.value === undefined) {
+			throw new Error(
+				`Attribute "${name}" in block "${config.id}" declares "list" but neither ` +
+					`"list.fields" nor "list.value", so the editor has no item shape to render.`
 			);
 		}
 	}

@@ -1,5 +1,7 @@
 import type {
+	AttributeConfig,
 	AttributeInputKind,
+	AttributeListSpec,
 	AttributeOption,
 	AttributeSpec,
 	BlockDefinition
@@ -8,6 +10,57 @@ import { coerceRichTextDocument } from '../shared/richText.js';
 import { isPlainObject, isAttributeOption } from '../shared/guards.js';
 
 export type AttributeDefinition = Pick<BlockDefinition, 'attributes'> & { readOnly?: boolean };
+
+/**
+ * The keys that mark an object as an {@link AttributeSpec} *configuration*
+ * rather than a shorthand object default. An object carrying any of these is a
+ * config; to use an object literal AS the default, wrap it explicitly:
+ * `{ default: { ... } }`.
+ */
+const CONFIG_KEYS = [
+	'default',
+	'required',
+	'validate',
+	'parse',
+	'serialize',
+	'input',
+	'placeholder',
+	'options',
+	'list',
+	'richText'
+] as const;
+
+export function isAttributeSpecConfig<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
+	return isPlainObject(value) && CONFIG_KEYS.some((key) => key in value);
+}
+
+export function toAttributeSpec<T>(value: AttributeConfig<T>): AttributeSpec<T> {
+	return isAttributeSpecConfig(value)
+		? { ...(value as AttributeSpec<T>) }
+		: ({ default: value } as AttributeSpec<T>);
+}
+
+/**
+ * The fields of one list item, as specs. Empty for a list of single values,
+ * which {@link attributeListValueSpec} describes instead.
+ */
+export function attributeListFields(list: AttributeListSpec): Array<[string, AttributeSpec<unknown>]> {
+	return Object.entries(list.fields ?? {}).map(([name, config]) => [name, toAttributeSpec(config)]);
+}
+
+export function attributeListValueSpec(list: AttributeListSpec): AttributeSpec<unknown> | null {
+	return list.fields ? null : list.value === undefined ? null : toAttributeSpec(list.value);
+}
+
+/** A new item carrying each declared default, ready to append to a list. */
+export function createAttributeListItem(list: AttributeListSpec): unknown {
+	const valueSpec = attributeListValueSpec(list);
+	if (valueSpec) return cloneDefault(valueSpec.default);
+
+	return Object.fromEntries(
+		attributeListFields(list).map(([name, spec]) => [name, cloneDefault(spec.default)])
+	);
+}
 
 function parseJsonValue(raw: string): unknown {
 	try {
@@ -54,6 +107,7 @@ export function normalizeAttributeOptions<T>(
 export function inferAttributeInputKind(spec: AttributeSpec<unknown>): AttributeInputKind {
 	if (spec.input) return spec.input;
 
+	if (spec.list) return 'list';
 	if (spec.options && spec.options.length > 0) return 'select';
 	if (typeof spec.default === 'boolean') return 'checkbox';
 	if (typeof spec.default === 'number') return 'number';
@@ -179,6 +233,8 @@ export function toAttributeDraftValue(spec: AttributeSpec<unknown>, value: unkno
 	if (input === 'number') return typeof normalized === 'number' ? normalized : spec.default;
 	if (input === 'richtext') return normalized;
 	if (input === 'json') return JSON.stringify(normalized, null, 2);
+	// A list is edited as the array itself, one control per item.
+	if (input === 'list') return Array.isArray(normalized) ? normalized : [];
 
 	return String(normalized ?? '');
 }
