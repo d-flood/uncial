@@ -7,11 +7,15 @@
 import { createPage, deletePage, listPages } from './index-actions.js';
 import type { PageRef } from './index-actions.js';
 import { mountEditorPage } from './mount.js';
-import { hashForPagePath, pagePathFromHash, validatePagePath } from './paths.js';
+import {
+	defaultMapPathToSource,
+	hashForPagePath,
+	pagePathFromHash,
+	validatePagePath
+} from './paths/index.js';
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { createLocalAdapter } from './local/adapter.js';
 import { localSessionProvider } from './local/session.js';
-import { defaultMapPathToSource } from './sveltekit/mapping.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 

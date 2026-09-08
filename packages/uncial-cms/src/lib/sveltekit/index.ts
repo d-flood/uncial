@@ -10,9 +10,9 @@ import { join } from 'node:path';
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { UncialCmsSiteConfig } from '../types.js';
-import { defaultMapPathToSource, defaultMapSourceToPath } from './mapping.js';
+import { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
 
-export { defaultMapPathToSource, defaultMapSourceToPath } from './mapping.js';
+export { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
 
 export interface ContentHandlerOptions {
 	config: UncialCmsSiteConfig;

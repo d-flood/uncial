@@ -8,7 +8,7 @@ import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core'
 import { MAX_CONTENT_BYTES } from './constants.js';
 import { serializeDocument } from './document.js';
 import { NotFoundError } from './errors.js';
-import { defaultMapSourceToPath } from './sveltekit/mapping.js';
+import { defaultMapSourceToPath } from './paths/index.js';
 import type { ForgeAdapter } from './types.js';
 import { getActiveForge } from './upload-context.js';
 

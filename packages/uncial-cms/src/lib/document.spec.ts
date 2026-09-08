@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createBlockRegistry, createSchema, CURRENT_DOCUMENT_VERSION } from 'uncial/core';
 import { parseDocument, serializeDocument } from './document.js';
+import {
+	parseDocument as parseDocumentFromRoot,
+	serializeDocument as serializeDocumentFromRoot
+} from './index.js';
 
 const registry = createBlockRegistry([]);
 const schema = createSchema(registry);
@@ -28,6 +32,17 @@ describe('parseDocument', () => {
 });
 
 describe('serializeDocument', () => {
+	it('round-trips through the package root exports', () => {
+		const raw = JSON.stringify({
+			type: 'doc',
+			content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }]
+		});
+
+		const document = parseDocumentFromRoot(raw, registry, schema);
+
+		expect(JSON.parse(serializeDocumentFromRoot(document, registry, schema))).toEqual(document);
+	});
+
 	it('round-trips a parsed document through normalize on save', () => {
 		const raw = JSON.stringify({
 			type: 'doc',
