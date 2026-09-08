@@ -21,10 +21,10 @@ function tree(files: Record<string, string>): string {
 	return buildDir;
 }
 
-function invoke(argv: string[]): { code: number; out: string; err: string } {
+async function invoke(argv: string[]): Promise<{ code: number; out: string; err: string }> {
 	const out: string[] = [];
 	const err: string[] = [];
-	const code = run(argv, { out: (line) => out.push(line), err: (line) => err.push(line) });
+	const code = await run(argv, { out: (line) => out.push(line), err: (line) => err.push(line) });
 	return { code, out: out.join('\n'), err: err.join('\n') };
 }
 
@@ -34,7 +34,7 @@ function pageHtml(chunk: string): string {
 }
 
 describe('assert-clean-pages', () => {
-	it('passes a content page without the sentinel beside an editor variant with it', () => {
+	it('passes a content page without the sentinel beside an editor variant with it', async () => {
 		const dir = tree({
 			'about/index.html': pageHtml('content.js'),
 			'about/edit/index.html': pageHtml('editor.js'),
@@ -42,32 +42,32 @@ describe('assert-clean-pages', () => {
 			'_app/immutable/editor.js': `export const s = "${UNCIAL_CMS_RUNTIME_SENTINEL}";`
 		});
 
-		const result = invoke(['assert-clean-pages', dir]);
+		const result = await invoke(['assert-clean-pages', dir]);
 
 		expect(result.code).toBe(0);
 		expect(result.out).toContain('assert:clean-pages OK — 2 pages checked');
 	});
 
-	it('fails a content page whose script closure reaches a chunk with the sentinel', () => {
+	it('fails a content page whose script closure reaches a chunk with the sentinel', async () => {
 		const dir = tree({
 			'about/index.html': pageHtml('content.js'),
 			'_app/immutable/content.js': 'import "./runtime.js";',
 			'_app/immutable/runtime.js': `export const s = "${UNCIAL_CMS_RUNTIME_SENTINEL}";`
 		});
 
-		const result = invoke(['assert-clean-pages', dir]);
+		const result = await invoke(['assert-clean-pages', dir]);
 
 		expect(result.code).toBe(1);
 		expect(result.err).toContain('/about/ is a content page but ships uncial-cms JavaScript.');
 	});
 
-	it('fails an editor variant that does not reference the CMS runtime', () => {
+	it('fails an editor variant that does not reference the CMS runtime', async () => {
 		const dir = tree({
 			'about/edit/index.html': pageHtml('editor.js'),
 			'_app/immutable/editor.js': 'export const a = 1;'
 		});
 
-		const result = invoke(['assert-clean-pages', dir]);
+		const result = await invoke(['assert-clean-pages', dir]);
 
 		expect(result.code).toBe(1);
 		expect(result.err).toContain(
@@ -75,27 +75,27 @@ describe('assert-clean-pages', () => {
 		);
 	});
 
-	it('fails --local-only on an editor variant, however clean', () => {
+	it('fails --local-only on an editor variant, however clean', async () => {
 		const dir = tree({
 			'about/index.html': pageHtml('content.js'),
 			'about/edit/index.html': pageHtml('content.js'),
 			'_app/immutable/content.js': 'export const a = 1;'
 		});
 
-		const result = invoke(['assert-clean-pages', dir, '--local-only']);
+		const result = await invoke(['assert-clean-pages', dir, '--local-only']);
 
 		expect(result.code).toBe(1);
 		expect(result.err).toContain('/about/edit/ is an editor variant');
 	});
 
-	it('fails --local-only on an orphan chunk carrying an editor-stack marker', () => {
+	it('fails --local-only on an orphan chunk carrying an editor-stack marker', async () => {
 		const dir = tree({
 			'about/index.html': pageHtml('content.js'),
 			'_app/immutable/content.js': 'export const a = 1;',
 			'_app/immutable/orphan.js': 'const c = "ProseMirror-focused";'
 		});
 
-		const result = invoke(['assert-clean-pages', dir, '--local-only']);
+		const result = await invoke(['assert-clean-pages', dir, '--local-only']);
 
 		expect(result.code).toBe(1);
 		expect(result.err).toContain(
@@ -103,22 +103,22 @@ describe('assert-clean-pages', () => {
 		);
 	});
 
-	it('passes --local-only on a build with no editor page and no editor stack', () => {
+	it('passes --local-only on a build with no editor page and no editor stack', async () => {
 		const dir = tree({
 			'about/index.html': pageHtml('content.js'),
 			'index.html': pageHtml('content.js'),
 			'_app/immutable/content.js': 'export const a = 1;'
 		});
 
-		const result = invoke(['assert-clean-pages', dir, '--local-only']);
+		const result = await invoke(['assert-clean-pages', dir, '--local-only']);
 
 		expect(result.code).toBe(0);
 		expect(result.out).toContain('assert:clean-pages OK — 2 pages checked');
 	});
 
-	it('prints usage for --help and exits 2 for an unknown command', () => {
-		expect(invoke(['--help'])).toMatchObject({ code: 0 });
-		expect(invoke(['--help']).out).toContain('uncial-cms assert-clean-pages');
-		expect(invoke(['doctor'])).toMatchObject({ code: 2 });
+	it('prints usage for --help and exits 2 for an unknown command', async () => {
+		expect(await invoke(['--help'])).toMatchObject({ code: 0 });
+		expect((await invoke(['--help'])).out).toContain('uncial-cms assert-clean-pages');
+		expect(await invoke(['nonsense'])).toMatchObject({ code: 2 });
 	});
 });
