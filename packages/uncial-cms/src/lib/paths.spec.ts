@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashForPagePath, pagePathFromHash, validatePagePath } from './paths.js';
+import { hashForPagePath, pagePathFromHash, validatePagePath } from './paths/index.js';
 
 describe('validatePagePath', () => {
 	it.each([

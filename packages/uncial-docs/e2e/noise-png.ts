@@ -1,7 +1,7 @@
-// A real PNG encoder for the image e2e: the upload path now decodes what it is
-// given, so a placeholder buffer is no longer a usable fixture. Pixels are
-// pseudo-random because a flat colour would compress far under the forge's
-// size limit and never exercise the downscale.
+// A real PNG encoder for the image e2e: the upload path decodes what it is
+// given, so a fixture has to be a decodable PNG. Pixels are pseudo-random
+// because a flat colour would compress far under the forge's size limit and
+// never exercise the downscale.
 import { deflateSync } from 'node:zlib';
 
 const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, n) => {

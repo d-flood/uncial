@@ -120,8 +120,8 @@ test('an oversize image is downscaled and commits as WebP under the limit', asyn
 	const fileInput = editor.locator('input[type="file"]');
 	await expect(fileInput).toBeVisible();
 
-	// Noise at 900×700 deflates to well over the Contents API cap, which the
-	// upload used to reject outright; `fit` re-encodes it instead.
+	// Noise at 900×700 deflates to well over the Contents API cap, so this
+	// exercises `fit`'s re-encode rather than its pass-through.
 	const oversize = noisePng(900, 700);
 	expect(oversize.byteLength).toBeGreaterThan(MAX_CONTENT_BYTES);
 	await fileInput.setInputFiles({ name: 'huge.png', mimeType: 'image/png', buffer: oversize });
