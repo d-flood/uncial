@@ -1,26 +1,14 @@
-// Docs site config, baked at build time. The docs app edits this repository
-// itself: saves commit to packages/uncial-docs/content/docs/ on main. It reuses
-// the existing repo-scoped auth worker unchanged (d-flood.github.io is already
-// allowlisted), proving a second real site can adopt the shipped CMS with only
-// build-time config.
+// Docs blocks, schema and the config the route factories take. The site object
+// itself is $lib/site.ts, so a block can reach it without importing the block
+// registry back.
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import { defineSvelteBlock } from 'uncial/runtime/svelte';
-import type { UncialCmsSiteConfig } from 'uncial-cms';
-import { MEDIA_DIR } from '$lib/media.js';
+import { site } from '$lib/site.js';
 import Callout from '$lib/blocks/Callout.svelte';
 import ImageFigure from '$lib/blocks/ImageFigure.svelte';
 
-export const siteConfig: UncialCmsSiteConfig = {
-	forge: 'github',
-	repo: 'd-flood/uncial',
-	branch: 'main',
-	contentDir: 'packages/uncial-docs/content/docs',
-	authWorkerUrl: 'https://uncial-cms-auth.dflood.workers.dev',
-	appSlug: 'uncial-cms',
-	// Uploaded images commit here; the Image block maps a committed path to its
-	// served URL (see $lib/media.ts). Kept identical to MEDIA_DIR.
-	mediaDir: MEDIA_DIR
-};
+export const siteConfig = site.config;
+export const localContentDir = site.localContentDir;
 
 // Callout: a note/warning/tip admonition whose body is a flow content region.
 const callout = defineSvelteBlock({
@@ -68,7 +56,3 @@ export const schema = createSchema(blocks, {
 		navOrder: { default: 0, input: 'number', placeholder: 'Sort order within the section' }
 	}
 });
-
-// FS location of the content dir at build time, relative to the package root
-// (vite runs from there). config.contentDir is the same dir repo-root-relative.
-export const localContentDir = 'content/docs';

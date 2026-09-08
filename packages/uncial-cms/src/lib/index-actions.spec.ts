@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
+import { defineSite } from './define-site.js';
 import { NotFoundError } from './errors.js';
 import { createPage, deletePage, listPages, uploadAsset, uploadImageAsset } from './index-actions.js';
 import type { ForgeAdapter } from './types.js';
@@ -11,6 +12,7 @@ const schema = createSchema(blocks, {
 	metaFields: { title: { default: 'Untitled page', required: true } }
 });
 const author = { name: 'Octo Cat', email: 'octocat@users.noreply.github.com' };
+const localSite = (mediaDir?: string) => defineSite({ contentDir: 'content', mediaDir }, { dev: true });
 
 function fakeAdapter(overrides: Partial<ForgeAdapter> = {}): ForgeAdapter {
 	return {
@@ -182,9 +184,12 @@ describe('uploadImageAsset', () => {
 
 	afterEach(() => clearActiveForge());
 
+	const activate = (adapter: ForgeAdapter, mediaDir?: string) =>
+		setActiveForge({ adapter, author, config: localSite(mediaDir).config });
+
 	it('uploads through the active editor forge, resolving its adapter + author', async () => {
 		const adapter = fakeAdapter();
-		setActiveForge({ adapter, author });
+		activate(adapter);
 
 		const result = await uploadImageAsset(file, { mediaDir: 'packages/uncial-docs/static/uploads' });
 
@@ -195,10 +200,61 @@ describe('uploadImageAsset', () => {
 		expect(writeOpts.author).toEqual(author); // author came from the active forge
 	});
 
+	it('prefers an explicit mediaDir over the site and the active session', async () => {
+		const adapter = fakeAdapter();
+		activate(adapter, 'session/uploads');
+
+		const result = await uploadImageAsset(file, {
+			mediaDir: 'explicit/uploads',
+			site: localSite('site/uploads')
+		});
+
+		expect(result.path).toMatch(/^explicit\/uploads\//);
+	});
+
+	it("falls back to the site's mediaDir, then the active session's", async () => {
+		const adapter = fakeAdapter();
+		activate(adapter, 'session/uploads');
+
+		const fromSite = await uploadImageAsset(file, { site: localSite('site/uploads') });
+		const fromSession = await uploadImageAsset(file, {});
+
+		expect(fromSite.path).toMatch(/^site\/uploads\//);
+		expect(fromSession.path).toMatch(/^session\/uploads\//);
+	});
+
+	it('names the option to set when nothing supplies a mediaDir', async () => {
+		activate(fakeAdapter());
+
+		await expect(uploadImageAsset(file, {})).rejects.toThrow(/`mediaDir`/);
+	});
+
 	it('throws a clear error when no editor session is active', async () => {
 		await expect(uploadImageAsset(file, { mediaDir: 'media' })).rejects.toThrow(
 			/no active editor session/i
 		);
+	});
+
+	it('fits an oversize image before the pre-flight size check rejects it', async () => {
+		const adapter = fakeAdapter();
+		activate(adapter, 'media');
+		const huge = {
+			bytes: new Uint8Array(MAX_CONTENT_BYTES + 1),
+			filename: 'huge.png',
+			contentType: 'image/png'
+		};
+
+		const result = await uploadImageAsset(huge, {
+			fit: {
+				maxBytes: 64,
+				encoder: {
+					decode: async () => ({ width: 3000, height: 2000 }),
+					encode: async () => new Blob([new Uint8Array(32)], { type: 'image/webp' })
+				}
+			}
+		});
+
+		expect(result.path).toMatch(/^media\/[0-9a-f]+\.webp$/);
 	});
 });
 

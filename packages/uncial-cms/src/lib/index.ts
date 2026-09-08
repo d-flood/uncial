@@ -47,8 +47,17 @@ export {
 	type PageRef,
 	type UploadAssetFile,
 	type UploadAssetOptions,
-	type UploadAssetResult
+	type UploadAssetResult,
+	type UploadImageAssetOptions
 } from './index-actions.js';
+export {
+	fitImage,
+	type FitOptions,
+	type FittedImage,
+	type ImageEncoder,
+	type EncodableImage
+} from './fit-image.js';
+export { servedUrl } from './served-url.js';
 export { MAX_CONTENT_BYTES } from './constants.js';
 export {
 	hashForPagePath,

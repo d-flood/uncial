@@ -2,11 +2,12 @@
 	// Docs Image: an atomic figure with alt text + optional caption. On reader
 	// pages it renders a plain <figure> and ships no CMS code. In the editor
 	// (where `updateAttributes` is provided) it grows an Upload affordance that
-	// commits the chosen file via uncial-cms's uploadAsset and stores the served
-	// URL as `src`. uncial-cms is imported *dynamically*, inside the upload
-	// handler only, so it never enters the reader page's static import graph
-	// (the clean-pages guarantee: content pages carry no editor JS).
-	import { MEDIA_DIR, mediaSrcFromPath, withBase } from '$lib/media.js';
+	// commits the chosen file via uncial-cms's uploadImageAsset and stores the
+	// served URL as `src`. uncial-cms is imported *dynamically*, inside the
+	// upload handler only, so it never enters the reader page's static import
+	// graph (the clean-pages guarantee: content pages carry no editor JS).
+	import { base } from '$app/paths';
+	import { STATIC_DIR, site } from '$lib/site.js';
 
 	interface Props {
 		src?: string;
@@ -26,8 +27,11 @@
 	// Prefer the just-uploaded local object URL; the committed copy only serves
 	// after the next redeploy, so the preview bridges the gap. The stored `src`
 	// is site-root-relative (base-less), so apply the build-time base here — that
-	// keeps the same content correct at any `paths.base`.
-	const displaySrc = $derived(previewUrl ?? (src ? withBase(src) : ''));
+	// keeps the same content correct at any `paths.base`. blob:/data:/absolute
+	// URLs are already resolvable and left alone.
+	const displaySrc = $derived(
+		previewUrl ?? (src ? (src.startsWith('/') ? `${base}${src}` : src) : '')
+	);
 
 	function clearPreview(): void {
 		if (previewUrl) {
@@ -45,13 +49,11 @@
 		previewUrl = URL.createObjectURL(file); // immediate feedback, before the commit
 		busy = true;
 		try {
-			const bytes = new Uint8Array(await file.arrayBuffer());
-			const { uploadImageAsset } = await import('uncial-cms');
-			const result = await uploadImageAsset(
-				{ bytes, filename: file.name, contentType: file.type || 'application/octet-stream' },
-				{ mediaDir: MEDIA_DIR }
-			);
-			updateAttributes?.({ src: mediaSrcFromPath(result.path) });
+			const { servedUrl, uploadImageAsset } = await import('uncial-cms');
+			// `fit` re-encodes anything over the forge's limit, so a photograph off
+			// a phone commits instead of failing the Contents API cap.
+			const result = await uploadImageAsset(file, { site, fit: true });
+			updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
 		} catch (err) {
 			clearPreview(); // a rejected upload leaves no committed file to preview
 			error = err instanceof Error ? err.message : 'Upload failed.';
