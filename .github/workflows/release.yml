@@ -70,6 +70,17 @@ jobs:
       - name: Packed-tarball smoke test
         run: pnpm run smoke:packed
 
+      # The docs site is the reusable static-site workflow's only consumer here,
+      # and that workflow runs on a push to main. These are its build and gate
+      # steps, so a change that breaks either is caught before the merge rather
+      # than by the deploy. The gate is uncial-cms's published bin, which lives
+      # in its dist, so it has to be packaged first.
+      - name: Docs build and gate (the reusable workflow's steps)
+        run: |
+          pnpm --filter uncial-cms run package
+          BASE_PATH=/uncial/docs pnpm --filter uncial-docs run build
+          pnpm --filter uncial-docs run assert:clean-pages
+
       - name: Sync Python dependencies
         run: uv sync --locked
         working-directory: packages/uncial-wagtail
