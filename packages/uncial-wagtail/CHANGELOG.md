@@ -1,5 +1,19 @@
 # uncial-wagtail
 
+## 2.0.0
+
+### Patch Changes
+
+- 8eccada: Rebuild the shipped editor bundle so its token defaults sit in the
+  `uncial-tokens` cascade layer. The committed bundle predated that change, so the
+  Wagtail integration served unlayered defaults that took a host's own `--uncial-*`
+  values back when the editor mounted.
+- Updated dependencies [fba726b]
+- Updated dependencies [fba726b]
+- Updated dependencies [3ac9918]
+- Updated dependencies [8d7dbf1]
+  - uncial@2.0.0
+
 ## 1.0.0
 
 ### Minor Changes
