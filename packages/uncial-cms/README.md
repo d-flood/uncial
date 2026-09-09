@@ -102,8 +102,9 @@ export const site = defineSite(siteOptions);
 
 The **site object** it returns is `{ config, localOnly, autosaveMs,
 localContentDir }`. `config` is an ordinary `UncialCmsSiteConfig`, so every
-entry point that took a config still does; the route factories, `EditorPage`
-and `mountIndexPage` take the whole object.
+entry point that took a config still does; the route factories and `EditorPage`
+take the whole object, while `mountEditorPage` and `mountIndexPage` keep taking
+`config` — pass `site.config`.
 
 - In a **development** build the resolved forge is the local checkout.
 - In a **production** build it is GitHub when a `github` half is declared.
