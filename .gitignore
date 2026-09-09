@@ -36,3 +36,6 @@ packages/uncial-docs/.e2e-build
 packages/uncial-docs/.svelte-kit-e2e-*
 .tracker
 *.pem
+# svelte-package emits declarations to dist; any that land beside the sources
+# are build leakage and shadow the real components for svelte-check.
+packages/uncial/src/lib/**/*.d.ts
