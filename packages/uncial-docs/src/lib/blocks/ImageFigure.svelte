@@ -3,9 +3,11 @@
 	// pages it renders a plain <figure> and ships no CMS code. In the editor
 	// (where `updateAttributes` is provided) it grows an Upload affordance that
 	// commits the chosen file via uncial-cms's uploadImageAsset and stores the
-	// served URL as `src`. uncial-cms is imported *dynamically*, inside the
-	// upload handler only, so it never enters the reader page's static import
-	// graph (the clean-pages guarantee: content pages carry no editor JS).
+	// served URL as `src`. The upload helpers are imported dynamically, inside
+	// that handler; the site object handed to them is a static import, so the
+	// uncial-cms root is in the reader page's graph and the page stays clean
+	// because that root is side-effect-free and tree-shakes away. The
+	// clean-pages gate is what holds this, per build.
 	import { base } from '$app/paths';
 	import { STATIC_DIR, site } from '$lib/site.js';
 
