@@ -1,5 +1,87 @@
 # uncial
 
+## 2.0.0
+
+### Minor Changes
+
+- fba726b: Add `list`, an attribute input for array-valued attributes. Declaring
+  `list: { fields: { label: '', value: '' } }` (records) or
+  `list: { value: { default: '', options } }` (single values) renders the
+  attribute in the panel as one control per item with add, remove and reorder,
+  instead of the raw JSON textarea that `input: 'json'` falls back to — an
+  attribute an author can only edit by typing valid JSON is not editable by the
+  people a CMS is for. The stored value is unchanged: it is the same array, so
+  adopting `list` needs no content migration and keeps the attribute's existing
+  `validate`. `defineBlock` rejects a `list` that declares neither `fields` nor
+  `value`, since there would be no field to render.
+
+  Also: a block's rendered output no longer lags its attributes. Attribute edits
+  reach the node view inside `view.dispatch`, itself inside the event handler that
+  made the edit, and a prop written to a separately mounted component in that
+  window does not reach it — the block kept rendering its old attributes until
+  something else re-rendered it, so an author editing a headline saw nothing
+  change. The node view now queues that prop update onto a microtask, outside the
+  dispatch window and still before paint.
+
+- fba726b: Let a host render the editor in the document's published layout. The editor
+  previously took inline space from the document for its own affordances — the
+  attributes panel held a grid column and the block gutter was reserved as padding
+  inside `.uncial-content` — so any host CSS deriving a width from the container
+  (full-bleed bands, a prose measure, container queries) computed a different
+  width under the editor than on the rendered page.
+
+  `Editor` (and `<uncial-editor>`) gain `presentation: 'card' | 'bare'` and widen
+  `attributesPanel` to `boolean | 'docked' | 'overlay' | 'off'`. Under
+  `presentation="bare"` the shell draws no surface of its own and reserves no
+  padding, so `.uncial-content`'s content box is exactly the box the host gave the
+  shell, and the block handles float over each block's top-left corner instead of
+  pushing it inwards — which also keeps them on screen for a block that bleeds
+  past the document column. `attributesPanel="overlay"` floats the panel against
+  the viewport edge while a block is selected, costing the document no width;
+  selection no longer auto-opens it in that mode (the block's gutter label does),
+  and it carries a Close button. Defaults are unchanged. `bindEditor` gains the
+  matching `autoOpenAttributes` option, and `mountEditorPage` forwards both
+  settings.
+
+- 3ac9918: The local forge now behaves like the forge its adapter interface describes. A
+  write carrying a `sha` is refused with a conflict when the file on disk has
+  moved on, so an editor autosaving against the checkout raises the same blocking
+  banner — download, reload, dismiss — that a 409 from GitHub raises, instead of
+  silently overwriting an edit made underneath it. A write with no `sha` still
+  creates or replaces outright.
+
+  The development plugin also stops watching its own content directory. Every
+  write there arrives through the plugin's own endpoint, so the watcher only ever
+  saw the author's own autosave landing — and answered it with a full page reload
+  that took the editing session with it.
+
+  Uncial's token defaults move into a `uncial-tokens` cascade layer, so a host's
+  own `--uncial-*` values win however the stylesheets end up ordered. `EditorPage`
+  imports the chrome stylesheet at runtime, which lands after the host's CSS;
+  unlayered, those defaults were taking the host's typography back at the moment
+  the editor mounted.
+
+- 8d7dbf1: A SvelteKit site now reaches its Editor variants through one component instead
+  of a shadow root. The new `uncial-cms/svelte` subpath exports `EditorPage`,
+  which renders Uncial's `Editor` in the host's own tree and cascade and owns the
+  whole editing surface `mountEditorPage` owns: the status line with its commit
+  link, the blocking conflict banner with download, reload and dismiss, metadata
+  seeded from the loaded document rather than from schema defaults, a Save button
+  under a forge, and debounced autosave with no Save button when the site sets
+  `autosaveMs`. It takes the object `defineSite` returns plus the two paths the
+  editor route's payload carries, loads the editor stack and the headless session
+  dynamically, and returns before importing anything when a local-only site is
+  built for production, so a reader of that build downloads no editor code. The
+  shadow-root mount and `createEditorSession` are unchanged and remain the door
+  for hosts without Svelte.
+
+  The editor's chrome stops switching palette on the operating system's preference
+  alone. Uncial's chrome tokens carry both palettes through `light-dark()` on one
+  selector list, so the editor follows the `color-scheme` its host declares — a
+  site with a theme toggle no longer shows a dark editor on a light page — and a
+  host that declares nothing gets the light palette. Site-set `--uncial-*`
+  overrides keep winning.
+
 ## 1.0.0
 
 ### Minor Changes
