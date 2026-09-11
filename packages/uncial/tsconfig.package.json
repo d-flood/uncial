@@ -1,0 +1,18 @@
+{
+	// svelte-package's declaration emit derives its output paths from the common
+	// root of all non-declaration inputs. The SvelteKit-generated tsconfig's
+	// `include` spans the whole package (vite.config.ts, tests), which pushes that
+	// root up to the package directory and scatters stray .d.ts files next to the
+	// sources in src/lib. Narrowing the input set to src/lib keeps every
+	// declaration inside the packager's output directory.
+	"extends": "./tsconfig.json",
+	"include": [
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/env.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		"src/lib/**/*.js",
+		"src/lib/**/*.ts",
+		"src/lib/**/*.svelte"
+	],
+	"exclude": ["node_modules/**"]
+}
