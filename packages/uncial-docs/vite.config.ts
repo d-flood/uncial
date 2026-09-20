@@ -17,8 +17,9 @@ const cmsSrc = (path: string) => new URL(`../uncial-cms/src/lib/${path}`, import
 export const workspaceAliases = [
 	// The styles entries are anchored regexes because a string `find` also matches
 	// its subpaths, which would rewrite 'uncial/styles/chrome' to index.css/chrome.
-	// The subpath form mirrors the package's './styles/*' exports, which add .css.
-	{ find: /^uncial\/styles\/(.+)$/, replacement: uncialSrc('styles/$1.css') },
+	// The subpath form mirrors the package's './styles/*' exports, which add .css;
+	// the optional group also takes the './styles/*.css' form the package exports.
+	{ find: /^uncial\/styles\/(.+?)(?:\.css)?$/, replacement: uncialSrc('styles/$1.css') },
 	{ find: /^uncial\/styles$/, replacement: uncialSrc('styles/index.css') },
 	{ find: 'uncial/core', replacement: uncialSrc('core/index.ts') },
 	{ find: 'uncial/render', replacement: uncialSrc('render/index.ts') },

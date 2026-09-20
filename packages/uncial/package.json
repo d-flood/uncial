@@ -74,6 +74,7 @@
 		"./styles/base": "./dist/styles/base.css",
 		"./styles/controls": "./dist/styles/controls.css",
 		"./styles/prose": "./dist/styles/prose.css",
+		"./styles/*.css": "./dist/styles/*.css",
 		"./runtime/svelte": {
 			"types": "./dist/runtime/svelte.d.ts",
 			"svelte": "./dist/runtime/svelte.js",

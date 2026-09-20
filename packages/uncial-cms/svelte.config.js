@@ -22,6 +22,7 @@ const config = {
 					// The './styles/*' subpath exports need their own entries ahead of the
 					// bare one: a kit alias key without a wildcard also matches its
 					// subpaths, and a wildcard key cannot supply the .css extension.
+					'uncial/styles/chrome.css': '../uncial/src/lib/styles/chrome.css',
 					'uncial/styles/chrome': '../uncial/src/lib/styles/chrome.css',
 					'uncial/styles': '../uncial/src/lib/styles/index.css',
 					'uncial/core': '../uncial/src/lib/core/index.ts',

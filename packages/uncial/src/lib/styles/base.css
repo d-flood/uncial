@@ -60,14 +60,21 @@
 	overflow-y: auto;
 }
 
+/* Pinned to the top of the screen so the controls stay in reach however far
+   down a long document the caret sits. Opaque, because the document scrolls
+   beneath it; layered above the block handles (z 10) and below the overlay
+   sidebar (z 30). */
 .uncial-toolbar {
 	grid-area: toolbar;
+	position: sticky;
+	top: 0;
+	z-index: 20;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--uncial-toolbar-gap);
 	border-bottom: 1px solid var(--uncial-color-border);
-	background: color-mix(in srgb, var(--uncial-color-surface-elevated) 60%, transparent);
+	background: var(--uncial-color-surface-elevated);
 	padding: var(--uncial-space-2) var(--uncial-space-3);
 }
 

@@ -81,6 +81,7 @@
 	});
 	let draggingChildIndex = $state<number | null>(null);
 	let draggingPointerId = $state<number | null>(null);
+	let panelElement = $state<HTMLElement>();
 
 	function moveUp(index: number): void {
 		if (index > 0) controller.moveContainerChild(index, index - 1);
@@ -129,7 +130,12 @@
 
 	function handleChildDragMove(event: PointerEvent): void {
 		if (draggingChildIndex === null || draggingPointerId !== event.pointerId) return;
-		const target = document
+		// Hit-test from the panel's own root: inside the web component's shadow
+		// tree, `document.elementFromPoint` retargets to the host element and the
+		// list items are never found.
+		const root = panelElement?.getRootNode();
+		const scope = root instanceof ShadowRoot ? root : document;
+		const target = scope
 			.elementFromPoint(event.clientX, event.clientY)
 			?.closest('[data-child-index]');
 		if (!(target instanceof HTMLElement)) return;
@@ -161,7 +167,7 @@
 	onpointercancel={stopChildDrag}
 />
 
-<div class="uncial-attrs-panel">
+<div class="uncial-attrs-panel" bind:this={panelElement}>
 	{#if controllerState.link.open}
 		<LinkAttributesPanel
 			attrs={controllerState.link.attrs}

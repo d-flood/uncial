@@ -87,8 +87,9 @@
 			// subpath: this file is inside the package.
 			import('../editor-session.js'),
 			// The editor's chrome — tokens, shell layout and controls. Loaded here
-			// so the host never has to know the component has a stylesheet.
-			import('uncial/styles/chrome')
+			// so the host never has to know the component has a stylesheet. The
+			// .css extension keeps Vite's dep optimizer from swallowing it.
+			import('uncial/styles/chrome.css')
 		]).then(([editor, session]) => {
 			if (cancelled) return;
 			Editor = editor.Editor;

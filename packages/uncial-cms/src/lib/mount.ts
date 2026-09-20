@@ -2,7 +2,10 @@ import 'uncial/web-components';
 // The editor's own chrome: tokens, shell layout and controls. The host page's
 // stylesheets are mirrored in below for prose parity, but they style the
 // document, not the toolbar and panels around it — nothing else loads these.
-import 'uncial/styles/chrome';
+// The extension matters: Vite's dep optimizer only hands a stylesheet to its
+// CSS pipeline when the specifier itself ends in .css; a bare subpath gets
+// bundled by esbuild into a sidecar file the host never loads.
+import 'uncial/styles/chrome.css';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { UncialEditorElement } from 'uncial/web-components';
 import { type EditorPageUi, type StatusView } from './editor-controller.js';

@@ -112,6 +112,8 @@
 
 .uncial-btn--drag {
 	cursor: grab;
+	/* Pointer-driven reorder: a touch drag must not scroll the panel instead. */
+	touch-action: none;
 }
 
 .uncial-text--danger,
