@@ -107,16 +107,77 @@ class GitHubAdapter implements ForgeAdapter {
 			.map((entry) => ({ path: entry.path, type: entry.type as 'file' | 'dir' }));
 	}
 
+	/**
+	 * Both of GitHub's two answers to "how did this commit fare", because a repo
+	 * may use either.
+	 *
+	 * ⚠ The combined Status API aggregates the *Status* API alone, and GitHub
+	 * Actions writes **check runs**, not statuses. A repository built by Actions
+	 * — which is every Pages site deployed from a workflow — therefore has
+	 * `state: "pending"` and an empty `statuses` array on that endpoint for
+	 * ever, and a poll that trusted it would sit at "building…" through a deploy
+	 * that has already succeeded. So an empty `statuses` is read as *no signal*
+	 * rather than as pending, and the check runs are asked as well.
+	 */
 	async commitStatus(commitSha: string): Promise<'pending' | 'success' | 'failure' | 'unknown'> {
-		const response = await this.#request(
-			`${GITHUB_API_URL}/repos/${this.#config!.repo}/commits/${encodeURIComponent(commitSha)}/status`
-		);
+		const sha = encodeURIComponent(commitSha);
+		const base = `${GITHUB_API_URL}/repos/${this.#config!.repo}/commits/${sha}`;
+		const [fromStatuses, fromChecks] = await Promise.all([
+			this.#statusApiSignal(`${base}/status`),
+			this.#checkRunSignal(`${base}/check-runs`)
+		]);
+
+		const signals = [fromStatuses, fromChecks].filter((signal) => signal !== 'unknown');
+		if (signals.includes('failure')) return 'failure';
+		if (signals.includes('pending')) return 'pending';
+		return signals.includes('success') ? 'success' : 'unknown';
+	}
+
+	async #statusApiSignal(url: string): Promise<'pending' | 'success' | 'failure' | 'unknown'> {
+		const response = await this.#request(url);
 		if (!response.ok) return 'unknown';
 
-		const { state } = (await response.json()) as { state?: string };
+		const { state, statuses } = (await response.json()) as {
+			state?: string;
+			statuses?: unknown[];
+		};
+		if ((statuses ?? []).length === 0) return 'unknown';
 		if (state === 'pending' || state === 'success') return state;
 		if (state === 'failure' || state === 'error') return 'failure';
 		return 'unknown';
+	}
+
+	async #checkRunSignal(url: string): Promise<'pending' | 'success' | 'failure' | 'unknown'> {
+		const response = await this.#request(url);
+		if (!response.ok) return 'unknown';
+
+		const { check_runs: runs } = (await response.json()) as {
+			check_runs?: Array<{ status?: string; conclusion?: string | null }>;
+		};
+		if (!runs || runs.length === 0) return 'unknown';
+
+		let pending = false;
+		let success = false;
+		for (const run of runs) {
+			if (run.status !== 'completed') {
+				pending = true;
+				continue;
+			}
+			switch (run.conclusion) {
+				case 'success':
+				case 'neutral':
+				case 'skipped':
+					success = true;
+					break;
+				// A run superseded by a later one says nothing about this commit.
+				case 'stale':
+					break;
+				default:
+					return 'failure';
+			}
+		}
+		if (pending) return 'pending';
+		return success ? 'success' : 'unknown';
 	}
 
 	#contentsUrl(path: string): string {

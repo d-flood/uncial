@@ -288,26 +288,101 @@ describe('listDir', () => {
 });
 
 describe('commitStatus', () => {
+	/** Answers the two endpoints a poll now asks, in the order it asks them. */
+	function mockCommitEndpoints(statusBody: unknown, checkRunsBody: unknown) {
+		fetchMock.mockImplementation(async (input) => {
+			const url = String(input);
+			if (url.endsWith('/status')) return jsonResponse(statusBody);
+			if (url.endsWith('/check-runs')) return jsonResponse(checkRunsBody);
+			throw new Error(`unexpected request: ${url}`);
+		});
+	}
+
+	const noChecks = { check_runs: [] };
+	const noStatuses = { state: 'pending', statuses: [] };
+
 	it.each([
 		['pending', 'pending'],
 		['success', 'success'],
 		['failure', 'failure'],
 		['error', 'failure']
 	] as const)('maps combined status state %s to %s', async (state, expected) => {
-		fetchMock.mockResolvedValueOnce(jsonResponse({ state }));
+		mockCommitEndpoints({ state, statuses: [{ state }] }, noChecks);
 		const adapter = await authenticatedAdapter();
 
 		await expect(adapter.commitStatus('commit-sha')).resolves.toBe(expected);
-		expect(String(fetchMock.mock.calls[0]![0])).toBe(
-			'https://api.github.com/repos/octo/site/commits/commit-sha/status'
-		);
+		const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+		expect(asked).toContain('https://api.github.com/repos/octo/site/commits/commit-sha/status');
 	});
 
-	it('returns unknown when the status request fails', async () => {
-		fetchMock.mockResolvedValueOnce(jsonResponse({ message: 'Not Found' }, 404));
+	// GitHub Actions writes check runs and no statuses, and the combined status
+	// endpoint answers a bare "pending" for ever when it has none to aggregate.
+	it('reads an empty statuses array as no signal rather than as pending', async () => {
+		mockCommitEndpoints(noStatuses, {
+			check_runs: [{ status: 'completed', conclusion: 'success' }]
+		});
+		const adapter = await authenticatedAdapter();
+
+		await expect(adapter.commitStatus('commit-sha')).resolves.toBe('success');
+		const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+		expect(asked).toContain('https://api.github.com/repos/octo/site/commits/commit-sha/check-runs');
+	});
+
+	it.each([
+		[[{ status: 'in_progress', conclusion: null }], 'pending'],
+		[[{ status: 'queued', conclusion: null }], 'pending'],
+		[[{ status: 'completed', conclusion: 'success' }], 'success'],
+		[[{ status: 'completed', conclusion: 'skipped' }], 'success'],
+		[[{ status: 'completed', conclusion: 'neutral' }], 'success'],
+		[[{ status: 'completed', conclusion: 'failure' }], 'failure'],
+		[[{ status: 'completed', conclusion: 'timed_out' }], 'failure'],
+		[[{ status: 'completed', conclusion: 'cancelled' }], 'failure'],
+		[[{ status: 'completed', conclusion: 'action_required' }], 'failure'],
+		[[{ status: 'completed', conclusion: 'stale' }], 'unknown'],
+		[
+			[
+				{ status: 'completed', conclusion: 'success' },
+				{ status: 'in_progress', conclusion: null }
+			],
+			'pending'
+		],
+		[
+			[
+				{ status: 'in_progress', conclusion: null },
+				{ status: 'completed', conclusion: 'failure' }
+			],
+			'failure'
+		]
+	] as const)('maps check runs %j to %s', async (check_runs, expected) => {
+		mockCommitEndpoints(noStatuses, { check_runs });
+		const adapter = await authenticatedAdapter();
+
+		await expect(adapter.commitStatus('commit-sha')).resolves.toBe(expected);
+	});
+
+	it('returns unknown when the commit has neither statuses nor check runs', async () => {
+		mockCommitEndpoints(noStatuses, noChecks);
+		const adapter = await authenticatedAdapter();
+
+		await expect(adapter.commitStatus('commit-sha')).resolves.toBe('unknown');
+	});
+
+	it('returns unknown when both requests fail', async () => {
+		fetchMock.mockResolvedValue(jsonResponse({ message: 'Not Found' }, 404));
 		const adapter = await authenticatedAdapter();
 
 		await expect(adapter.commitStatus('missing')).resolves.toBe('unknown');
+	});
+
+	it('still answers when only one of the two endpoints is readable', async () => {
+		fetchMock.mockImplementation(async (input) =>
+			String(input).endsWith('/check-runs')
+				? jsonResponse({ check_runs: [{ status: 'completed', conclusion: 'success' }] })
+				: jsonResponse({ message: 'Forbidden' }, 403)
+		);
+		const adapter = await authenticatedAdapter();
+
+		await expect(adapter.commitStatus('commit-sha')).resolves.toBe('success');
 	});
 });
 
