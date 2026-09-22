@@ -1,5 +1,12 @@
 # uncial-wagtail
 
+## 2.0.3
+
+### Patch Changes
+
+- 22ef156: Add PyPI metadata, MIT license file, and trusted-publisher release workflow
+  - uncial@2.0.3
+
 ## 2.0.2
 
 ### Patch Changes
