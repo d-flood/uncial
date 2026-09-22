@@ -4,7 +4,27 @@ version = "2.0.2"
 description = "Wagtail integration for Uncial headless page bodies"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "David A. Flood" }]
+keywords = ["wagtail", "django", "cms", "headless", "editor"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Wagtail",
+    "Framework :: Wagtail :: 7",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
+]
 dependencies = ["django>=5.2", "wagtail>=7.0"]
+
+[project.urls]
+Homepage = "https://d-flood.github.io/uncial/"
+Repository = "https://github.com/d-flood/uncial"
+Changelog = "https://github.com/d-flood/uncial/blob/main/packages/uncial-wagtail/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

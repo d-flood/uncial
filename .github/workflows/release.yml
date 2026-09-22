@@ -145,11 +145,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
+  # Authenticates to PyPI with the job's OIDC token (a Trusted Publisher configured
+  # for this repo + workflow), so there is no API token to store or rotate.
   publish-pypi:
     name: Publish to PyPI
     needs: publish-npm-github
     if: github.event_name == 'push' && needs.publish-npm-github.outputs.published == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -177,8 +182,9 @@ jobs:
         run: uv build
         working-directory: packages/uncial-wagtail
 
+      # A changesets release that touches only the JS packages still reaches this
+      # job, so --check-url makes a re-publish of an unchanged Python version a
+      # no-op instead of a 400.
       - name: Publish
-        run: uv publish
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/
         working-directory: packages/uncial-wagtail
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
