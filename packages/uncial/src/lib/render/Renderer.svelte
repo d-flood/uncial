@@ -7,10 +7,12 @@
 		BlockDefinition,
 		BlockRegistry,
 		ContentSchema,
+		MarkDefinition,
+		MarkRegistry,
 		ValidationIssue
 	} from '../core/types.js';
 	import type { PMDoc, PMNode } from '../shared/document.js';
-	import { resolveRegistry } from '../core/registry.js';
+	import { resolveMarkRegistry, resolveRegistry } from '../core/registry.js';
 	import { emptyDocument } from '../shared/content.js';
 	import { SVELTE_RUNTIME_ID } from '../shared/runtimeId.js';
 	import RichContent from './RichContent.svelte';
@@ -18,6 +20,7 @@
 	interface Props {
 		content?: JSONContent;
 		blocks?: BlockRegistry | BlockDefinition[];
+		marks?: MarkRegistry | MarkDefinition[];
 		schema?: ContentSchema;
 		meta?: Snippet<[Record<string, unknown> | undefined]>;
 		onIssue?: (issue: ValidationIssue) => void;
@@ -26,6 +29,7 @@
 	let {
 		content = emptyDocument(),
 		blocks = [],
+		marks = [],
 		schema = undefined,
 		meta: metaSnippet = undefined,
 		onIssue
@@ -39,6 +43,7 @@
 		}
 		return resolved;
 	});
+	const markRegistry = $derived(resolveMarkRegistry(marks));
 	const normalizedContent = $derived(
 		normalizeDocument(content as Partial<PMDoc>, registry, schema)
 	);
@@ -52,6 +57,11 @@
 <div class="uncial-renderer">
 	{@render metaSnippet?.(normalizedContent.meta)}
 	<div class="uncial-content uncial-rich-content">
-		<RichContent nodes={(normalizedContent.content ?? []) as PMNode[]} {registry} {schema} />
+		<RichContent
+			nodes={(normalizedContent.content ?? []) as PMNode[]}
+			{registry}
+			{markRegistry}
+			{schema}
+		/>
 	</div>
 </div>

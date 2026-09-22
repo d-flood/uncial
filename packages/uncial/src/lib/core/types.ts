@@ -176,6 +176,29 @@ export interface BlockRegistry {
 	has(id: string): boolean;
 }
 
+/**
+ * Props a custom mark's render component receives: the mark's own attrs
+ * spread as individual props, plus the marked text (and any marks nested
+ * inside it) as children.
+ */
+export interface MarkComponentProps {
+	children: Snippet;
+	[name: string]: unknown;
+}
+
+export interface MarkDefinition {
+	/** The ProseMirror mark type this renders, e.g. `superscript`. */
+	id: string;
+	component: Component<MarkComponentProps>;
+}
+
+export interface MarkRegistry {
+	marks: MarkDefinition[];
+	byId: ReadonlyMap<string, MarkDefinition>;
+	get(id: string): MarkDefinition | undefined;
+	has(id: string): boolean;
+}
+
 export interface ContentSchema {
 	allowedBlocks: ReadonlySet<string>;
 	allowedMarks: ReadonlySet<string>;

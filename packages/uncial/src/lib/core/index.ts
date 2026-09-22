@@ -15,7 +15,13 @@ export {
 	toMetaDraftValues,
 	validateMeta
 } from './meta.js';
-export { createBlockRegistry, createSchema, resolveRegistry } from './registry.js';
+export {
+	createBlockRegistry,
+	createMarkRegistry,
+	createSchema,
+	resolveMarkRegistry,
+	resolveRegistry
+} from './registry.js';
 export {
 	CURRENT_DOCUMENT_VERSION,
 	registerDocumentMigration,
@@ -59,6 +65,9 @@ export type {
 	ContentSchema,
 	CreateSchemaOptions,
 	DocumentMetaSchema,
+	MarkComponentProps,
+	MarkDefinition,
+	MarkRegistry,
 	MetaFieldSpec,
 	RichTextFeature,
 	RichTextFeatureSelection,

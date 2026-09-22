@@ -1,11 +1,12 @@
 <script lang="ts">
-	import type { BlockRegistry, ContentSchema } from '../core/types.js';
+	import type { BlockRegistry, ContentSchema, MarkRegistry } from '../core/types.js';
 	import type { PMNode } from '../shared/document.js';
 	import RichNode from './RichNode.svelte';
 
 	interface Props {
 		nodes?: PMNode[];
 		registry: BlockRegistry;
+		markRegistry?: MarkRegistry;
 		schema?: ContentSchema;
 		tabsGroup?: string;
 		tabsLabels?: string[];
@@ -14,6 +15,7 @@
 	let {
 		nodes = [],
 		registry,
+		markRegistry = undefined,
 		schema = undefined,
 		tabsGroup = undefined,
 		tabsLabels = undefined
@@ -34,5 +36,5 @@
 </script>
 
 {#each nodes as node, index (getNodeKey(node, index))}
-	<RichNode {node} {registry} {schema} {tabsGroup} {tabsLabels} />
+	<RichNode {node} {registry} {markRegistry} {schema} {tabsGroup} {tabsLabels} />
 {/each}
