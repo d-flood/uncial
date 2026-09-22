@@ -62,12 +62,31 @@ function buildBlockEditorProps(
 		blockId: block.id,
 		label: block.label,
 		draggable: block.behaviors.draggable ?? true,
+		// Addressed by position, not by selection: Tiptap's `updateAttributes`
+		// command writes to the node at the current selection, and nothing in a
+		// block's own component moves the selection onto it, so the write would
+		// land on whichever block the reader last selected.
+		//
 		// Deliberately no `.focus()` here: updates often originate from form
 		// controls inside the block component, and refocusing the editor view
 		// would steal focus from them on every keystroke.
 		updateAttributes: block.readOnly
 			? undefined
-			: (attrs: Record<string, unknown>) => editor?.chain().updateAttributes(block.id, attrs).run(),
+			: (attrs: Record<string, unknown>) => {
+					if (!editor || !getPos) return;
+					// Same guard as `onActivate` below.
+					const pos = getPos();
+					if (pos === undefined) return;
+					// Read the node from the live document rather than the `node`
+					// captured when these props were built: that capture is stale as
+					// soon as any attribute has been written, and merging over it
+					// would drop earlier writes.
+					const current = editor.state.doc.nodeAt(pos);
+					if (!current) return;
+					editor.view.dispatch(
+						editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...attrs })
+					);
+				},
 		// ProseMirror's getPos can return undefined when the node is not currently
 		// in the document (e.g. mid-transaction); skip activation in that case
 		// rather than reporting a bogus position.
