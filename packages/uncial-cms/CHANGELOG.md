@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 2.0.2
+
+### Patch Changes
+
+- 3a9e497: Read a commit's check runs as well as its statuses when polling a deploy.
+
 ## 2.0.1
 
 ### Patch Changes
