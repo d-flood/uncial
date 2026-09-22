@@ -3,6 +3,10 @@
  * build: the local forge while developing, the declared GitHub forge in a
  * production build, and a local-only site when no GitHub half is declared.
  */
+import {
+	DEFAULT_DEPLOY_STATUS_TIMINGS,
+	type DeployStatusTimings
+} from './deploy-status.js';
 import type { UncialCmsSiteConfig } from './types.js';
 
 /** The auth worker this project operates for sites using the canonical GitHub App. */
@@ -26,6 +30,12 @@ export interface SiteOptions {
 	};
 	/** Honoured only when the resolved forge is local; a forge commit is never autosaved. */
 	autosaveMs?: number;
+	/**
+	 * How long the post-save status line waits on the pipeline. A site whose
+	 * build outlasts the default five-minute timeout says so here, or every save
+	 * ends on "status unknown". Each field falls back to its default.
+	 */
+	deployStatus?: Partial<DeployStatusTimings>;
 }
 
 export interface Site {
@@ -34,6 +44,15 @@ export interface Site {
 	localOnly: boolean;
 	autosaveMs: number | undefined;
 	localContentDir: string;
+	deployStatusTimings: DeployStatusTimings;
+}
+
+function resolveDeployStatusTimings(overrides: Partial<DeployStatusTimings> = {}): DeployStatusTimings {
+	return {
+		firstDelayMs: overrides.firstDelayMs ?? DEFAULT_DEPLOY_STATUS_TIMINGS.firstDelayMs,
+		intervalMs: overrides.intervalMs ?? DEFAULT_DEPLOY_STATUS_TIMINGS.intervalMs,
+		timeoutMs: overrides.timeoutMs ?? DEFAULT_DEPLOY_STATUS_TIMINGS.timeoutMs
+	};
 }
 
 export function defineSite(
@@ -57,6 +76,7 @@ export function defineSite(
 		config,
 		localOnly,
 		autosaveMs: config.forge === 'local' ? options.autosaveMs : undefined,
-		localContentDir: options.localContentDir ?? options.contentDir
+		localContentDir: options.localContentDir ?? options.contentDir,
+		deployStatusTimings: resolveDeployStatusTimings(options.deployStatus)
 	};
 }

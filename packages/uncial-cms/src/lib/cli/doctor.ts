@@ -28,6 +28,11 @@ export interface DoctorOptions {
 	appSlug?: string;
 	/** Ref the Allowlist is read from; defaults to the repository's default branch. */
 	branch?: string;
+	/**
+	 * Probe GitHub Pages. A site deployed anywhere else opts out explicitly, so
+	 * that a Pages site which is genuinely misconfigured still fails the check.
+	 */
+	pages?: boolean;
 }
 
 /** Runs the real `gh`. A missing binary is a non-zero status, not an exception. */
@@ -314,7 +319,11 @@ export async function doctor(
 	await checkAppInstalled(gh, report, repo, appSlug);
 	await checkPushPermission(gh, report, repo);
 	await checkAllowlist(gh, report, repo, origin.origin, options.branch);
-	await checkPages(gh, report, repo, origin.host);
+	if (options.pages === false) {
+		report.warn('skipped the GitHub Pages probe (--no-pages): this site deploys elsewhere.');
+	} else {
+		await checkPages(gh, report, repo, origin.host);
+	}
 
 	if (origin.host.endsWith('.github.io')) {
 		report.warn(
