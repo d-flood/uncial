@@ -1230,7 +1230,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "// src/routes/site.ts\nimport { createBlockRegistry, createSchema } from 'uncial/core';\nimport { defineSvelteBlock } from 'uncial/runtime/svelte';\nimport Callout from '$lib/blocks/Callout.svelte';\nimport ImageFigure from '$lib/blocks/ImageFigure.svelte';\n\nexport { site } from '$lib/site.js';\n\nconst callout = defineSvelteBlock({\n\tid: 'callout',\n\tlabel: 'Callout',\n\tattributes: {\n\t\tvariant: {\n\t\t\tdefault: 'note',\n\t\t\toptions: [\n\t\t\t\t{ value: 'note', label: 'Note' },\n\t\t\t\t{ value: 'warning', label: 'Warning' },\n\t\t\t\t{ value: 'tip', label: 'Tip' }\n\t\t\t]\n\t\t}\n\t},\n\tcomponent: Callout,\n\tcontent: { kind: 'flow' }\n});\n\nconst image = defineSvelteBlock({\n\tid: 'image',\n\tlabel: 'Image',\n\tattributes: { src: { default: '' }, alt: { default: '' }, caption: { default: '' } },\n\tcomponent: ImageFigure\n});\n\nexport const blocks = createBlockRegistry([callout, image]);\n\nexport const schema = createSchema(blocks, {\n\tmetaFields: { title: { default: 'Untitled page', required: true } }\n});"
+					"text": "// src/routes/site.ts\nimport { createBlockRegistry, createSchema } from 'uncial/core';\nimport { defineSvelteBlock } from 'uncial/runtime/svelte';\nimport Callout from '$lib/blocks/Callout.svelte';\nimport ImageFigure from '$lib/blocks/ImageFigure.svelte';\n\nexport { site } from '$lib/site.js';\n\nconst callout = defineSvelteBlock({\n\tid: 'callout',\n\tlabel: 'Callout',\n\tattributes: {\n\t\tvariant: {\n\t\t\tdefault: 'note',\n\t\t\toptions: [\n\t\t\t\t{ value: 'note', label: 'Note' },\n\t\t\t\t{ value: 'warning', label: 'Warning' },\n\t\t\t\t{ value: 'tip', label: 'Tip' }\n\t\t\t]\n\t\t}\n\t},\n\tcomponent: Callout,\n\tcontent: { kind: 'flow' }\n});\n\nconst image = defineSvelteBlock({\n\tid: 'image',\n\tlabel: 'Image',\n\tattributes: {\n\t\tsrc: { default: '', input: 'image' },\n\t\talt: { default: '' },\n\t\tcaption: { default: '' }\n\t},\n\tcomponent: ImageFigure\n});\n\nexport const blocks = createBlockRegistry([callout, image]);\n\nexport const schema = createSchema(blocks, {\n\tmetaFields: { title: { default: 'Untitled page', required: true } }\n});"
 				}
 			]
 		},
@@ -1239,11 +1239,11 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "A block that uploads needs two rules. Import "
+					"text": "Declaring "
 				},
 				{
 					"type": "text",
-					"text": "uncial-cms",
+					"text": "src",
 					"marks": [
 						{
 							"type": "code"
@@ -1252,24 +1252,11 @@
 				},
 				{
 					"type": "text",
-					"text": " "
+					"text": " with "
 				},
 				{
 					"type": "text",
-					"text": "dynamically",
-					"marks": [
-						{
-							"type": "italic"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", inside the handler, so it never enters a reader page's static import graph; and ask for "
-				},
-				{
-					"type": "text",
-					"text": "fit",
+					"text": "input: 'image'",
 					"marks": [
 						{
 							"type": "code"
@@ -1278,7 +1265,46 @@
 				},
 				{
 					"type": "text",
-					"text": ", which re-encodes an oversize image to WebP under the forge's size cap so a photograph off a phone commits instead of failing:"
+					"text": " is all the block does for uploads. The attributes panel renders an image field for it with Upload and Choose existing, and "
+				},
+				{
+					"type": "text",
+					"text": "EditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " backs that field with "
+				},
+				{
+					"type": "text",
+					"text": "cmsImageSource(site.config)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " by default: an upload is re-encoded to WebP if it is over the forge's size cap, so a photograph off a phone commits instead of failing, then committed under "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and Choose existing lists the images already there. The block itself stays a plain render of its attributes:"
 				}
 			],
 			"attrs": {
@@ -1294,7 +1320,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "<!-- src/lib/blocks/ImageFigure.svelte (the upload handler) -->\nconst { servedUrl, uploadImageAsset } = await import('uncial-cms');\nconst result = await uploadImageAsset(file, { site, fit: true });\nupdateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });"
+					"text": "<!-- src/lib/blocks/ImageFigure.svelte -->\n<script lang=\"ts\">\n\timport { base } from '$app/paths';\n\timport { resolveImageSrc } from 'uncial/render';\n\n\tlet { src = '', alt = '', caption = '' } = $props();\n</script>\n\n<figure>\n\t{#if src}<img src={resolveImageSrc(src, base)} {alt} />{/if}\n\t{#if caption}<figcaption>{caption}</figcaption>{/if}\n</figure>"
 				}
 			]
 		},
@@ -1303,33 +1329,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "The upload reads "
-				},
-				{
-					"type": "text",
-					"text": "mediaDir",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " off the site object, so no block hardcodes a directory. "
-				},
-				{
-					"type": "text",
-					"text": "servedUrl",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " turns the committed repo path into the site-root-relative URL the built site serves it from, with no base path baked in — the stored "
+					"text": "The stored "
 				},
 				{
 					"type": "text",
@@ -1342,7 +1342,7 @@
 				},
 				{
 					"type": "text",
-					"text": " stays correct at every "
+					"text": " is the site-root-relative URL the built site serves the file from, with no base path baked in, so it stays correct at every "
 				},
 				{
 					"type": "text",
@@ -1355,7 +1355,20 @@
 				},
 				{
 					"type": "text",
-					"text": " the same content is built at, and the block prepends "
+					"text": " the same content is built at. "
+				},
+				{
+					"type": "text",
+					"text": "resolveImageSrc",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " prepends "
 				},
 				{
 					"type": "text",
@@ -1368,7 +1381,98 @@
 				},
 				{
 					"type": "text",
-					"text": " at render time."
+					"text": " to a root-relative "
+				},
+				{
+					"type": "text",
+					"text": "src",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and leaves "
+				},
+				{
+					"type": "text",
+					"text": "blob:",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "data:",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and absolute URLs alone. A site built under a base path, or whose static dir is not "
+				},
+				{
+					"type": "text",
+					"text": "static",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", passes "
+				},
+				{
+					"type": "text",
+					"text": "cmsImageSource(site.config, { base, staticDir })",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to "
+				},
+				{
+					"type": "text",
+					"text": "EditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "'s "
+				},
+				{
+					"type": "text",
+					"text": "imageSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " prop."
 				}
 			],
 			"attrs": {
@@ -1387,11 +1491,11 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "Until the next redeploy the committed image is not being served yet, so the block should bridge the gap with a local "
+							"text": "Until the next redeploy the committed image is not served yet, so the editor hands the block a local "
 						},
 						{
 							"type": "text",
-							"text": "URL.createObjectURL",
+							"text": "blob:",
 							"marks": [
 								{
 									"type": "code"
@@ -1400,7 +1504,20 @@
 						},
 						{
 							"type": "text",
-							"text": " preview."
+							"text": " preview of an image uploaded this session. The stored "
+						},
+						{
+							"type": "text",
+							"text": "src",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " is always the served path, so a Content page never sees the preview."
 						}
 					],
 					"attrs": {

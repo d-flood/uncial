@@ -632,9 +632,17 @@ Residual risks accepted for v1 (see the spec's §6.5 for the full treatment):
 
 ## Media
 
-Single-image upload commits an image straight into the repo and hands the block
-back its served path. It is exposed as pure, adapter-injected functions in the
-same family as `createPage`/`deletePage`:
+A Block gets image upload by declaring an attribute with `input: 'image'`:
+`EditorPage` and `mountEditorPage` back its attributes-panel field with
+`cmsImageSource(config, { base, staticDir })`, which fits an upload under the
+forge limit, commits it under `mediaDir`, stores its served URL and lists the
+media dir for Choose existing. Pass `list` and `thumbnail` to override the
+listing and tile URLs for a rendition pipeline, or `imageSource` to replace the
+source outright.
+
+Underneath, single-image upload commits an image straight into the repo and
+answers its served path. It is exposed as pure, adapter-injected functions in
+the same family as `createPage`/`deletePage`:
 
 ```ts
 import { uploadAsset, uploadImageAsset, servedUrl, MAX_CONTENT_BYTES } from 'uncial-cms';
@@ -647,10 +655,10 @@ const { path, sha, commitSha } = await uploadAsset(
 );
 ```
 
-From a block, use the editor convenience: it resolves the adapter and author
-from the active editor session, and reads `mediaDir` off the site object, so no
-block hardcodes a directory. Import it **dynamically**, inside the handler, so
-`uncial-cms` never enters a reader page's static import graph:
+For a custom flow (e.g. uploading a fetched video poster), use the editor
+convenience: it resolves the adapter and author from the active editor session,
+and reads `mediaDir` off the site object. Import it **dynamically**, inside the
+handler, so `uncial-cms` never enters a reader page's static import graph:
 
 ```ts
 const { servedUrl, uploadImageAsset } = await import('uncial-cms');
@@ -676,8 +684,8 @@ updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
   no git-blobs-API fallback in v1. With `fit`, the re-encode happens first.
 - **`mediaDir`** is repo-root-relative and comes from the site options; the
   returned `path` is repo-root-relative too. Until the next redeploy the
-  committed copy is not served, so the editor should bridge the gap with a local
-  `objectURL` preview.
+  committed copy is not served; an `input: 'image'` field bridges the gap with a
+  local `blob:` preview, and a custom flow has to do the same.
 
 The `ForgeAdapter`'s `writeFile` accepts `string | Uint8Array`; binary content is
 base64-encoded and PUT to the Contents API with the same message/branch/sha

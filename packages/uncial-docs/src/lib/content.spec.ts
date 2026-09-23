@@ -99,7 +99,7 @@ describe('ported Docs content', () => {
 			'createContentHandlers',
 			'EditorPage',
 			'mountIndexPage',
-			'uploadImageAsset',
+			"input: 'image'",
 			'.uncial/cms.json',
 			'uncial-cms doctor',
 			'static-site.yml@main',
