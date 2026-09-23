@@ -70,7 +70,7 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
-		/** Uploads and thumbnails for `input: 'image'` attributes. */
+		/** Uploads, existing images and thumbnails for `input: 'image'` attributes. */
 		imageSource?: ImageSource;
 		onIssue?: (issue: ValidationIssue) => void;
 		/**
