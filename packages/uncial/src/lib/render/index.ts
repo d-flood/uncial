@@ -9,3 +9,4 @@ export {
 	getCodeLanguageClass,
 	highlightCodeToHtml
 } from '../shared/syntaxHighlight.js';
+export { resolveImageSrc } from './resolveImageSrc.js';
