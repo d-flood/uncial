@@ -188,6 +188,19 @@ describe('doctor', () => {
 		expect(result.err).toContain(`https://github.com/${REPO}/settings/pages`);
 	});
 
+	it('skips the Pages probe under --no-pages, for a site deployed elsewhere', async () => {
+		const result = await invoke([...doctorArgs('https://www.example.com'), '--no-pages'], {
+			...INSTALLED,
+			allowlist: { stdout: JSON.stringify({ allowedOrigins: ['https://www.example.com'] }) },
+			// Pages is off; without the opt-out this would be a failing probe.
+			pages: { status: 1 }
+		});
+
+		expect(result.code).toBe(0);
+		expect(result.out).toContain('skipped the GitHub Pages probe');
+		expect(result.calls.some((args) => args.join(' ').endsWith('/pages'))).toBe(false);
+	});
+
 	it('fails a custom-domain origin whose Pages cname does not match', async () => {
 		const result = await invoke(doctorArgs('https://www.example.com'), {
 			...INSTALLED,

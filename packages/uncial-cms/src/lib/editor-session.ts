@@ -27,6 +27,7 @@ import {
 } from './editor-controller.js';
 import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { createLocalAdapter } from './local/adapter.js';
+import type { DeployStatusTimings, Schedule } from './deploy-status.js';
 import { localSessionProvider } from './local/session.js';
 import type { BlockRegistry, ContentSchema } from 'uncial/core';
 import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
@@ -64,6 +65,13 @@ export interface CreateEditorSessionOptions {
 	download?: (payload: { filename: string; content: string; mimeType: string }) => void;
 	/** True once the host's surface has been torn down. */
 	isDestroyed?: () => boolean;
+	/**
+	 * Deploy-status polling cadence and deadline; `defineSite` resolves these
+	 * onto `Site.deployStatusTimings`. Omitted uses the defaults.
+	 */
+	timings?: DeployStatusTimings;
+	/** Timer injection point; tests drive polling without real delays. */
+	schedule?: Schedule;
 }
 
 export function forgeAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
@@ -101,6 +109,8 @@ export function createEditorSession(opts: CreateEditorSessionOptions): EditorCon
 		confirm: opts.confirm ?? ((message: string) => window.confirm(message)),
 		download: opts.download ?? triggerDownload,
 		autosaveMs: opts.autosaveMs,
+		timings: opts.timings,
+		schedule: opts.schedule,
 		isDestroyed: opts.isDestroyed
 	});
 }

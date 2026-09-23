@@ -101,6 +101,7 @@
 				schema: resolvedSchema,
 				sessionProvider,
 				autosaveMs: site.autosaveMs,
+				timings: site.deployStatusTimings,
 				isDestroyed: () => cancelled,
 				ui: {
 					status: (view) => (status = view),

@@ -18,7 +18,7 @@ Usage:
                   CMS runtime sentinel or the editor stack.
 
   uncial-cms doctor --origin <https://host> [--repo owner/name]
-                    [--app-slug <slug>] [--branch <ref>]
+                    [--app-slug <slug>] [--branch <ref>] [--no-pages]
 
     Check, through the authenticated \`gh\` CLI, that the GitHub App is
     installed on the repository, that .uncial/cms.json is committed and lists
@@ -29,6 +29,7 @@ Usage:
     --repo       Defaults to the repository of the current checkout.
     --app-slug   Defaults to "${DEFAULT_APP_SLUG}".
     --branch     Ref the allowlist is read from; defaults to the default branch.
+    --no-pages   Skip the Pages probe, for a site deployed somewhere else.
 
   uncial-cms --help    Print this message.`;
 
@@ -40,24 +41,30 @@ export const consoleOutput: CliOutput = {
 /** Flags taking a value, in either `--flag value` or `--flag=value` form. */
 function parseFlags(
 	rest: string[],
-	names: readonly string[]
-): { values: Record<string, string>; error: string | null } {
+	names: readonly string[],
+	booleans: readonly string[] = []
+): { values: Record<string, string>; flags: Set<string>; error: string | null } {
 	const values: Record<string, string> = {};
+	const flags = new Set<string>();
 	for (let i = 0; i < rest.length; i += 1) {
 		const arg = rest[i];
+		if (booleans.includes(arg)) {
+			flags.add(arg);
+			continue;
+		}
 		const [name, inline] =
 			arg.startsWith('--') && arg.includes('=')
 				? [arg.slice(0, arg.indexOf('=')), arg.slice(arg.indexOf('=') + 1)]
 				: [arg, undefined];
-		if (!names.includes(name)) return { values, error: `Unknown option "${arg}".` };
+		if (!names.includes(name)) return { values, flags, error: `Unknown option "${arg}".` };
 		const value = inline ?? rest[i + 1];
 		if (value === undefined || value.startsWith('-')) {
-			return { values, error: `Option "${name}" needs a value.` };
+			return { values, flags, error: `Option "${name}" needs a value.` };
 		}
 		if (inline === undefined) i += 1;
 		values[name] = value;
 	}
-	return { values, error: null };
+	return { values, flags, error: null };
 }
 
 export async function run(
@@ -84,7 +91,11 @@ export async function run(
 	}
 
 	if (command === 'doctor') {
-		const { values, error } = parseFlags(rest, ['--origin', '--repo', '--app-slug', '--branch']);
+		const { values, flags, error } = parseFlags(
+			rest,
+			['--origin', '--repo', '--app-slug', '--branch'],
+			['--no-pages']
+		);
 		if (error !== null) {
 			io.err(error);
 			io.err(USAGE);
@@ -101,7 +112,8 @@ export async function run(
 				origin,
 				repo: values['--repo'],
 				appSlug: values['--app-slug'],
-				branch: values['--branch']
+				branch: values['--branch'],
+				pages: !flags.has('--no-pages')
 			},
 			io,
 			gh
