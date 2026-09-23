@@ -105,12 +105,7 @@ describe('AttributeFieldControl list', () => {
 
 		expect(rendered.container.querySelector('textarea')).toBeNull();
 		const inputs = Array.from(rendered.container.querySelectorAll('input'));
-		expect(inputs.map((input) => input.value)).toEqual([
-			'Hours',
-			'3-6pm',
-			'Location',
-			'Edgerton'
-		]);
+		expect(inputs.map((input) => input.value)).toEqual(['Hours', '3-6pm', 'Location', 'Edgerton']);
 	});
 
 	it('reports edits, additions, reordering and removal as whole arrays', async () => {
@@ -175,7 +170,8 @@ describe('AttributeFieldControl image', () => {
 	const imageSpec: AttributeSpec<string> = { default: '', input: 'image' };
 
 	function buttonLabels(container: HTMLElement): string[] {
-		return Array.from(container.querySelectorAll('button')).map(
+		// The picker dialog's own buttons are not field actions.
+		return Array.from(container.querySelectorAll('button:not(dialog button)')).map(
 			(button) => button.textContent?.trim() ?? ''
 		);
 	}
@@ -192,6 +188,32 @@ describe('AttributeFieldControl image', () => {
 		expect(buttonLabels(rendered.container)).toEqual(['Clear']);
 		expect(rendered.container.querySelector('input[type="file"]')).toBeNull();
 		expect(rendered.container.querySelector('img')?.getAttribute('src')).toBe('/base/media/a.png');
+	});
+
+	it('offers Choose existing and no Upload for a browse-only image source', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'src',
+			spec: imageSpec,
+			value: '/media/a.png',
+			imageSource: { browse: async () => ['/media/a.png'] },
+			onChange: () => {}
+		});
+
+		expect(buttonLabels(rendered.container)).toEqual(['Choose existing', 'Clear']);
+		expect(rendered.container.querySelector('input[type="file"]')).toBeNull();
+	});
+
+	it('offers no Choose existing for an upload-only image source', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'src',
+			spec: imageSpec,
+			value: '',
+			imageSource: { upload: async () => '/media/b.png' },
+			onChange: () => {}
+		});
+
+		expect(buttonLabels(rendered.container)).toEqual(['Upload']);
+		expect(rendered.container.querySelector('dialog')).toBeNull();
 	});
 
 	it('renders the image thumbnail and Clear with no source at all', () => {

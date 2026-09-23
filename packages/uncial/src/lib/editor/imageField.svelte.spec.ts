@@ -57,6 +57,15 @@ async function fileInput(container: HTMLElement): Promise<HTMLInputElement> {
 	return container.querySelector<HTMLInputElement>('.uncial-editor-sidebar input[type="file"]')!;
 }
 
+async function chooseExisting(container: HTMLElement): Promise<HTMLButtonElement> {
+	const find = () =>
+		Array.from(container.querySelectorAll<HTMLButtonElement>('.uncial-editor-sidebar button')).find(
+			(button) => button.textContent?.trim() === 'Choose existing'
+		);
+	await expect.poll(find).toBeDefined();
+	return find()!;
+}
+
 function pick(input: HTMLInputElement, file: File): void {
 	const transfer = new DataTransfer();
 	transfer.items.add(file);
@@ -101,6 +110,39 @@ describe('image attribute field in the editor', () => {
 						?.getAttribute('src') ?? ''
 			)
 			.toMatch(/^blob:/);
+	});
+
+	it('stores the picked existing image and closes the picker', async () => {
+		const source: ImageSource = { browse: async () => ['/media/a.png', '/media/b.png'] };
+		const { rendered, lastAttrs } = mountEditor('photo', source);
+
+		(await chooseExisting(rendered.container)).click();
+		const dialog = rendered.container.querySelector('dialog')!;
+		await expect.poll(() => dialog.querySelector('[aria-label="b.png"]')).not.toBeNull();
+		dialog.querySelector<HTMLButtonElement>('[aria-label="b.png"]')!.click();
+
+		await expect.poll(() => lastAttrs().src).toBe('/media/b.png');
+		expect(dialog.open).toBe(false);
+	});
+
+	it('shows the blob: preview for an image uploaded earlier this session', async () => {
+		const source: ImageSource = {
+			upload: async () => '/uploads/x.png',
+			browse: async () => ['/uploads/x.png', '/media/a.png'],
+			thumbnail: (src) => `/base${src}`
+		};
+		const { rendered, lastAttrs } = mountEditor('photo', source);
+
+		pick(await fileInput(rendered.container), png());
+		await expect.poll(() => lastAttrs().src).toBe('/uploads/x.png');
+
+		(await chooseExisting(rendered.container)).click();
+		const dialog = rendered.container.querySelector('dialog')!;
+		const tileImage = (name: string) =>
+			dialog.querySelector(`[aria-label="${name}"] img`)?.getAttribute('src') ?? '';
+		await expect.poll(() => tileImage('x.png')).toMatch(/^blob:/);
+		expect(tileImage('a.png')).toBe('/base/media/a.png');
+		expect(dialog.querySelector('[aria-label="x.png"]')?.getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('leaves the image attribute unchanged and shows the error when upload rejects', async () => {

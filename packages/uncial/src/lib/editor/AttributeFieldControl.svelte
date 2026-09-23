@@ -20,6 +20,7 @@
 	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
+	import ImagePicker from './ImagePicker.svelte';
 	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
 	// A list item's fields are ordinary attributes, edited by this same control.
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
@@ -80,6 +81,7 @@
 	const items = $derived(Array.isArray(value) ? (value as unknown[]) : []);
 
 	let fileInput = $state<HTMLInputElement>();
+	let picker = $state<ImagePicker>();
 	let uploading = $state(false);
 	let uploadError = $state('');
 	// The registry is not reactive, but an upload registers its preview before
@@ -277,6 +279,7 @@
 			</div>
 		{:else if inputKind === 'image'}
 			{@const upload = imageSource?.upload}
+			{@const browse = imageSource?.browse}
 			<div class="uncial-image-field">
 				{#if thumbnailSrc}
 					<img class="uncial-image-field__thumbnail" src={thumbnailSrc} alt="" />
@@ -304,6 +307,24 @@
 						>
 							Upload
 						</button>
+					{/if}
+					{#if browse}
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--outline uncial-btn--sm"
+							disabled={uploading}
+							onclick={() => picker?.open()}
+						>
+							Choose existing
+						</button>
+						<ImagePicker
+							bind:this={picker}
+							{browse}
+							thumbnail={imageSource?.thumbnail}
+							{imagePreviews}
+							current={stringValue}
+							onPick={onChange}
+						/>
 					{/if}
 					{#if stringValue}
 						<button
