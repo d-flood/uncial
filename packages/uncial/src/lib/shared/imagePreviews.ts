@@ -12,6 +12,8 @@ import type { AttributeSpec, BlockDefinition } from '../core/types.js';
  */
 export interface ImagePreviews {
 	get(src: string): string | undefined;
+	/** The value a preview URL stands in for. */
+	sourceOf(url: string): string | undefined;
 	register(src: string, file: Blob): void;
 	revokeAll(): void;
 }
@@ -20,36 +22,35 @@ export function createImagePreviews(): ImagePreviews {
 	const previews = new Map<string, string>();
 	// Re-uploading a file answers the same src, so nothing re-renders and the
 	// canvas and field keep the earlier URL; it stays valid until teardown.
-	const created: string[] = [];
+	const sources = new Map<string, string>();
 
 	return {
 		get: (src) => previews.get(src),
+		sourceOf: (url) => sources.get(url),
 		register(src, file) {
 			const url = URL.createObjectURL(file);
-			created.push(url);
+			sources.set(url, src);
 			previews.set(src, url);
 		},
 		revokeAll() {
-			created.forEach((url) => URL.revokeObjectURL(url));
-			created.length = 0;
+			sources.forEach((_src, url) => URL.revokeObjectURL(url));
+			sources.clear();
 			previews.clear();
 		}
 	};
 }
 
-function substituteValue(
-	spec: AttributeSpec<unknown>,
-	value: unknown,
-	previews: ImagePreviews
-): unknown {
+type Lookup = (value: string) => string | undefined;
+
+function substituteValue(spec: AttributeSpec<unknown>, value: unknown, lookup: Lookup): unknown {
 	const kind = inferAttributeInputKind(spec);
 	if (kind === 'image') {
-		return typeof value === 'string' ? (previews.get(value) ?? value) : value;
+		return typeof value === 'string' ? (lookup(value) ?? value) : value;
 	}
 	if (kind !== 'list' || !spec.list || !Array.isArray(value)) return value;
 
 	const valueSpec = attributeListValueSpec(spec.list);
-	if (valueSpec) return value.map((item) => substituteValue(valueSpec, item, previews));
+	if (valueSpec) return value.map((item) => substituteValue(valueSpec, item, lookup));
 
 	const fields = attributeListFields(spec.list);
 	return value.map((item) => {
@@ -58,10 +59,23 @@ function substituteValue(
 		return Object.fromEntries(
 			Object.entries(record).map(([name, fieldValue]) => {
 				const fieldSpec = fields.find(([fieldName]) => fieldName === name)?.[1];
-				return [name, fieldSpec ? substituteValue(fieldSpec, fieldValue, previews) : fieldValue];
+				return [name, fieldSpec ? substituteValue(fieldSpec, fieldValue, lookup) : fieldValue];
 			})
 		);
 	});
+}
+
+function substituteAttrs(
+	block: BlockDefinition,
+	attrs: Record<string, unknown>,
+	lookup: Lookup
+): Record<string, unknown> {
+	return Object.fromEntries(
+		Object.entries(attrs).map(([name, value]) => {
+			const spec = block.attributes[name] as AttributeSpec<unknown> | undefined;
+			return [name, spec ? substituteValue(spec, value, lookup) : value];
+		})
+	);
 }
 
 /** The attrs a Block component renders on the canvas, with previews in place of image values. */
@@ -70,10 +84,17 @@ export function withImagePreviews(
 	attrs: Record<string, unknown>,
 	previews: ImagePreviews
 ): Record<string, unknown> {
-	return Object.fromEntries(
-		Object.entries(attrs).map(([name, value]) => {
-			const spec = block.attributes[name] as AttributeSpec<unknown> | undefined;
-			return [name, spec ? substituteValue(spec, value, previews) : value];
-		})
-	);
+	return substituteAttrs(block, attrs, (value) => previews.get(value));
+}
+
+/**
+ * The attrs a Block component writes back, with its previews turned into the
+ * values they stand in for, so a preview is never stored.
+ */
+export function withoutImagePreviews(
+	block: BlockDefinition,
+	attrs: Record<string, unknown>,
+	previews: ImagePreviews
+): Record<string, unknown> {
+	return substituteAttrs(block, attrs, (value) => previews.sourceOf(value));
 }

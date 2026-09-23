@@ -2,10 +2,11 @@
 	// Test fixture: a block that renders exactly the image values it is handed.
 	interface Props {
 		src?: string;
-		items?: Array<{ image?: string }>;
+		items?: Array<{ image?: string; caption?: string }>;
+		updateAttributes?: (attrs: Record<string, unknown>) => void;
 	}
 
-	let { src = '', items = [] }: Props = $props();
+	let { src = '', items = [], updateAttributes }: Props = $props();
 </script>
 
 <div data-testid="image-block-fixture">
@@ -17,4 +18,12 @@
 			<img data-testid="canvas-gallery-image" src={item.image} alt="" />
 		{/if}
 	{/each}
+	<button
+		type="button"
+		data-testid="edit-captions"
+		onclick={() =>
+			updateAttributes?.({ items: items.map((item) => ({ ...item, caption: 'edited' })) })}
+	>
+		Edit captions
+	</button>
 </div>

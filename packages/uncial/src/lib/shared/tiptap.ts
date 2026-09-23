@@ -30,7 +30,7 @@ import type { PMNode } from './document.js';
 import type { RichTextFeature } from '../core/types.js';
 import { lowlight } from './syntaxHighlight.js';
 import { sanitizeHref } from '../render/sanitize.js';
-import { withImagePreviews, type ImagePreviews } from './imagePreviews.js';
+import { withImagePreviews, withoutImagePreviews, type ImagePreviews } from './imagePreviews.js';
 
 export type BlockActivationCallback = (pos: number) => void;
 
@@ -86,8 +86,9 @@ function buildBlockEditorProps(
 					// would drop earlier writes.
 					const current = editor.state.doc.nodeAt(pos);
 					if (!current) return;
+					const stored = imagePreviews ? withoutImagePreviews(block, attrs, imagePreviews) : attrs;
 					editor.view.dispatch(
-						editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...attrs })
+						editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...stored })
 					);
 				},
 		// ProseMirror's getPos can return undefined when the node is not currently

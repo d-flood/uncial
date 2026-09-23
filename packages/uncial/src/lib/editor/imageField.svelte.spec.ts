@@ -112,6 +112,27 @@ describe('image attribute field in the editor', () => {
 			.toMatch(/^blob:/);
 	});
 
+	it('stores the real value when the canvas writes back an attribute holding a preview', async () => {
+		const source: ImageSource = { upload: async () => '/uploads/slide.png' };
+		const { rendered, lastAttrs } = mountEditor('gallery', source);
+		const items = () => lastAttrs().items as Array<{ image: string; caption: string }> | undefined;
+
+		pick(await fileInput(rendered.container), png());
+		await expect
+			.poll(
+				() =>
+					rendered.container
+						.querySelector('[data-testid="canvas-gallery-image"]')
+						?.getAttribute('src') ?? ''
+			)
+			.toMatch(/^blob:/);
+
+		rendered.container.querySelector<HTMLButtonElement>('[data-testid="edit-captions"]')!.click();
+
+		await expect.poll(() => items()?.[0]?.caption).toBe('edited');
+		expect(items()?.[0]?.image).toBe('/uploads/slide.png');
+	});
+
 	it('stores the picked existing image and closes the picker', async () => {
 		const source: ImageSource = { browse: async () => ['/media/a.png', '/media/b.png'] };
 		const { rendered, lastAttrs } = mountEditor('photo', source);

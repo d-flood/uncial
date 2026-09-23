@@ -44,7 +44,7 @@
 								{ "type": "text", "text": "input", "marks": [{ "type": "code" }] },
 								{
 									"type": "text",
-									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, or select."
+									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, select, or image."
 								}
 							]
 						}

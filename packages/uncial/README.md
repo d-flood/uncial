@@ -344,10 +344,15 @@ spec supports:
 - `validate`: custom validation predicate
 - `parse`: custom coercion from editor or serialized input
 - `serialize`: custom serialization for HTML persistence
-- `input`: editor control hint — `text`, `textarea`, `number`, `checkbox`, `json`, `select`, `richtext`, or `hidden`. When omitted it is inferred from the default value (and from `options`, which implies `select`).
+- `input`: editor control hint — `text`, `textarea`, `number`, `checkbox`, `json`, `select`, `richtext`, `image`, or `hidden`. When omitted it is inferred from the default value (and from `options`, which implies `select`).
 - `options`: allowed values for `select` inputs, either plain values or `{ value, label, description }` objects
 - `richText`: for `richtext` inputs, a `{ features, placeholder }` object controlling the nested rich-text feature allowlist
 - `placeholder`: optional editor placeholder
+
+An `image` attribute stores a plain URL string. Its field uploads or chooses
+images through the `imageSource` passed to `Editor` (the `imageSource` property
+of `uncial-editor`); render it with `resolveImageSrc(src, base)` from
+`uncial/render`, which leaves the editor's `blob:` previews alone.
 
 Blocks themselves also accept an optional `description` and `icon` (an icon name,
 inline markup, or a Svelte component) that surface in the editor's insert menu.
