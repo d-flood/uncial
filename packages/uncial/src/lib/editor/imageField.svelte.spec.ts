@@ -145,6 +145,39 @@ describe('image attribute field in the editor', () => {
 		expect(dialog.querySelector('[aria-label="x.png"]')?.getAttribute('aria-pressed')).toBe('true');
 	});
 
+	it('drops an upload that finishes after another block was selected', async () => {
+		let finishUpload!: (src: string) => void;
+		const source: ImageSource = {
+			upload: () => new Promise((resolve) => (finishUpload = resolve))
+		};
+		const controller = createBlockAttributesController();
+		const changes: JSONContent[] = [];
+		const rendered = render(Editor, {
+			blocks: [imageBlock],
+			json: {
+				type: 'doc',
+				content: [
+					{ type: 'photo', attrs: { id: 'photo-a', src: '' } },
+					{ type: 'photo', attrs: { id: 'photo-b', src: '' } }
+				]
+			},
+			attributesController: controller,
+			imageSource: source,
+			onChange: (next: JSONContent) => changes.push(next)
+		});
+		controller.openAttributesAt(0);
+		pick(await fileInput(rendered.container), png());
+		await expect.poll(() => rendered.container.textContent).toContain('Uploading');
+
+		controller.openAttributesAt(1);
+		await expect.poll(() => rendered.container.textContent).not.toContain('Uploading');
+		finishUpload('/uploads/x.png');
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
+		const srcs = (changes.at(-1)?.content ?? []).map((node) => node.attrs?.src ?? '');
+		expect(srcs.filter(Boolean)).toEqual([]);
+	});
+
 	it('leaves the image attribute unchanged and shows the error when upload rejects', async () => {
 		const source: ImageSource = {
 			upload: async () => {

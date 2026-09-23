@@ -189,7 +189,7 @@
 			{selectedBlock.label || controllerState.selectedBlockId || 'block'}
 		</p>
 		{#if !selectedBlockReadOnly}
-			{#each selectedAttributeSpecs as [name, spec] (name)}
+			{#each selectedAttributeSpecs as [name, spec] (`${controllerState.activeBlock?.pos}:${name}`)}
 				<AttributeFieldControl
 					{name}
 					{spec}

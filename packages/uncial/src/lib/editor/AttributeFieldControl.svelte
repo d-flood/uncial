@@ -13,6 +13,7 @@
 		inferAttributeInputKind,
 		normalizeAttributeOptions
 	} from '../core/attributes.js';
+	import { onDestroy } from 'svelte';
 	import type { AttributeSpec } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import type { ImageSource } from './imageSource.js';
@@ -92,11 +93,18 @@
 			: ''
 	);
 
+	// The panel remounts its controls when another block is selected, so an
+	// upload resolving after that would write into the wrong block. It is dropped
+	// instead, and the committed file stays reachable through Choose existing.
+	let destroyed = false;
+	onDestroy(() => (destroyed = true));
+
 	async function uploadImage(file: File, upload: (file: File) => Promise<string>): Promise<void> {
 		uploading = true;
 		uploadError = '';
 		try {
 			const src = await upload(file);
+			if (destroyed) return;
 			imagePreviews?.register(src, file);
 			onChange(src);
 		} catch (reason) {
