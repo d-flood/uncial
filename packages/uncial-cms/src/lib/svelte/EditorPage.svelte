@@ -13,8 +13,10 @@
 	 */
 	import { onMount } from 'svelte';
 	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+	import type { ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, StatusView } from '../editor-controller.js';
+	import { cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
@@ -35,6 +37,8 @@
 		attributesPanel?: 'docked' | 'overlay' | 'off';
 		/** Forwarded to `Editor`; `'bare'` draws no surface of the editor's own. */
 		presentation?: 'card' | 'bare';
+		/** Forwarded to `Editor`; defaults to uploading into the site's media dir. */
+		imageSource?: ImageSource;
 	}
 
 	let {
@@ -45,13 +49,15 @@
 		schema,
 		sessionProvider,
 		attributesPanel = 'overlay',
-		presentation = 'bare'
+		presentation = 'bare',
+		imageSource
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
 	// Autosave leaves nothing to press; a forge commit is never autosaved, so a
 	// Save button and autosave are exactly the two modes.
 	const manualSave = $derived(site.autosaveMs === undefined);
+	const resolvedImageSource = $derived(imageSource ?? cmsImageSource(site.config));
 	const branch = $derived(
 		site.config.forge === 'github' ? site.config.branch : 'the local checkout'
 	);
@@ -174,6 +180,7 @@
 			bind:meta
 			{attributesPanel}
 			{presentation}
+			imageSource={resolvedImageSource}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}

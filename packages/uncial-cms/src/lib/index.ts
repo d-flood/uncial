@@ -58,6 +58,7 @@ export {
 	type EncodableImage
 } from './fit-image.js';
 export { servedUrl } from './served-url.js';
+export { cmsImageSource } from './image-source.js';
 export { MAX_CONTENT_BYTES } from './constants.js';
 export {
 	hashForPagePath,

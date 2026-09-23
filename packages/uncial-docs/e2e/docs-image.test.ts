@@ -2,8 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import { DOCS_REPO, GETTING_STARTED_SOURCE, fromBase64, seedDocsSession, toBase64 } from './docs-helpers.js';
 import { noisePng } from './noise-png.js';
 
-// A Docs document whose only block is an Image with no src yet, so the editor
-// renders the Image block's Upload affordance.
+// A Docs document whose only block is an Image with no src yet.
 const IMAGE_DOC = {
 	type: 'doc',
 	version: 1,
@@ -62,10 +61,25 @@ async function interceptImageGitHub(page: Page): Promise<{ puts: RecordedPut[] }
 	return { puts };
 }
 
+/**
+ * Activate the Image block and upload `file` through its image field in the
+ * attributes panel.
+ */
+async function uploadInPanel(
+	page: Page,
+	file: { name: string; mimeType: string; buffer: Buffer }
+): Promise<void> {
+	const editor = page.locator('.uncial-cms-editor-page');
+	await editor.getByRole('button', { name: 'Image', exact: true }).click();
+	const chooser = page.waitForEvent('filechooser');
+	await editor.getByRole('button', { name: 'Upload', exact: true }).click();
+	await (await chooser).setFiles(file);
+}
+
 /** The forge's cap, mirrored here rather than imported into the e2e bundle. */
 const MAX_CONTENT_BYTES = 1024 * 1024;
 
-test('uploading in the Image block commits the file and stores the served src, with a local preview', async ({
+test('uploading in the Image field commits the file and stores the served src, with a local preview', async ({
 	page
 }) => {
 	const { puts } = await interceptImageGitHub(page);
@@ -73,20 +87,11 @@ test('uploading in the Image block commits the file and stores the served src, w
 
 	await page.goto('/getting-started/edit/');
 
-	// The Image block's Upload input is visible because the document loaded with
-	// an empty src.
 	const editor = page.locator('.uncial-cms-editor-page');
-	const fileInput = editor.locator('input[type="file"]');
-	await expect(fileInput).toBeVisible();
+	await uploadInPanel(page, { name: 'diagram.png', mimeType: 'image/png', buffer: noisePng(8, 8) });
 
-	await fileInput.setInputFiles({
-		name: 'diagram.png',
-		mimeType: 'image/png',
-		buffer: noisePng(8, 8)
-	});
-
-	// Immediate local preview: the <img> shows an object URL before the commit
-	// lands (the committed copy only serves after the next redeploy).
+	// The canvas renders the session's local preview: the committed copy only
+	// serves after the next redeploy.
 	const img = editor.locator('figure img');
 	await expect(img).toHaveAttribute('src', /^blob:/);
 
@@ -96,7 +101,7 @@ test('uploading in the Image block commits the file and stores the served src, w
 		.toMatch(/^packages\/uncial-docs\/static\/uploads\/[0-9a-f]+\.png$/);
 
 	// Saving the page persists the mapped, served src (base is '' in the e2e build).
-	// Scope to the CMS status line by class: the Image block's own "Uploading…"
+	// Scope to the CMS status line by class: the image field's own "Uploading…"
 	// indicator is also role=status.
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	await expect(page.locator('.uncial-cms-status')).toContainText('Committed to main');
@@ -117,14 +122,12 @@ test('an oversize image is downscaled and commits as WebP under the limit', asyn
 	await page.goto('/getting-started/edit/');
 
 	const editor = page.locator('.uncial-cms-editor-page');
-	const fileInput = editor.locator('input[type="file"]');
-	await expect(fileInput).toBeVisible();
 
 	// Noise at 900×700 deflates to well over the Contents API cap, so this
 	// exercises `fit`'s re-encode rather than its pass-through.
 	const oversize = noisePng(900, 700);
 	expect(oversize.byteLength).toBeGreaterThan(MAX_CONTENT_BYTES);
-	await fileInput.setInputFiles({ name: 'huge.png', mimeType: 'image/png', buffer: oversize });
+	await uploadInPanel(page, { name: 'huge.png', mimeType: 'image/png', buffer: oversize });
 
 	const assetPath = 'packages/uncial-docs/static/uploads/';
 	await expect
@@ -135,5 +138,6 @@ test('an oversize image is downscaled and commits as WebP under the limit', asyn
 	expect(Buffer.from(String(assetPut.body.content), 'base64').byteLength).toBeLessThanOrEqual(
 		MAX_CONTENT_BYTES
 	);
-	await expect(editor.locator('.uncial-image-error')).toHaveCount(0);
+	await expect(editor.getByText('Uploading…')).toHaveCount(0);
+	await expect(editor.getByRole('alert')).toHaveCount(0);
 });

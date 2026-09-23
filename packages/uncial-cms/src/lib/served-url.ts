@@ -14,7 +14,7 @@ import type { Site } from './define-site.js';
  * `paths.base` the same content is built at, so the site prepends its base at
  * render time.
  */
-export function servedUrl(site: Site, repoPath: string, staticDir = 'static'): string {
+export function servedUrl(site: Pick<Site, 'config'>, repoPath: string, staticDir = 'static'): string {
 	const prefix = `${staticDir.replace(/\/+$/, '')}/`;
 	const mediaDir = site.config.mediaDir;
 	if (mediaDir?.startsWith(prefix) && repoPath.startsWith(prefix)) {

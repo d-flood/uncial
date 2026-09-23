@@ -4,7 +4,9 @@
 	// the parity work — the editor's content box is the article's box because it
 	// is inside the article, in the site's own cascade.
 	import { base } from '$app/paths';
+	import { cmsImageSource } from 'uncial-cms';
 	import { EditorPage } from 'uncial-cms/svelte';
+	import { STATIC_DIR } from '$lib/site.js';
 	import { blocks, schema, site } from '../../site.js';
 
 	let { data } = $props();
@@ -44,6 +46,7 @@
 				{schema}
 				sourcePath={data.sourcePath}
 				pagePath={data.pagePath}
+				imageSource={cmsImageSource(site.config, { base, staticDir: STATIC_DIR })}
 			/>
 		</article>
 	</main>

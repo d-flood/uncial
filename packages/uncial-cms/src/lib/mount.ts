@@ -10,6 +10,7 @@ import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core'
 import type { UncialEditorElement } from 'uncial/web-components';
 import { type EditorPageUi, type StatusView } from './editor-controller.js';
 import { createEditorSession, defaultSessionProvider } from './editor-session.js';
+import { cmsImageSource } from './image-source.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { clearActiveForge } from './upload-context.js';
@@ -48,6 +49,8 @@ export interface MountEditorPageOptions {
 	 * renders behind a shadow boundary, which page styles do not cross).
 	 */
 	editorStylesheets?: string[];
+	/** Where `input: 'image'` fields get images; defaults to uploading into `config.mediaDir`. */
+	imageSource?: UncialEditorElement['imageSource'];
 }
 
 function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: string[]): void {
@@ -127,6 +130,7 @@ export function mountEditorPage(
 	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
 	if (opts.attributesPanel !== undefined) editor.attributesPanel = opts.attributesPanel;
 	if (opts.presentation !== undefined) editor.presentation = opts.presentation;
+	editor.imageSource = opts.imageSource ?? cmsImageSource(config);
 	editor.blocks = blocks;
 	editor.schema = schema;
 	// Forward the schema's declared meta fields so the editor renders (and edits)

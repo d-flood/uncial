@@ -28,14 +28,15 @@ const callout = defineSvelteBlock({
 	content: { kind: 'flow' }
 });
 
-// Image: an atomic figure. Its editor affordance uploads a file and stores the
-// served URL as `src`; alt is required for accessibility, caption is optional.
+// Image: an atomic figure. `src` is an image field, uploaded from the attributes
+// panel and stored as its served URL; alt is required for accessibility,
+// caption is optional.
 const image = defineSvelteBlock({
 	id: 'image',
 	label: 'Image',
-	description: 'A figure with alt text and an optional caption; upload from the editor.',
+	description: 'A figure with alt text and an optional caption; upload from the attributes panel.',
 	attributes: {
-		src: { default: '' },
+		src: { default: '', input: 'image' },
 		alt: { default: '' },
 		caption: { default: '' }
 	},

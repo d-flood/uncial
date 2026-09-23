@@ -19,7 +19,6 @@ test('an upload under the local forge commits to mediaDir and its served URL res
 	baseURL
 }) => {
 	const original = readDoc(GETTING_STARTED_FILE);
-	// The Image block only offers its Upload input when the src is empty.
 	const document = JSON.parse(original) as {
 		content: Array<{ type: string; attrs?: Record<string, unknown> }>;
 	};
@@ -33,9 +32,11 @@ test('an upload under the local forge commits to mediaDir and its served URL res
 		restoreDoc(GETTING_STARTED_FILE, JSON.stringify(document, null, '\t'));
 		await page.goto('/getting-started/edit/');
 
-		const fileInput = page.locator('.uncial-cms-editor-page input[type="file"]');
-		await expect(fileInput).toBeVisible();
-		await fileInput.setInputFiles({
+		const editor = page.locator('.uncial-cms-editor-page');
+		await editor.getByRole('button', { name: 'Image', exact: true }).click();
+		const chooser = page.waitForEvent('filechooser');
+		await editor.getByRole('button', { name: 'Upload', exact: true }).click();
+		await (await chooser).setFiles({
 			name: 'diagram.png',
 			mimeType: 'image/png',
 			buffer: noisePng(8, 8)
