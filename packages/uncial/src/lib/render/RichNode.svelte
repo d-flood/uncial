@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { BlockRegistry, ContentSchema } from '../core/types.js';
+	import type { BlockRegistry, ContentSchema, MarkRegistry } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
 	import RichContent from './RichContent.svelte';
@@ -9,6 +9,7 @@
 	interface Props {
 		node: PMNode;
 		registry: BlockRegistry;
+		markRegistry?: MarkRegistry;
 		schema?: ContentSchema;
 		tabsGroup?: string;
 		tabsLabels?: string[];
@@ -17,6 +18,7 @@
 	let {
 		node,
 		registry,
+		markRegistry = undefined,
 		schema = undefined,
 		tabsGroup = undefined,
 		tabsLabels = undefined
@@ -73,6 +75,7 @@
 	<RichContent
 		nodes={blockContent}
 		{registry}
+		{markRegistry}
 		{schema}
 		tabsGroup={childTabsGroup}
 		tabsLabels={childTabsLabels}
@@ -84,7 +87,11 @@
 		{text}
 	{:else}
 		{@const [mark, ...rest] = marks}
-		{#if mark.type === 'bold'}
+		{@const customMark = markRegistry?.get(mark.type)}
+		{#if customMark}
+			{@const MarkComponent = customMark.component}
+			<MarkComponent {...mark.attrs ?? {}}>{@render renderMarkedText(text, rest)}</MarkComponent>
+		{:else if mark.type === 'bold'}
 			<strong>{@render renderMarkedText(text, rest)}</strong>
 		{:else if mark.type === 'italic'}
 			<em>{@render renderMarkedText(text, rest)}</em>
@@ -124,7 +131,7 @@
 	/>
 {:else if node.type === 'paragraph'}
 	<p>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</p>
 {:else if node.type === 'heading'}
 	{@const level = Math.min(6, Math.max(1, Number(node.attrs?.level ?? 1)))}
@@ -137,53 +144,65 @@
 			? node.attrs.slug
 			: undefined}
 	{#if level === 1}
-		<h1 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h1>
+		<h1 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h1>
 	{:else if level === 2}
-		<h2 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h2>
+		<h2 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h2>
 	{:else if level === 3}
-		<h3 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h3>
+		<h3 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h3>
 	{:else if level === 4}
-		<h4 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h4>
+		<h4 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h4>
 	{:else if level === 5}
-		<h5 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h5>
+		<h5 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h5>
 	{:else}
-		<h6 id={anchor}><RichContent nodes={node.content ?? []} {registry} {schema} /></h6>
+		<h6 id={anchor}>
+			<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
+		</h6>
 	{/if}
 {:else if node.type === 'table'}
 	<div class="uncial-table-scroll">
 		<table>
 			<tbody>
-				<RichContent nodes={node.content ?? []} {registry} {schema} />
+				<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 			</tbody>
 		</table>
 	</div>
 {:else if node.type === 'tableRow'}
 	<tr>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</tr>
 {:else if node.type === 'tableHeader'}
 	<th>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</th>
 {:else if node.type === 'tableCell'}
 	<td>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</td>
 {:else if node.type === 'bulletList'}
 	<ul>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</ul>
 {:else if node.type === 'orderedList'}
 	<ol>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</ol>
 {:else if node.type === 'listItem'}
 	<li>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</li>
 {:else if node.type === 'blockquote'}
 	<blockquote>
-		<RichContent nodes={node.content ?? []} {registry} {schema} />
+		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />
 	</blockquote>
 {:else if node.type === 'horizontalRule'}
 	<hr />

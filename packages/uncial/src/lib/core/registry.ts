@@ -3,7 +3,9 @@ import type {
 	BlockMetadata,
 	BlockRegistry,
 	ContentSchema,
-	CreateSchemaOptions
+	CreateSchemaOptions,
+	MarkDefinition,
+	MarkRegistry
 } from './types.js';
 
 /**
@@ -66,6 +68,33 @@ export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	};
 }
 
+/**
+ * Registered renderers are what the renderer can *draw*; `allowedMarks` is what
+ * a schema *permits*. They stay separate: registering a mark does not admit it
+ * through normalization, and permitting one does not give it a wrapper element.
+ */
+export function createMarkRegistry(marks: MarkDefinition[]): MarkRegistry {
+	const byId = new Map<string, MarkDefinition>();
+
+	for (const mark of marks) {
+		if (byId.has(mark.id)) {
+			throw new Error(`Duplicate mark id "${mark.id}"`);
+		}
+		byId.set(mark.id, mark);
+	}
+
+	return {
+		marks,
+		byId,
+		get(id: string) {
+			return byId.get(id);
+		},
+		has(id: string) {
+			return byId.has(id);
+		}
+	};
+}
+
 export function createSchema(
 	registry: BlockRegistry,
 	options: CreateSchemaOptions = {}
@@ -99,4 +128,8 @@ export function createSchema(
 
 export function resolveRegistry(blocks: BlockRegistry | BlockDefinition[]): BlockRegistry {
 	return Array.isArray(blocks) ? createBlockRegistry(blocks) : blocks;
+}
+
+export function resolveMarkRegistry(marks: MarkRegistry | MarkDefinition[]): MarkRegistry {
+	return Array.isArray(marks) ? createMarkRegistry(marks) : marks;
 }
