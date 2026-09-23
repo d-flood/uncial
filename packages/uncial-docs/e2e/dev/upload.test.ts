@@ -42,6 +42,10 @@ test('an upload under the local forge commits to mediaDir and its served URL res
 			buffer: noisePng(8, 8)
 		});
 
+		await expect(editor.locator('.ProseMirror figure.uncial-image img')).toHaveAttribute(
+			'src',
+			/^blob:/
+		);
 		await expect
 			.poll(() => uploads().find((name) => !before.has(name)), {
 				message: 'the upload lands under mediaDir, at its repository path',
