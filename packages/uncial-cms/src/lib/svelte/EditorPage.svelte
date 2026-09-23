@@ -37,7 +37,7 @@
 		attributesPanel?: 'docked' | 'overlay' | 'off';
 		/** Forwarded to `Editor`; `'bare'` draws no surface of the editor's own. */
 		presentation?: 'card' | 'bare';
-		/** Forwarded to `Editor`; defaults to uploading into the site's media dir. */
+		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
 	}
 

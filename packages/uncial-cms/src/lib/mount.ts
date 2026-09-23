@@ -49,7 +49,7 @@ export interface MountEditorPageOptions {
 	 * renders behind a shadow boundary, which page styles do not cross).
 	 */
 	editorStylesheets?: string[];
-	/** Where `input: 'image'` fields get images; defaults to uploading into `config.mediaDir`. */
+	/** Where `input: 'image'` fields get images; defaults to `cmsImageSource(config)`. */
 	imageSource?: UncialEditorElement['imageSource'];
 }
 
