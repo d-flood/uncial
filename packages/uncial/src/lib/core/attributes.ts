@@ -44,7 +44,9 @@ export function toAttributeSpec<T>(value: AttributeConfig<T>): AttributeSpec<T> 
  * The fields of one list item, as specs. Empty for a list of single values,
  * which {@link attributeListValueSpec} describes instead.
  */
-export function attributeListFields(list: AttributeListSpec): Array<[string, AttributeSpec<unknown>]> {
+export function attributeListFields(
+	list: AttributeListSpec
+): Array<[string, AttributeSpec<unknown>]> {
 	return Object.entries(list.fields ?? {}).map(([name, config]) => [name, toAttributeSpec(config)]);
 }
 

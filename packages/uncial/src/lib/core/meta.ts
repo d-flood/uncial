@@ -4,11 +4,7 @@ import {
 	serializeAttributeValue,
 	toAttributeDraftValue
 } from './attributes.js';
-import type {
-	AttributeSpec,
-	ValidateDocumentOptions,
-	ValidationIssue
-} from './types.js';
+import type { AttributeSpec, ValidateDocumentOptions, ValidationIssue } from './types.js';
 import { pushIssue } from './issues.js';
 import { isPlainObject as isRecord } from '../shared/guards.js';
 

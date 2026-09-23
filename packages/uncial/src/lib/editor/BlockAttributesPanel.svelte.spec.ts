@@ -90,7 +90,7 @@ describe('BlockAttributesPanel choose-attribute channel', () => {
 			blocks: [imageBlock],
 			onChooseAttribute: (request) => eventsA.push(request)
 		});
-		const panelB = render(BlockAttributesPanel, {
+		render(BlockAttributesPanel, {
 			controller: stubController(editingImageState()),
 			blocks: [imageBlock],
 			onChooseAttribute: (request) => eventsB.push(request)
@@ -210,7 +210,6 @@ function mountEditorWithPanel(
 }
 
 describe('BlockAttributesPanel live attribute write-through', () => {
-
 	it('lands every character typed into a text attribute field', async () => {
 		const harness = mountEditorWithPanel();
 		const input = await vi.waitFor(() => {
@@ -297,13 +296,10 @@ describe('BlockAttributesPanel nested block selection', () => {
 		await expect
 			.poll(() => document.querySelector('.uncial-attrs-panel .uncial-attrs-title')?.textContent)
 			.toContain('Tab');
-		const secondTabPos = harness.editor.state.doc.nodeAt(harness.pos)!.child(0).nodeSize +
-			harness.pos +
-			1;
+		const secondTabPos =
+			harness.editor.state.doc.nodeAt(harness.pos)!.child(0).nodeSize + harness.pos + 1;
 		await userEvent.type(page.elementLocator(await attributeField()), 'Lit');
-		await expect
-			.poll(() => harness.editor.state.doc.nodeAt(secondTabPos)?.attrs.label)
-			.toBe('Lit');
+		await expect.poll(() => harness.editor.state.doc.nodeAt(secondTabPos)?.attrs.label).toBe('Lit');
 		expect(harness.editor.state.doc.nodeAt(harness.pos)?.attrs.group).toBe('framework');
 
 		// Selecting the container again brings the panel back to it, with the
@@ -361,18 +357,14 @@ describe('BlockAttributesPanel nested block menu', () => {
 	};
 
 	it('offers only the declared child for a container that names one', async () => {
-		const harness = mountEditorWithPanel(oneTabDoc, [
-			constrainedTabsBlock,
-			tabBlock,
-			noteBlock
-		]);
+		const harness = mountEditorWithPanel(oneTabDoc, [constrainedTabsBlock, tabBlock, noteBlock]);
 
 		await expect.poll(() => menuLabels()).toEqual(['Tab']);
 
 		harness.cleanup();
 	});
 
-	it('opens a menu that is clickable inside the sidebar\'s scroll box', async () => {
+	it("opens a menu that is clickable inside the sidebar's scroll box", async () => {
 		const harness = mountEditorWithPanel(oneTabDoc, [tabsBlock, tabBlock, noteBlock]);
 		// The sidebar's panel is a sticky, capped scroll box, which clips a menu laid
 		// out inside it at its own edge.

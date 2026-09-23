@@ -507,7 +507,9 @@ describe('normalizeDocument', () => {
 		const schema = createSchema(registry);
 
 		for (const input of [null, undefined, 'garbage', 42, []] as unknown[]) {
-			expect(normalizeDocument(input as Partial<PMDoc> | null | undefined, registry, schema)).toEqual({
+			expect(
+				normalizeDocument(input as Partial<PMDoc> | null | undefined, registry, schema)
+			).toEqual({
 				type: 'doc',
 				version: CURRENT_DOCUMENT_VERSION,
 				content: []

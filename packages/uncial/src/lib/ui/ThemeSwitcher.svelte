@@ -11,7 +11,7 @@
 	const labels: Record<typeof theme.mode, string> = {
 		system: 'System theme (auto)',
 		light: 'Light theme',
-		dark: 'Dark theme',
+		dark: 'Dark theme'
 	};
 </script>
 

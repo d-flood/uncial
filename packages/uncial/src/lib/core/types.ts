@@ -134,8 +134,10 @@ export interface BaseBlockConfig<Attrs extends BlockAttributes> {
 	};
 }
 
-export interface RuntimeBlockConfig<Attrs extends BlockAttributes, Component>
-	extends BaseBlockConfig<Attrs> {
+export interface RuntimeBlockConfig<
+	Attrs extends BlockAttributes,
+	Component
+> extends BaseBlockConfig<Attrs> {
 	component?: Component;
 	components?: {
 		editor?: Component;

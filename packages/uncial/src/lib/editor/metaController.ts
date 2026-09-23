@@ -21,12 +21,6 @@ export interface DocumentMetaController extends Readable<DocumentMetaState> {
 	setMetaFields(fields: ReadonlyMap<string, AttributeSpec<unknown>>): void;
 }
 
-const INITIAL_STATE: DocumentMetaState = {
-	draft: {},
-	errors: {},
-	dirty: false
-};
-
 function errorsFromIssues(issues: ValidationIssue[]): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const issue of issues) {

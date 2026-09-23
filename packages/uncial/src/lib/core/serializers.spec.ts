@@ -57,10 +57,16 @@ describe('serializeBlockAttributes', () => {
 	});
 
 	it('preserves an empty string instead of substituting the default, but restores the default when the key is missing', () => {
-		expect(JSON.parse(serializeBlockAttributes({ attributes: { caption: { default: 'x' } } }, { caption: '' }))).toEqual({
+		expect(
+			JSON.parse(
+				serializeBlockAttributes({ attributes: { caption: { default: 'x' } } }, { caption: '' })
+			)
+		).toEqual({
 			caption: ''
 		});
-		expect(JSON.parse(serializeBlockAttributes({ attributes: { caption: { default: 'x' } } }, {}))).toEqual({
+		expect(
+			JSON.parse(serializeBlockAttributes({ attributes: { caption: { default: 'x' } } }, {}))
+		).toEqual({
 			caption: 'x'
 		});
 	});
@@ -72,15 +78,17 @@ describe('serializeBlockAttributes', () => {
 			}
 		};
 
-		expect(JSON.parse(serializeBlockAttributes(withSerialize, { when: 5 }))).toEqual({ when: 'S5' });
+		expect(JSON.parse(serializeBlockAttributes(withSerialize, { when: 5 }))).toEqual({
+			when: 'S5'
+		});
 		// Missing → coerced to default (0), then serialized.
 		expect(JSON.parse(serializeBlockAttributes(withSerialize, {}))).toEqual({ when: 'S0' });
 	});
 
 	it('drops attribute keys that are not declared on the block', () => {
-		expect(JSON.parse(serializeBlockAttributes(block, { caption: 'a', bogus: 'nope' }))).not.toHaveProperty(
-			'bogus'
-		);
+		expect(
+			JSON.parse(serializeBlockAttributes(block, { caption: 'a', bogus: 'nope' }))
+		).not.toHaveProperty('bogus');
 	});
 });
 

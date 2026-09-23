@@ -13,7 +13,10 @@ export function emptyDocument(
 	};
 
 	if (metaFields.size > 0) {
-		(document as JSONContent & { meta?: Record<string, unknown> }).meta = normalizeMeta({}, metaFields);
+		(document as JSONContent & { meta?: Record<string, unknown> }).meta = normalizeMeta(
+			{},
+			metaFields
+		);
 	}
 
 	return document;

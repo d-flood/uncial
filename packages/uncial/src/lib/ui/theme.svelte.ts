@@ -49,7 +49,7 @@ function createThemeState() {
 		},
 		apply,
 		cycle,
-		init,
+		init
 	};
 }
 

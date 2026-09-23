@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { createBlockRegistry } from '$lib/core/index.js';
 	import { Renderer } from '$lib/render/index.js';
 	import { tabBlock, tabsBlock } from '$lib/tabs.js';
@@ -46,4 +46,4 @@
 
 <Renderer {blocks} {content} />
 
-<a href="{base}/tabs/next/">Next tab page</a>
+<a href={resolve('/tabs/next')}>Next tab page</a>

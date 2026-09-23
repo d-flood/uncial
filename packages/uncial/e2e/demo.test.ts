@@ -5,7 +5,7 @@ test('home page shows the styled editor', async ({ page }) => {
 	await expect(page.getByRole('button', { name: 'Bold' })).toBeVisible();
 	await expect(
 		page.getByText(
-			"Uncial is a backend-agnostic, block-based WYSIWYG editor for Svelte, powered by Tiptap, designed to bridge the gap between authoring and rendering."
+			'Uncial is a backend-agnostic, block-based WYSIWYG editor for Svelte, powered by Tiptap, designed to bridge the gap between authoring and rendering.'
 		)
 	).toBeVisible();
 	await expect(page.getByText('Normalized version')).toHaveCount(0);
@@ -29,7 +29,9 @@ test('editing rich text keeps it out of the block menu', async ({ page }) => {
 	await expect(page.getByText('Rich Text', { exact: true })).toHaveCount(0);
 
 	await page
-		.getByText('Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.')
+		.getByText(
+			'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+		)
 		.click();
 	await page.keyboard.type('!');
 	await page.keyboard.press('Backspace');

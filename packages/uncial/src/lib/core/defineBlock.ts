@@ -67,7 +67,12 @@ function validateConfig<Attrs extends BlockAttributes, Component>(
 
 		// A list with no item shape has nothing to render a field from, and would
 		// silently fall back to raw JSON — the thing `list` exists to replace.
-		if (isAttributeSpecConfig(attr) && attr.list && !attr.list.fields && attr.list.value === undefined) {
+		if (
+			isAttributeSpecConfig(attr) &&
+			attr.list &&
+			!attr.list.fields &&
+			attr.list.value === undefined
+		) {
 			throw new Error(
 				`Attribute "${name}" in block "${config.id}" declares "list" but neither ` +
 					`"list.fields" nor "list.value", so the editor has no item shape to render.`
@@ -88,7 +93,7 @@ function normalizeComponents<Attrs extends BlockAttributes, Component>(
 ): BlockComponents {
 	const shared = config.component;
 	const render = config.components?.render ?? shared ?? config.components?.editor;
-	const editor = config.readOnly ? render : config.components?.editor ?? shared ?? render;
+	const editor = config.readOnly ? render : (config.components?.editor ?? shared ?? render);
 
 	if (!editor || !render) {
 		throw new Error(

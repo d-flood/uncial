@@ -198,9 +198,7 @@
 	const editorGutterWidth = $derived.by(() => {
 		const longestWord = registry.blocks.reduce(
 			(longest, block) =>
-				block.label
-					.split(/\s+/)
-					.reduce((widest, word) => Math.max(widest, word.length), longest),
+				block.label.split(/\s+/).reduce((widest, word) => Math.max(widest, word.length), longest),
 			0
 		);
 
@@ -439,10 +437,7 @@
 	</div>
 	{#if panelVisible}
 		<aside
-			class={[
-				'uncial-editor-sidebar',
-				panelMode === 'overlay' && 'uncial-editor-sidebar--overlay'
-			]}
+			class={['uncial-editor-sidebar', panelMode === 'overlay' && 'uncial-editor-sidebar--overlay']}
 			aria-label="Block attributes"
 		>
 			{#if panelMode === 'overlay'}

@@ -18,7 +18,7 @@
 
 	const toneLabel = $derived(
 		{
-			info: "Info",
+			info: 'Info',
 			success: 'Success!',
 			warning: 'Warning',
 			danger: 'Danger!'
@@ -26,9 +26,7 @@
 	);
 
 	// Ornamental mark per tone — all typographic, no icon chrome.
-	const toneGlyph = $derived(
-		{ info: '§', success: '❦', warning: '⚠', danger: '❢' }[toneKey]
-	);
+	const toneGlyph = $derived({ info: '§', success: '❦', warning: '⚠', danger: '❢' }[toneKey]);
 
 	// Map tones onto Vellum theme tokens — mostly `accent` / `secondary` /
 	// `warning` / `error` so the newsprint stays calm.
@@ -63,22 +61,14 @@
 <aside
 	role="note"
 	aria-label={`${toneLabel} — ${title || 'note'}`}
-	class={[
-		'relative overflow-hidden border border-base-content/25 my-2',
-		toneTint
-	]}
+	class={['relative overflow-hidden border border-base-content/25 my-2', toneTint]}
 >
 	<!-- Accent rail -->
-	<span
-		class={['absolute inset-y-0 left-0 w-0.75', toneRail]}
-		aria-hidden="true"
-	></span>
+	<span class={['absolute inset-y-0 left-0 w-0.75', toneRail]} aria-hidden="true"></span>
 
 	<div class="px-5 py-4 pl-6 sm:px-6 sm:pl-8">
 		<!-- Dateline -->
-		<header
-			class="flex items-center justify-between gap-3 border-b border-current/20 pb-2"
-		>
+		<header class="flex items-center justify-between gap-3 border-b border-current/20 pb-2">
 			<p
 				class={[
 					'font-vellum-mono flex items-center gap-2 text-[0.6rem] uppercase tracking-[0.3em]',
@@ -86,9 +76,8 @@
 				]}
 			>
 				{#if showIcon}
-					<span
-						class="font-vellum-display text-lg leading-none"
-						aria-hidden="true">{toneGlyph}</span
+					<span class="font-vellum-display text-lg leading-none" aria-hidden="true"
+						>{toneGlyph}</span
 					>
 				{/if}
 				<span>{toneLabel}</span>
@@ -104,9 +93,7 @@
 
 		<!-- Body -->
 		{#if hasRichTextContent(body)}
-			<div
-				class="uncial-callout-richtext mt-2 text-[0.95rem] leading-[1.7] opacity-90"
-			>
+			<div class="uncial-callout-richtext mt-2 text-[0.95rem] leading-[1.7] opacity-90">
 				<RichText content={body} features={['bold', 'italic']} />
 			</div>
 		{/if}

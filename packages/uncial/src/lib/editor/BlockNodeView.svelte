@@ -85,7 +85,8 @@
 			onpointerup={handleActivationPointerUp}
 			onclick={stopActivationClick}>{label}</button
 		>
-	</div><div class="uncial-nodeview-body">
+	</div>
+	<div class="uncial-nodeview-body">
 		<BlockComponent {...componentProps} />
 	</div>
 </div>

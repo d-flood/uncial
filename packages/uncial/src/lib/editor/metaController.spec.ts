@@ -5,7 +5,14 @@ import type { AttributeSpec } from '../core/types.js';
 
 describe('DocumentMetaController', () => {
 	const fields = new Map<string, AttributeSpec<unknown>>([
-		['title', { default: '', required: true, validate: (value) => typeof value === 'string' && value.length > 0 }],
+		[
+			'title',
+			{
+				default: '',
+				required: true,
+				validate: (value) => typeof value === 'string' && value.length > 0
+			}
+		],
 		['featured', { default: false }],
 		['priority', { default: 0 }]
 	]);

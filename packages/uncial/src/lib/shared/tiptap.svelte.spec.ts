@@ -242,9 +242,9 @@ describe('container child constraints', () => {
 		const tab = schema.nodes.tab.createAndFill({ label: 'Svelte' })!;
 
 		expect(schema.nodes.tabs.validContent(Fragment.from(tab))).toBe(true);
-		expect(schema.nodes.tabs.validContent(Fragment.from(schema.nodes.paragraph.createAndFill()))).toBe(
-			false
-		);
+		expect(
+			schema.nodes.tabs.validContent(Fragment.from(schema.nodes.paragraph.createAndFill()))
+		).toBe(false);
 		expect(
 			schema.nodes.tabs.validContent(Fragment.from(schema.nodes.callout.createAndFill()))
 		).toBe(false);

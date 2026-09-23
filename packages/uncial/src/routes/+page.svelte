@@ -138,6 +138,8 @@
 					<GithubLogoIcon size={16} weight="bold" />
 					GitHub repo
 				</a>
+				<!-- The docs site is deployed beside this app, not one of its routes. -->
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={docsUrl} class="btn btn-outline btn-secondary btn-sm"> Docs </a>
 				<ThemeSwitcher />
 			</nav>
@@ -199,7 +201,9 @@
 							{#snippet meta(meta)}
 								{#if meta?.title}
 									<header class="mb-6 border-b border-base-content/15 pb-4">
-										<p class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-primary">
+										<p
+											class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-primary"
+										>
 											{meta.author ?? 'Unknown author'} · {meta.publishedAt ?? 'Unpublished'}
 										</p>
 										<h2 class="mt-2 font-vellum-display text-3xl font-black italic">

@@ -4,6 +4,8 @@ interface TabSelectionState {
 }
 
 const STORAGE_PREFIX = 'uncial-tabs:';
+// A lookup cache; reactivity lives on each TabSelection, not on the map.
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
 const selections = new Map<string, TabSelection>();
 
 class TabSelection implements TabSelectionState {

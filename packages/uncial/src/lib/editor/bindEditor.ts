@@ -1,4 +1,9 @@
-import { Editor as TiptapEditor, getSchema, type AnyExtension, type JSONContent } from '@tiptap/core';
+import {
+	Editor as TiptapEditor,
+	getSchema,
+	type AnyExtension,
+	type JSONContent
+} from '@tiptap/core';
 import type { Schema } from '@tiptap/pm/model';
 import type { ActionReturn } from 'svelte/action';
 import { normalizeDocument } from '../core/normalize.js';
@@ -43,7 +48,11 @@ export interface BindEditorOptions {
 }
 
 function toEditorDocument(document: JSONContent): JSONContent {
-	const { version: _version, meta: _meta, ...editorDocument } = document as JSONContent & {
+	const {
+		version: _version,
+		meta: _meta,
+		...editorDocument
+	} = document as JSONContent & {
 		version?: unknown;
 		meta?: unknown;
 	};
@@ -248,7 +257,10 @@ export function bindEditor(
 		);
 		const initialContent = normalizeAndValidate(options.json ?? emptyDocument());
 		rememberReadOnlyAttrs(initialContent);
-		const sanitized = sanitizeForEditorSchema(toEditorDocument(initialContent), getSchema(extensions));
+		const sanitized = sanitizeForEditorSchema(
+			toEditorDocument(initialContent),
+			getSchema(extensions)
+		);
 		sanitized.issues.forEach((issue) => options.onIssue?.(issue));
 		const initialEditorContent = sanitized.document;
 		lastSerialized = JSON.stringify(initialEditorContent);

@@ -39,7 +39,7 @@
 
 <section class="uncial-tabs">
 	<div role="tablist" aria-label={`${group} tabs`}>
-		{#each tabs as tab}
+		{#each tabs as tab (tab)}
 			<button
 				type="button"
 				role="tab"

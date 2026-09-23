@@ -75,7 +75,9 @@
 	// a container declaring nothing offers everything the schema allows.
 	const admissibleChildBlocks = $derived.by(() => {
 		const declared =
-			selectedBlock && 'content' in selectedBlock ? selectedBlock.content?.allowedBlocks : undefined;
+			selectedBlock && 'content' in selectedBlock
+				? selectedBlock.content?.allowedBlocks
+				: undefined;
 		return declared ? activeBlocks.filter((block) => declared.includes(block.id)) : activeBlocks;
 	});
 	const filteredChildBlocks = $derived.by(() => {

@@ -61,7 +61,11 @@
 			>
 				Reset
 			</button>
-			<button type="button" class="uncial-btn uncial-btn--primary uncial-btn--sm" onclick={commitMeta}>
+			<button
+				type="button"
+				class="uncial-btn uncial-btn--primary uncial-btn--sm"
+				onclick={commitMeta}
+			>
 				Save Metadata
 			</button>
 		</div>

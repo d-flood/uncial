@@ -179,7 +179,8 @@ export function normalizeDocument(
 		// Never silently downgrade documents from a newer version; hosts are
 		// notified via validateDocument's UNSUPPORTED_VERSION issue.
 		version: sourceVersion > CURRENT_DOCUMENT_VERSION ? sourceVersion : CURRENT_DOCUMENT_VERSION,
-		content: normalizeContent(working.content, registryBlocks, effectiveSchema, new Set<string>()) ?? []
+		content:
+			normalizeContent(working.content, registryBlocks, effectiveSchema, new Set<string>()) ?? []
 	};
 
 	if (metaFields.size > 0) {
