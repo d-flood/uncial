@@ -145,10 +145,27 @@ describe('image attribute field in the editor', () => {
 		expect(dialog.querySelector('[aria-label="x.png"]')?.getAttribute('aria-pressed')).toBe('true');
 	});
 
+	it('keeps the canvas preview valid when the same image is uploaded again', async () => {
+		const { rendered, lastAttrs } = mountEditor('photo', { upload: async () => '/uploads/x.png' });
+		const canvasSrc = () =>
+			rendered.container.querySelector('[data-testid="canvas-image"]')?.getAttribute('src') ?? '';
+
+		pick(await fileInput(rendered.container), png());
+		await expect.poll(canvasSrc).toMatch(/^blob:/);
+		const preview = canvasSrc();
+
+		pick(await fileInput(rendered.container), png());
+		await expect.poll(() => rendered.container.textContent).not.toContain('Uploading');
+		expect(lastAttrs().src).toBe('/uploads/x.png');
+		await expect(fetch(canvasSrc())).resolves.toBeInstanceOf(Response);
+		expect(canvasSrc()).toBe(preview);
+	});
+
 	it('drops an upload that finishes after another block was selected', async () => {
 		let finishUpload!: (src: string) => void;
 		const source: ImageSource = {
-			upload: () => new Promise((resolve) => (finishUpload = resolve))
+			upload: () => new Promise((resolve) => (finishUpload = resolve)),
+			browse: async () => ['/uploads/x.png']
 		};
 		const controller = createBlockAttributesController();
 		const changes: JSONContent[] = [];
@@ -176,6 +193,12 @@ describe('image attribute field in the editor', () => {
 
 		const srcs = (changes.at(-1)?.content ?? []).map((node) => node.attrs?.src ?? '');
 		expect(srcs.filter(Boolean)).toEqual([]);
+
+		(await chooseExisting(rendered.container)).click();
+		const tile = () =>
+			rendered.container.querySelector('dialog [aria-label="x.png"] img')?.getAttribute('src') ??
+			'';
+		await expect.poll(tile).toMatch(/^blob:/);
 	});
 
 	it('leaves the image attribute unchanged and shows the error when upload rejects', async () => {

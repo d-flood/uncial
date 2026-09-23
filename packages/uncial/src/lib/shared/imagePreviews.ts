@@ -18,16 +18,20 @@ export interface ImagePreviews {
 
 export function createImagePreviews(): ImagePreviews {
 	const previews = new Map<string, string>();
+	// Re-uploading a file answers the same src, so nothing re-renders and the
+	// canvas and field keep the earlier URL; it stays valid until teardown.
+	const created: string[] = [];
 
 	return {
 		get: (src) => previews.get(src),
 		register(src, file) {
-			const previous = previews.get(src);
-			if (previous) URL.revokeObjectURL(previous);
-			previews.set(src, URL.createObjectURL(file));
+			const url = URL.createObjectURL(file);
+			created.push(url);
+			previews.set(src, url);
 		},
 		revokeAll() {
-			previews.forEach((url) => URL.revokeObjectURL(url));
+			created.forEach((url) => URL.revokeObjectURL(url));
+			created.length = 0;
 			previews.clear();
 		}
 	};

@@ -94,8 +94,9 @@
 	);
 
 	// The panel remounts its controls when another block is selected, so an
-	// upload resolving after that would write into the wrong block. It is dropped
-	// instead, and the committed file stays reachable through Choose existing.
+	// upload resolving after that would write into the wrong block. Its value is
+	// dropped instead; the preview is still registered so the committed file is
+	// usable through Choose existing before it is deployed.
 	let destroyed = false;
 	onDestroy(() => (destroyed = true));
 
@@ -104,8 +105,8 @@
 		uploadError = '';
 		try {
 			const src = await upload(file);
-			if (destroyed) return;
 			imagePreviews?.register(src, file);
+			if (destroyed) return;
 			onChange(src);
 		} catch (reason) {
 			uploadError = reason instanceof Error ? reason.message : String(reason);
