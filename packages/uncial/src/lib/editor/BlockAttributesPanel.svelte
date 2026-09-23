@@ -19,6 +19,8 @@
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import { dropdownFloat } from './dropdownFloat.js';
 	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
+	import type { ImageSource } from './imageSource.js';
+	import type { ImagePreviews } from '../shared/imagePreviews.js';
 
 	interface Props {
 		controller: BlockAttributesController;
@@ -30,9 +32,12 @@
 		 * the panel falls back to dispatching that window event for back-compat.
 		 */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
+		imageSource?: ImageSource;
+		/** Where a successful upload registers its preview; see `Editor`. */
+		imagePreviews?: ImagePreviews;
 	}
 
-	let { controller, blocks = [], onChooseAttribute }: Props = $props();
+	let { controller, blocks = [], onChooseAttribute, imageSource, imagePreviews }: Props = $props();
 
 	let controllerState = $state<BlockAttributesState>(createInitialState());
 
@@ -190,6 +195,8 @@
 					error={controllerState.validationErrors[name]}
 					onChange={(value) => controller.setDraftAttr(name, value)}
 					onCustom={chooseCustomAttribute}
+					{imageSource}
+					{imagePreviews}
 				/>
 			{/each}
 		{/if}

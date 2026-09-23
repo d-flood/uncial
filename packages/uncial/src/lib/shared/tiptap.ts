@@ -30,6 +30,7 @@ import type { PMNode } from './document.js';
 import type { RichTextFeature } from '../core/types.js';
 import { lowlight } from './syntaxHighlight.js';
 import { sanitizeHref } from '../render/sanitize.js';
+import { withImagePreviews, type ImagePreviews } from './imagePreviews.js';
 
 export type BlockActivationCallback = (pos: number) => void;
 
@@ -54,10 +55,12 @@ function buildBlockEditorProps(
 	node: ProseMirrorNode,
 	editor?: TiptapEditor,
 	onActivate?: BlockActivationCallback,
-	getPos?: () => number | undefined
+	getPos?: () => number | undefined,
+	imagePreviews?: ImagePreviews
 ): Record<string, unknown> {
+	const attrs = node.attrs ?? {};
 	return {
-		attrs: node.attrs ?? {},
+		attrs: imagePreviews ? withImagePreviews(block, attrs, imagePreviews) : attrs,
 		content: (node.content?.toJSON() ?? []) as PMNode[],
 		blockId: block.id,
 		label: block.label,
@@ -108,7 +111,8 @@ function mountBlockEditorComponent(
 	mounted: MountedComponent | null,
 	editor?: TiptapEditor,
 	onActivate?: BlockActivationCallback,
-	getPos?: () => number | undefined
+	getPos?: () => number | undefined,
+	imagePreviews?: ImagePreviews
 ): MountedComponent {
 	mounted?.destroy();
 	const createEditorMount = block.components.editor.plugin.createEditorMount;
@@ -121,7 +125,7 @@ function mountBlockEditorComponent(
 		inline: block.behaviors.inline ?? false,
 		component: block.components.editor,
 		contentDOM,
-		props: buildBlockEditorProps(block, node, editor, onActivate, getPos)
+		props: buildBlockEditorProps(block, node, editor, onActivate, getPos, imagePreviews)
 	});
 }
 
@@ -143,7 +147,8 @@ function createBlockNodeView(
 	node: ProseMirrorNode,
 	getPos?: () => number | undefined,
 	onActivate?: BlockActivationCallback,
-	editor?: TiptapEditor
+	editor?: TiptapEditor,
+	imagePreviews?: ImagePreviews
 ): ProseMirrorNodeView {
 	const dom = document.createElement(block.behaviors.inline ? 'span' : 'div');
 	dom.className = 'uncial-nodeview';
@@ -174,7 +179,8 @@ function createBlockNodeView(
 		mounted,
 		editor,
 		onActivate,
-		getPos
+		getPos,
+		imagePreviews
 	);
 	syncBlockPosition();
 
@@ -201,7 +207,14 @@ function createBlockNodeView(
 				// reach it — the block would keep rendering its old attributes until
 				// something else re-rendered it. A microtask is outside that window
 				// and still lands before paint.
-				const nextProps = buildBlockEditorProps(block, nextNode, editor, onActivate, getPos);
+				const nextProps = buildBlockEditorProps(
+					block,
+					nextNode,
+					editor,
+					onActivate,
+					getPos,
+					imagePreviews
+				);
 				queueMicrotask(() => mounted?.update?.(nextProps));
 			} else {
 				// Fall back to a full remount for runtimes without update support.
@@ -213,7 +226,8 @@ function createBlockNodeView(
 					mounted,
 					editor,
 					onActivate,
-					getPos
+					getPos,
+					imagePreviews
 				);
 			}
 			return true;
@@ -263,7 +277,8 @@ function containerContentExpression(content: BlockContentDefinition): string {
 
 function createBlockNodeExtension(
 	block: BlockDefinition,
-	onActivate?: BlockActivationCallback
+	onActivate?: BlockActivationCallback,
+	imagePreviews?: ImagePreviews
 ): AnyExtension {
 	const isContainer = Boolean(block.content);
 
@@ -306,7 +321,7 @@ function createBlockNodeExtension(
 		},
 		addNodeView() {
 			return ({ node, getPos, editor }) =>
-				createBlockNodeView(block, node, getPos, onActivate, editor);
+				createBlockNodeView(block, node, getPos, onActivate, editor, imagePreviews);
 		},
 		renderHTML({ HTMLAttributes, node }) {
 			const normalizedAttrs = normalizeBlockAttributes(block, node.attrs ?? {});
@@ -490,12 +505,15 @@ export function createEditorExtensions(
 	blocks: BlockRegistry | BlockDefinition[] = [],
 	schema?: ContentSchema,
 	onActivateBlock?: BlockActivationCallback,
-	extensions: AnyExtension[] = []
+	extensions: AnyExtension[] = [],
+	imagePreviews?: ImagePreviews
 ): AnyExtension[] {
 	const registry = resolveRegistry(blocks);
 	const blockExtensions = registry.blocks
 		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
-		.map((block: BlockDefinition) => createBlockNodeExtension(block, onActivateBlock));
+		.map((block: BlockDefinition) =>
+			createBlockNodeExtension(block, onActivateBlock, imagePreviews)
+		);
 
 	return [
 		...createBaseExtensions(schema),

@@ -6,6 +6,7 @@ import { reactiveProps } from './reactiveProps.svelte.js';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type {
 	BlockAttributesController,
+	ImageSource,
 	ToolbarFeature,
 	ToolbarFeatureSelection
 } from '../editor/index.js';
@@ -30,6 +31,7 @@ type EditorProps = {
 	attributesController?: BlockAttributesController | null;
 	attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 	presentation?: 'card' | 'bare';
+	imageSource?: ImageSource;
 };
 
 type EditorHostProps = EditorProps & {
@@ -218,6 +220,13 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 	}
 	set presentation(value: EditorProps['presentation']) {
 		this.setProp('presentation', value);
+	}
+
+	get imageSource(): EditorProps['imageSource'] {
+		return this.props.imageSource;
+	}
+	set imageSource(value: EditorProps['imageSource']) {
+		this.setProp('imageSource', value);
 	}
 
 	protected mountComponent(target: ShadowRoot): Record<string, unknown> {

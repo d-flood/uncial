@@ -16,6 +16,7 @@ export type AttributeInputKind =
 	| 'richtext'
 	| 'select'
 	| 'hidden'
+	| 'image'
 	| (string & {});
 
 export interface AttributeOption<T> {

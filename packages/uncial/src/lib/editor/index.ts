@@ -10,6 +10,7 @@ export { createBlockAttributesController, createInitialState } from './attribute
 export { createDocumentMetaController } from './metaController.js';
 export { CHOOSE_ATTRIBUTE_EVENT } from './chooseAttribute.js';
 export type { ChooseAttributeRequest } from './chooseAttribute.js';
+export type { ImageSource } from './imageSource.js';
 export {
 	builtinToolbarFeatures,
 	defaultToolbarFeatures,

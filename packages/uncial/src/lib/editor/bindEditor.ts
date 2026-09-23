@@ -13,6 +13,7 @@ import type {
 import type { PMDoc } from '../shared/document.js';
 import { emptyDocument } from '../shared/content.js';
 import { createEditorExtensions } from '../shared/tiptap.js';
+import type { ImagePreviews } from '../shared/imagePreviews.js';
 import {
 	createBlockAttributesController,
 	createInitialState,
@@ -33,6 +34,8 @@ export interface BindEditorOptions {
 	 * gutter label opens it.
 	 */
 	autoOpenAttributes?: boolean;
+	/** Previews the canvas shows in place of just-uploaded `input: 'image'` values. */
+	imagePreviews?: ImagePreviews;
 	onIssue?: (issue: ValidationIssue) => void;
 	onChange?: (json: JSONContent) => void;
 	onMetaChange?: (meta: Record<string, unknown>) => void;
@@ -240,7 +243,8 @@ export function bindEditor(
 			registry,
 			schema,
 			(pos) => controller.openAttributesAt(pos),
-			options.extensions ?? []
+			options.extensions ?? [],
+			options.imagePreviews
 		);
 		const initialContent = normalizeAndValidate(options.json ?? emptyDocument());
 		rememberReadOnlyAttrs(initialContent);

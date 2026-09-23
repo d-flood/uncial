@@ -14,6 +14,8 @@
 		normalizeAttributeOptions
 	} from '../core/attributes.js';
 	import type { AttributeSpec } from '../core/types.js';
+	import type { ImagePreviews } from '../shared/imagePreviews.js';
+	import type { ImageSource } from './imageSource.js';
 	import ArrowUpIcon from 'phosphor-svelte/lib/ArrowUpIcon';
 	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
@@ -29,9 +31,20 @@
 		error?: string;
 		onChange: (value: unknown) => void;
 		onCustom?: (name: string, inputKind: string) => void;
+		imageSource?: ImageSource;
+		imagePreviews?: ImagePreviews;
 	}
 
-	let { name, spec, value = undefined, error = '', onChange, onCustom }: Props = $props();
+	let {
+		name,
+		spec,
+		value = undefined,
+		error = '',
+		onChange,
+		onCustom,
+		imageSource,
+		imagePreviews
+	}: Props = $props();
 
 	const fieldId = `uncial-field-${nextFieldId++}`;
 	const inputKind = $derived(inferAttributeInputKind(spec));
@@ -39,7 +52,10 @@
 	// neither of which a <label for> can address, so only native form controls
 	// get an associated <label>.
 	const hasLabelableControl = $derived(
-		isBuiltInInputKind(inputKind) && inputKind !== 'richtext' && inputKind !== 'list'
+		isBuiltInInputKind(inputKind) &&
+			inputKind !== 'richtext' &&
+			inputKind !== 'list' &&
+			inputKind !== 'image'
 	);
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
 	const stringValue = $derived.by(() => {
@@ -63,6 +79,31 @@
 	const itemLabel = $derived(list.itemLabel ?? 'item');
 	const items = $derived(Array.isArray(value) ? (value as unknown[]) : []);
 
+	let fileInput = $state<HTMLInputElement>();
+	let uploading = $state(false);
+	let uploadError = $state('');
+	// The registry is not reactive, but an upload registers its preview before
+	// writing the value, so the value change is what recomputes this.
+	const thumbnailSrc = $derived(
+		stringValue
+			? (imagePreviews?.get(stringValue) ?? imageSource?.thumbnail?.(stringValue) ?? stringValue)
+			: ''
+	);
+
+	async function uploadImage(file: File, upload: (file: File) => Promise<string>): Promise<void> {
+		uploading = true;
+		uploadError = '';
+		try {
+			const src = await upload(file);
+			imagePreviews?.register(src, file);
+			onChange(src);
+		} catch (reason) {
+			uploadError = reason instanceof Error ? reason.message : String(reason);
+		} finally {
+			uploading = false;
+		}
+	}
+
 	function isBuiltInInputKind(kind: string): boolean {
 		return [
 			'checkbox',
@@ -73,7 +114,8 @@
 			'json',
 			'list',
 			'text',
-			'hidden'
+			'hidden',
+			'image'
 		].includes(kind);
 	}
 
@@ -204,6 +246,8 @@
 								value={item}
 								onChange={(next) => replaceItem(index, next)}
 								{onCustom}
+								{imageSource}
+								{imagePreviews}
 							/>
 						{:else}
 							{#each listFields as [fieldName, fieldSpec] (fieldName)}
@@ -213,6 +257,8 @@
 									value={(item as Record<string, unknown>)?.[fieldName]}
 									onChange={(next) => setItemField(index, fieldName, next)}
 									{onCustom}
+									{imageSource}
+									{imagePreviews}
 								/>
 							{/each}
 						{/if}
@@ -228,6 +274,54 @@
 					<PlusIcon size={12} weight="bold" />
 					<span>Add {itemLabel}</span>
 				</button>
+			</div>
+		{:else if inputKind === 'image'}
+			{@const upload = imageSource?.upload}
+			<div class="uncial-image-field">
+				{#if thumbnailSrc}
+					<img class="uncial-image-field__thumbnail" src={thumbnailSrc} alt="" />
+				{/if}
+				<div class="uncial-image-field__actions">
+					{#if upload}
+						<input
+							bind:this={fileInput}
+							type="file"
+							accept="image/*"
+							hidden
+							onchange={(event) => {
+								const target = event.currentTarget as HTMLInputElement;
+								const file = target.files?.[0];
+								// Reset so picking the same file again still fires `change`.
+								target.value = '';
+								if (file) void uploadImage(file, upload);
+							}}
+						/>
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--outline uncial-btn--sm"
+							disabled={uploading}
+							onclick={() => fileInput?.click()}
+						>
+							Upload
+						</button>
+					{/if}
+					{#if stringValue}
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--ghost uncial-btn--sm"
+							disabled={uploading}
+							onclick={() => onChange('')}
+						>
+							Clear
+						</button>
+					{/if}
+				</div>
+				{#if uploading}
+					<span class="uncial-help-text" role="status">Uploading…</span>
+				{/if}
+				{#if uploadError}
+					<span class="uncial-field__error" role="alert">{uploadError}</span>
+				{/if}
 			</div>
 		{:else if inputKind === 'textarea' || inputKind === 'json'}
 			<textarea

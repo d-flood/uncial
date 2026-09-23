@@ -396,6 +396,25 @@
 	gap: var(--uncial-space-2);
 }
 
+.uncial-image-field {
+	display: grid;
+	gap: var(--uncial-space-2);
+}
+
+.uncial-image-field__thumbnail {
+	max-width: 100%;
+	max-height: 8rem;
+	object-fit: contain;
+	justify-self: start;
+	border: 1px solid var(--uncial-color-border);
+	border-radius: var(--uncial-radius-lg);
+}
+
+.uncial-image-field__actions {
+	display: flex;
+	gap: var(--uncial-space-2);
+}
+
 .uncial-list-item {
 	border: 1px solid var(--uncial-color-border);
 	border-radius: var(--uncial-radius-lg);

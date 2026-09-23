@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AnyExtension, Editor as TiptapEditor, JSONContent } from '@tiptap/core';
+	import { onDestroy } from 'svelte';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import { resolveRegistry } from '../core/registry.js';
@@ -28,6 +29,8 @@
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import Toolbar from './Toolbar.svelte';
 	import type { ChooseAttributeRequest } from './chooseAttribute.js';
+	import type { ImageSource } from './imageSource.js';
+	import { createImagePreviews } from '../shared/imagePreviews.js';
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
@@ -67,6 +70,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
+		/** Uploads and thumbnails for `input: 'image'` attributes. */
+		imageSource?: ImageSource;
 		onIssue?: (issue: ValidationIssue) => void;
 		/**
 		 * The document after an edit, and the metadata after one.
@@ -95,6 +100,7 @@
 		attributesPanel = true,
 		presentation = 'card',
 		onChooseAttribute,
+		imageSource,
 		onIssue,
 		onChange,
 		onMetaChange
@@ -108,6 +114,8 @@
 	let metaTriggerEl = $state<HTMLElement | null>(null);
 	const internalController = createBlockAttributesController();
 	const internalMetaController = createDocumentMetaController();
+	// Per instance: two editors on one page must not see each other's uploads.
+	const imagePreviews = createImagePreviews();
 	let metaState = $state<DocumentMetaState>({
 		draft: {},
 		errors: {},
@@ -157,6 +165,7 @@
 		extensions,
 		attributesController: controller,
 		autoOpenAttributes: panelMode !== 'overlay',
+		imagePreviews,
 		onIssue,
 		onChange: (nextDocument) => {
 			setDocument(nextDocument);
@@ -286,6 +295,8 @@
 
 		return unsubscribe;
 	});
+
+	onDestroy(() => imagePreviews.revokeAll());
 
 	$effect(() => {
 		documentMetaController.setMetaFields(resolvedMetaFields);
@@ -448,7 +459,13 @@
 					</button>
 				</div>
 			{/if}
-			<BlockAttributesPanel {controller} {blocks} {onChooseAttribute} />
+			<BlockAttributesPanel
+				{controller}
+				{blocks}
+				{onChooseAttribute}
+				{imageSource}
+				{imagePreviews}
+			/>
 		</aside>
 	{/if}
 </div>

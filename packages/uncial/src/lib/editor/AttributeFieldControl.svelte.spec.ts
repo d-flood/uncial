@@ -170,3 +170,57 @@ describe('AttributeFieldControl list', () => {
 		expect(changes.at(-1)).toEqual(['one']);
 	});
 });
+
+describe('AttributeFieldControl image', () => {
+	const imageSpec: AttributeSpec<string> = { default: '', input: 'image' };
+
+	function buttonLabels(container: HTMLElement): string[] {
+		return Array.from(container.querySelectorAll('button')).map(
+			(button) => button.textContent?.trim() ?? ''
+		);
+	}
+
+	it('offers no image Upload when the source cannot upload', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'src',
+			spec: imageSpec,
+			value: '/media/a.png',
+			imageSource: { thumbnail: (src: string) => `/base${src}` },
+			onChange: () => {}
+		});
+
+		expect(buttonLabels(rendered.container)).toEqual(['Clear']);
+		expect(rendered.container.querySelector('input[type="file"]')).toBeNull();
+		expect(rendered.container.querySelector('img')?.getAttribute('src')).toBe('/base/media/a.png');
+	});
+
+	it('renders the image thumbnail and Clear with no source at all', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'src',
+			spec: imageSpec,
+			value: '/media/a.png',
+			onChange: () => {}
+		});
+
+		expect(buttonLabels(rendered.container)).toEqual(['Clear']);
+		expect(rendered.container.querySelector('img')?.getAttribute('src')).toBe('/media/a.png');
+	});
+
+	it('clears the image to an empty string', () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'src',
+			spec: imageSpec,
+			value: '/media/a.png',
+			imageSource: { upload: async () => '/media/b.png' },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		expect(buttonLabels(rendered.container)).toEqual(['Upload', 'Clear']);
+		const clear = Array.from(rendered.container.querySelectorAll('button')).find(
+			(button) => button.textContent?.trim() === 'Clear'
+		);
+		clear?.click();
+		expect(changes).toEqual(['']);
+	});
+});
