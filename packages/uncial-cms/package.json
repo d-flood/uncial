@@ -77,14 +77,8 @@
 		}
 	},
 	"peerDependencies": {
-		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0",
 		"uncial": "workspace:^"
-	},
-	"peerDependenciesMeta": {
-		"@sveltejs/kit": {
-			"optional": true
-		}
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",

@@ -35,8 +35,10 @@ pnpm add uncial uncial-cms
 bun add uncial uncial-cms
 ```
 
-`uncial` is a peer dependency. `svelte` is a peer of the `uncial-cms/svelte`
-subpath, and `@sveltejs/kit` of `uncial-cms/sveltekit` — the runtime root
+`uncial` and `svelte` are peer dependencies. `uncial-cms/sveltekit` also needs
+`@sveltejs/kit`, which is deliberately not declared as a peer: npm resolves even
+optional peers against the latest release, so declaring it breaks installs into
+non-SvelteKit hosts whose Vite major differs from Kit's. The runtime root
 imports neither.
 
 The package also ships a `uncial-cms` command; see
