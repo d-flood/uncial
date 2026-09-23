@@ -35,10 +35,12 @@ export function cmsImageSource(
 			const forge = getActiveForge();
 			if (!forge) {
 				throw new Error(
-					'No active editor session — open a page in the editor and sign in before uploading.'
+					'No active editor session — open a page in the editor and sign in before choosing an image.'
 				);
 			}
-			const entries = await forge.adapter.listDir(resolveMediaDir(config.mediaDir));
+			// The same resolution `uploadImageAsset` commits under, so browse lists what upload wrote.
+			const mediaDir = resolveMediaDir(config.mediaDir, forge.config.mediaDir);
+			const entries = await forge.adapter.listDir(mediaDir);
 			return entries
 				.filter((entry) => entry.type === 'file' && IMAGE_EXTENSION.test(entry.path))
 				.map((entry) => entry.path)
