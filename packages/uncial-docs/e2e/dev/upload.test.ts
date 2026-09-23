@@ -62,3 +62,42 @@ test('an upload under the local forge commits to mediaDir and its served URL res
 		}
 	}
 });
+
+test('choosing an existing upload under the local forge stores its served URL', async ({ page }) => {
+	const original = readDoc(GETTING_STARTED_FILE);
+	const document = JSON.parse(original) as {
+		content: Array<{ type: string; attrs?: Record<string, unknown> }>;
+	};
+	const image = document.content.find((node) => node.type === 'image');
+	if (!image?.attrs) throw new Error('getting-started.json must contain an Image block.');
+	image.attrs.src = '';
+	if (!uploads().includes('basic-editor.png')) {
+		throw new Error('The docs media dir must contain basic-editor.png.');
+	}
+
+	try {
+		restoreDoc(GETTING_STARTED_FILE, JSON.stringify(document, null, '\t'));
+		await page.goto('/getting-started/edit/');
+
+		const editor = page.locator('.uncial-cms-editor-page');
+		await editor.getByRole('button', { name: 'Image', exact: true }).click();
+		await editor.getByRole('button', { name: 'Choose existing', exact: true }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'basic-editor.png' }).click();
+
+		await expect(editor.locator('.ProseMirror figure.uncial-image img')).toHaveAttribute(
+			'src',
+			'/uploads/basic-editor.png'
+		);
+		await expect
+			.poll(
+				() =>
+					(
+						JSON.parse(readDoc(GETTING_STARTED_FILE)) as typeof document
+					).content.find((node) => node.type === 'image')?.attrs?.src,
+				{ message: 'autosave writes the chosen served URL to the document', timeout: 15_000 }
+			)
+			.toBe('/uploads/basic-editor.png');
+	} finally {
+		restoreDoc(GETTING_STARTED_FILE, original);
+	}
+});

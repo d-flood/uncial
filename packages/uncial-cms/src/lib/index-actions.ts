@@ -145,7 +145,7 @@ export async function uploadAsset(
 }
 
 /** `mediaDir` from the most specific source that supplies one. */
-function resolveMediaDir(...candidates: Array<string | undefined>): string {
+export function resolveMediaDir(...candidates: Array<string | undefined>): string {
 	const dir = candidates.find((candidate) => candidate);
 	if (!dir) {
 		throw new Error(

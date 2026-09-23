@@ -76,6 +76,50 @@ describe('cmsImageSource', () => {
 		await expect(source().upload!(file)).rejects.toThrow(/no active editor session/i);
 	});
 
+	it('browses the media dir for image files, as sorted served URLs', async () => {
+		const adapter = fakeAdapter();
+		vi.mocked(adapter.listDir).mockResolvedValue([
+			{ path: 'packages/docs/static/uploads/b.JPG', type: 'file' },
+			{ path: 'packages/docs/static/uploads/notes.txt', type: 'file' },
+			{ path: 'packages/docs/static/uploads/a.webp', type: 'file' },
+			{ path: 'packages/docs/static/uploads/thumbs.png', type: 'dir' },
+			{ path: 'packages/docs/static/uploads/c.svg', type: 'file' }
+		]);
+		setActiveForge({ adapter, author, config });
+
+		const srcs = await source().browse!();
+
+		expect(adapter.listDir).toHaveBeenCalledWith('packages/docs/static/uploads');
+		expect(srcs).toEqual(['/uploads/a.webp', '/uploads/b.JPG', '/uploads/c.svg']);
+	});
+
+	it('rejects a browse with no editor session or no media dir', async () => {
+		await expect(source().browse!()).rejects.toThrow(/no active editor session/i);
+
+		const bare = defineSite({ contentDir: 'content' }, { dev: true }).config;
+		setActiveForge({ adapter: fakeAdapter(), author, config: bare });
+		await expect(cmsImageSource(bare).browse!()).rejects.toThrow(/no media directory/i);
+	});
+
+	it('lists through `list` when given, without touching the forge', async () => {
+		const adapter = fakeAdapter();
+		setActiveForge({ adapter, author, config });
+		const list = vi.fn().mockResolvedValue(['/uploads/hero.jpg']);
+
+		const srcs = await cmsImageSource(config, { list }).browse!();
+
+		expect(srcs).toEqual(['/uploads/hero.jpg']);
+		expect(adapter.listDir).not.toHaveBeenCalled();
+	});
+
+	it('uses the `thumbnail` option in place of the default', () => {
+		const thumbnail = (src: string) => src.replace(/\.jpg$/, '-400.jpg');
+
+		expect(cmsImageSource(config, { base: '/site', thumbnail }).thumbnail!('/uploads/a.jpg')).toBe(
+			'/uploads/a-400.jpg'
+		);
+	});
+
 	it('resolves thumbnails against the base', () => {
 		expect(source().thumbnail!('/uploads/a.png')).toBe('/site/uploads/a.png');
 		expect(source().thumbnail!('blob:x')).toBe('blob:x');
