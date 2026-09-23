@@ -97,8 +97,11 @@ class GitHubAdapter implements ForgeAdapter {
 		// The Trees API, unlike the Contents API, has no 1,000-entry directory cap.
 		const dir = path.replace(/^\/+|\/+$/g, '');
 		const ref = `${this.#config!.branch}:${encodeRepoPath(dir)}`;
+		// GitHub marks this `private, max-age=60`, so the browser would otherwise
+		// answer from its cache and omit a file committed within the last minute.
 		const response = await this.#request(
-			`${GITHUB_API_URL}/repos/${this.#config!.repo}/git/trees/${ref}`
+			`${GITHUB_API_URL}/repos/${this.#config!.repo}/git/trees/${ref}`,
+			{ cache: 'no-cache' }
 		);
 		await this.#assertOk(response, `list ${path}`);
 

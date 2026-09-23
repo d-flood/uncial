@@ -300,6 +300,15 @@ describe('listDir', () => {
 		expect(result[1499]).toEqual({ path: 'static/media/img-1499.webp', type: 'file' });
 	});
 
+	it('revalidates rather than reusing a cached listing, so a just-committed file is listed', async () => {
+		fetchMock.mockResolvedValueOnce(jsonResponse({ tree: [], truncated: false }));
+		const adapter = await authenticatedAdapter();
+
+		await adapter.listDir('static/media');
+
+		expect(fetchMock.mock.calls[0]![1]?.cache).toBe('no-cache');
+	});
+
 	it('rejects a truncated tree rather than returning a partial list', async () => {
 		fetchMock.mockResolvedValueOnce(jsonResponse({ tree: [], truncated: true }));
 		const adapter = await authenticatedAdapter();
