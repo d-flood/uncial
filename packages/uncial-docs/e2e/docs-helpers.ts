@@ -151,6 +151,28 @@ export async function interceptDocsGitHubWithStore(
 			return;
 		}
 
+		// Directory listing via the Trees API: `<branch>:<dir>`, entries relative to `dir`.
+		const treesPrefix = '/repos/d-flood/uncial/git/trees/';
+		if (url.pathname.startsWith(treesPrefix) && request.method() === 'GET') {
+			const ref = decodeURIComponent(url.pathname.slice(treesPrefix.length));
+			const dir = ref.slice(ref.indexOf(':') + 1);
+			const children = new Map<string, 'blob' | 'tree'>();
+			for (const key of files.keys()) {
+				if (!key.startsWith(`${dir}/`)) continue;
+				const rest = key.slice(dir.length + 1);
+				const [first] = rest.split('/');
+				children.set(first!, rest.includes('/') ? 'tree' : 'blob');
+			}
+			if (children.size > 0) {
+				await route.fulfill({
+					json: { tree: Array.from(children, ([path, type]) => ({ path, type })), truncated: false }
+				});
+				return;
+			}
+			await route.fulfill({ status: 404, json: { message: 'Not Found' } });
+			return;
+		}
+
 		const prefix = '/repos/d-flood/uncial/contents/';
 		if (!url.pathname.startsWith(prefix)) {
 			await route.fulfill({ status: 404, json: { message: 'Not Found' } });
@@ -168,20 +190,6 @@ export async function interceptDocsGitHubWithStore(
 						sha: shaOf(path),
 						size: content.length
 					}
-				});
-				return;
-			}
-			// Directory listing: immediate children of `path`.
-			const children = new Map<string, 'file' | 'dir'>();
-			for (const key of files.keys()) {
-				if (!key.startsWith(`${path}/`)) continue;
-				const rest = key.slice(path.length + 1);
-				const [first] = rest.split('/');
-				children.set(`${path}/${first}`, rest.includes('/') ? 'dir' : 'file');
-			}
-			if (children.size > 0) {
-				await route.fulfill({
-					json: Array.from(children, ([childPath, type]) => ({ path: childPath, type }))
 				});
 				return;
 			}
