@@ -265,25 +265,46 @@ describe('deleteFile', () => {
 });
 
 describe('listDir', () => {
-	it('lists directory entries as file/dir paths', async () => {
+	it('lists tree entries as repo-root-relative file/dir paths', async () => {
 		fetchMock.mockResolvedValueOnce(
-			jsonResponse([
-				{ path: 'content/about.json', type: 'file' },
-				{ path: 'content/blog', type: 'dir' },
-				{ path: 'content/link', type: 'symlink' }
-			])
+			jsonResponse({
+				tree: [
+					{ path: 'about.json', type: 'blob' },
+					{ path: 'blog', type: 'tree' },
+					{ path: 'vendored', type: 'commit' }
+				],
+				truncated: false
+			})
 		);
 		const adapter = await authenticatedAdapter();
 
-		const result = await adapter.listDir('content');
+		const result = await adapter.listDir('/content/');
 
 		expect(result).toEqual([
 			{ path: 'content/about.json', type: 'file' },
 			{ path: 'content/blog', type: 'dir' }
 		]);
 		expect(String(fetchMock.mock.calls[0]![0])).toBe(
-			'https://api.github.com/repos/octo/site/contents/content?ref=main'
+			'https://api.github.com/repos/octo/site/git/trees/main:content'
 		);
+	});
+
+	it('returns every entry of a directory larger than 1,000 files', async () => {
+		const tree = Array.from({ length: 1500 }, (_, i) => ({ path: `img-${i}.webp`, type: 'blob' }));
+		fetchMock.mockResolvedValueOnce(jsonResponse({ tree, truncated: false }));
+		const adapter = await authenticatedAdapter();
+
+		const result = await adapter.listDir('static/media');
+
+		expect(result).toHaveLength(1500);
+		expect(result[1499]).toEqual({ path: 'static/media/img-1499.webp', type: 'file' });
+	});
+
+	it('rejects a truncated tree rather than returning a partial list', async () => {
+		fetchMock.mockResolvedValueOnce(jsonResponse({ tree: [], truncated: true }));
+		const adapter = await authenticatedAdapter();
+
+		await expect(adapter.listDir('static/media')).rejects.toThrow(/too large to list/);
 	});
 });
 

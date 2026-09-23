@@ -94,17 +94,31 @@ class GitHubAdapter implements ForgeAdapter {
 	}
 
 	async listDir(path: string): Promise<Array<{ path: string; type: 'file' | 'dir' }>> {
-		const response = await this.#request(`${this.#contentsUrl(path)}?ref=${this.#config!.branch}`);
+		// The Trees API, unlike the Contents API, has no 1,000-entry directory cap.
+		const dir = path.replace(/^\/+|\/+$/g, '');
+		const ref = `${this.#config!.branch}:${encodeRepoPath(dir)}`;
+		const response = await this.#request(
+			`${GITHUB_API_URL}/repos/${this.#config!.repo}/git/trees/${ref}`
+		);
 		await this.#assertOk(response, `list ${path}`);
 
-		const entries = (await response.json()) as Array<{ path: string; type: string }>;
-		if (!Array.isArray(entries)) {
+		const body = (await response.json()) as {
+			tree?: Array<{ path: string; type: string }>;
+			truncated?: boolean;
+		};
+		if (!Array.isArray(body.tree)) {
 			throw new Error(`Expected a directory but found a file: ${path}`);
 		}
+		if (body.truncated) {
+			throw new Error(`Directory is too large to list: ${path}`);
+		}
 
-		return entries
-			.filter((entry) => entry.type === 'file' || entry.type === 'dir')
-			.map((entry) => ({ path: entry.path, type: entry.type as 'file' | 'dir' }));
+		// Tree entry paths are relative to the listed directory; callers expect repo-root-relative.
+		const prefix = dir ? `${dir}/` : '';
+		const kinds: Record<string, 'file' | 'dir'> = { blob: 'file', tree: 'dir' };
+		return body.tree
+			.filter((entry) => entry.type in kinds)
+			.map((entry) => ({ path: prefix + entry.path, type: kinds[entry.type]! }));
 	}
 
 	/**
