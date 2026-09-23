@@ -81,7 +81,8 @@ export async function interceptDemoGitHub(
 			if (states && states.length > 0) {
 				const state = states[Math.min(statusCall, states.length - 1)]!;
 				statusCall += 1;
-				await route.fulfill({ json: { state } });
+				// The adapter ignores a combined status with no individual statuses.
+				await route.fulfill({ json: { state, statuses: [{ state, context: 'deploy' }] } });
 				return;
 			}
 			await route.fulfill({ status: 404, json: { message: 'Not Found' } });

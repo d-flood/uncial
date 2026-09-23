@@ -5,12 +5,13 @@
  * reads the local content directory with node:fs — do not import it from
  * client-side code (the pure mapping lives in `./mapping.js` for that).
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { Site } from '../define-site.js';
 import type { UncialCmsSiteConfig } from '../types.js';
+import { listContentSources } from '../content-sources.js';
 import { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
 
 export { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
@@ -70,16 +71,6 @@ function resolveSite(opts: ContentHandlerOptions): ResolvedSite {
 		};
 	}
 	return { config: opts.config, localContentDir: opts.localContentDir, localOnly: false };
-}
-
-function listContentSources(localContentDir: string, prefix = ''): string[] {
-	const sources: string[] = [];
-	for (const entry of readdirSync(join(localContentDir, prefix), { withFileTypes: true })) {
-		const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
-		if (entry.isDirectory()) sources.push(...listContentSources(localContentDir, rel));
-		else if (entry.isFile() && entry.name.endsWith('.json')) sources.push(rel);
-	}
-	return sources.sort();
 }
 
 function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => RouteEntry[] {

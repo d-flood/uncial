@@ -62,6 +62,11 @@ The package also ships a `uncial-cms` command; see
 - `uncial-cms/sveltekit` — build-time route factories for prerendered
   SvelteKit sites (`createContentHandlers`, `createEditorHandlers`,
   `createIndexHandlers`).
+- `uncial-cms/astro` — the Astro integration (`uncialCms`) and build-time
+  route helpers for static Astro sites (`createContentRoutes`,
+  `createEditorRoutes`). See [Quick start: Astro](#quick-start-astro).
+- `uncial-cms/astro/editor` — `EditorSurface`, the Svelte island for an Astro
+  site's editor routes.
 - `uncial-cms/vite` — `uncialCms(siteOptions)`, the Vite plugins a site
   installs: the development editing endpoint, and the build's forge literal.
 - `uncial-cms/paths` — the pure path↔source mapping and the page-path
@@ -313,6 +318,89 @@ const handlers = createContentHandlers({
 Pass the same resolver to `EditorPage` and to the Content page's renderer, and
 one page path means one schema everywhere.
 
+## Quick start: Astro
+
+An Astro site renders content with `@astrojs/svelte` and Uncial's SSR renderer,
+at build time and with no hydration. As with SvelteKit, the package registers
+no routes: the site writes them and hands each its `getStaticPaths`.
+
+```js
+// astro.config.mjs
+import svelte from '@astrojs/svelte';
+import { uncialCms } from 'uncial-cms/astro';
+import { siteOptions } from './src/site-options.ts';
+
+export default defineConfig({ integrations: [svelte(), uncialCms(siteOptions)] });
+```
+
+The reader route is a rest route named `path`. The helpers take the plain site
+options, not `defineSite`'s result: nothing a reader route imports may reach the
+package root, whose editor stylesheet Astro would otherwise link into the page.
+
+```astro
+---
+// src/pages/[...path].astro
+import { Renderer } from 'uncial/render';
+import { createContentRoutes, type ContentPage } from 'uncial-cms/astro';
+import { blocks, schema } from '../site';
+import { siteOptions } from '../site-options';
+
+export function getStaticPaths() {
+	return createContentRoutes({ siteOptions, blocks, schema }).getStaticPaths();
+}
+
+const { document } = Astro.props as ContentPage;
+---
+
+<Renderer content={document} {blocks} {schema} />
+```
+
+`createContentRoutes` also returns `list()`, every normalized document (to
+derive navigation from metadata, say), and `load(path)`, for a page that keeps a
+fixed shell of its own and renders its document inside it. `exclude` and a
+per-path `schema` work as they do for the SvelteKit handlers.
+
+The editor route bakes only the source mapping. Blocks and schemas are not
+serializable island props, so the site mounts `EditorSurface` from a small
+component of its own:
+
+```astro
+---
+// src/pages/[...path]/edit.astro
+import { createEditorRoutes } from 'uncial-cms/astro';
+import Editor from '../../Editor.svelte';
+
+export function getStaticPaths() {
+	return createEditorRoutes({ siteOptions, blocks, schema }).getStaticPaths();
+}
+---
+
+<Editor client:only="svelte" {...Astro.props} />
+```
+
+```svelte
+<!-- src/Editor.svelte -->
+<script lang="ts">
+	import { defineSite } from 'uncial-cms';
+	import { EditorSurface } from 'uncial-cms/astro/editor';
+
+	let { sourcePath, pagePath } = $props();
+</script>
+
+<EditorSurface site={defineSite(siteOptions)} {blocks} {schema} {sourcePath} {pagePath} />
+```
+
+`EditorSurface` forwards `extensions`, `toolbarFeatures` and
+`toolbarExtensions` to `Editor`, for custom marks and their controls, and takes
+a `sessionProvider`. Against the GitHub forge it shows a Sign in button first,
+since a sign-in popup opened outside a click is blocked.
+
+Astro bundles a `client:only` island for any page file that renders it, even
+one whose `getStaticPaths` returns nothing. A site that wants no editor code in
+its production build at all injects the editor route from an integration only
+when `command === 'dev'` rather than writing it as a page file. Gate the build
+with `uncial-cms assert-clean-pages dist --astro`.
+
 ## Local-only sites
 
 Omitting the `github` half is the whole of the configuration for a site edited
@@ -453,7 +541,7 @@ uses:
 The package ships a `bin` with two commands.
 
 ```sh
-pnpm exec uncial-cms assert-clean-pages [buildDir] [--local-only]
+pnpm exec uncial-cms assert-clean-pages [buildDir] [--local-only | --astro]
 pnpm exec uncial-cms doctor --origin https://example.com [--repo owner/name]
 ```
 
@@ -462,7 +550,11 @@ pnpm exec uncial-cms doctor --origin https://example.com [--repo owner/name]
 of its scripts, and checks the runtime sentinel: absent from every Content page,
 present on every Editor variant, ignored on the Index page. With `--local-only`
 it asserts a local-only site's build instead — no Editor variant exists, and no
-page's closure carries the sentinel or the editor stack.
+page's closure carries the sentinel or the editor stack. With `--astro` it reads
+an Astro build (default `dist`): every `.html` file, the `_astro/` bundles and
+island URLs, and dynamic imports as well as static ones, since an Astro page has
+no router lazily importing other routes. A reader page there fails on the editor
+stack as well as the sentinel.
 
 **`doctor`** is the provisioning check, run before the first sign-in rather than
 learned from it. Through the authenticated `gh` CLI it checks that the GitHub
