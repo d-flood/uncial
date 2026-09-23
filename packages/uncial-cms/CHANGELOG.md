@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 3.0.1
+
+### Patch Changes
+
+- 4983361: Stop declaring `@sveltejs/kit` as an optional peer, which made `npm install uncial-cms` fail with ERESOLVE in non-SvelteKit hosts on an older Vite major (e.g. Astro 5).
+
 ## 3.0.0
 
 ### Minor Changes
