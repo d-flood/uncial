@@ -1,4 +1,5 @@
 /** Argument parsing and dispatch for the `uncial-cms` command. */
+import { assertCleanAstroPages } from './assert-clean-astro-pages.js';
 import { assertCleanPages } from './assert-clean-pages.js';
 import type { CliOutput } from './assert-clean-pages.js';
 import { DEFAULT_APP_SLUG } from '../define-site.js';
@@ -8,14 +9,17 @@ import type { GhInvoker } from './doctor.js';
 const USAGE = `uncial-cms — build gates and provisioning checks for a site that edits itself
 
 Usage:
-  uncial-cms assert-clean-pages [buildDir] [--local-only]
+  uncial-cms assert-clean-pages [buildDir] [--local-only | --astro]
 
     Assert that Content pages ship no uncial-cms JavaScript and that every
-    Editor variant does. buildDir defaults to "build".
+    Editor variant does. buildDir defaults to "build", or "dist" with --astro.
 
     --local-only  Assert a local-only site's production build instead: no
                   Editor variant exists, and no file in the build carries the
                   CMS runtime sentinel or the editor stack.
+    --astro       Read an Astro build's asset layout, following dynamic
+                  imports and island URLs, and fail a reader page on the
+                  editor stack as well as the sentinel.
 
   uncial-cms doctor --origin <https://host> [--repo owner/name]
                     [--app-slug <slug>] [--branch <ref>] [--no-pages]
@@ -121,13 +125,22 @@ export async function run(
 	}
 
 	const localOnly = rest.includes('--local-only');
+	const astro = rest.includes('--astro');
 	const positional = rest.filter((arg) => !arg.startsWith('-'));
-	const unknownFlag = rest.find((arg) => arg.startsWith('-') && arg !== '--local-only');
+	const unknownFlag = rest.find(
+		(arg) => arg.startsWith('-') && arg !== '--local-only' && arg !== '--astro'
+	);
 	if (unknownFlag !== undefined) {
 		io.err(`Unknown option "${unknownFlag}".`);
 		io.err(USAGE);
 		return 2;
 	}
+	if (localOnly && astro) {
+		io.err('--local-only and --astro cannot be combined.');
+		io.err(USAGE);
+		return 2;
+	}
 
+	if (astro) return assertCleanAstroPages(positional[0] ?? 'dist', io);
 	return assertCleanPages(positional[0] ?? 'build', { localOnly }, io);
 }

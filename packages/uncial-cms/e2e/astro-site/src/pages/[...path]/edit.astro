@@ -1,0 +1,17 @@
+---
+import { createEditorRoutes } from 'uncial-cms/astro';
+import Editor from '../../Editor.svelte';
+import { blocks, exclude, schema } from '../../site.ts';
+import { siteOptions } from '../../site-options.ts';
+
+export function getStaticPaths() {
+	return createEditorRoutes({ siteOptions, blocks, schema, exclude }).getStaticPaths();
+}
+
+const { sourcePath, pagePath } = Astro.props;
+---
+
+<html lang="en">
+	<head><title>Edit {pagePath}</title></head>
+	<body><Editor client:only="svelte" {sourcePath} {pagePath} /></body>
+</html>

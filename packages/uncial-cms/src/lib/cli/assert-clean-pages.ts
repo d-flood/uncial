@@ -30,13 +30,13 @@ export interface AssertCleanPagesOptions {
  * also appears in a validation message uncial's renderer ships — prose about a
  * document format, not a copy of the library.
  */
-const EDITOR_STACK_MARKERS: ReadonlyArray<readonly [string, RegExp]> = [
+export const EDITOR_STACK_MARKERS: ReadonlyArray<readonly [string, RegExp]> = [
 	['tiptap', /tiptap/i],
 	['ProseMirror-', /ProseMirror-/],
 	['uncial-editor', /uncial-editor/]
 ];
 
-function walk(dir: string): string[] {
+export function walk(dir: string): string[] {
 	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
 		const path = join(dir, entry.name);
 		return entry.isDirectory() ? walk(path) : [path];
