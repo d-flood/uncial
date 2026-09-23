@@ -1,5 +1,16 @@
 # uncial-cms
 
+## 3.0.0
+
+### Minor Changes
+
+- 7ce3190: Configurable deploy-status polling timings via `defineSite({ deployStatus })`, and `doctor --no-pages` for sites not on GitHub Pages.
+
+### Patch Changes
+
+- Updated dependencies [76f93bd]
+  - uncial@3.0.0
+
 ## 2.0.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # uncial
 
+## 3.0.0
+
+### Minor Changes
+
+- 76f93bd: Add `createMarkRegistry` and a `Renderer` `marks` prop so custom inline marks render server-side.
+
 ## 2.0.3
 
 ## 2.0.2

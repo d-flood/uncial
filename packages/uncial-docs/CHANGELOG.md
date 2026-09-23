@@ -1,5 +1,14 @@
 # uncial-docs
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [7ce3190]
+- Updated dependencies [76f93bd]
+  - uncial-cms@3.0.0
+  - uncial@3.0.0
+
 ## 0.0.2
 
 ### Patch Changes
