@@ -1,5 +1,16 @@
 # uncial-cms
 
+## 4.0.0
+
+### Minor Changes
+
+- e46d0e0: Add `input: 'image'` field with upload and Choose existing, `cmsImageSource`, and `resolveImageSrc`; GitHub `listDir` handles large directories.
+
+### Patch Changes
+
+- Updated dependencies [e46d0e0]
+  - uncial@4.0.0
+
 ## 3.1.0
 
 ### Minor Changes

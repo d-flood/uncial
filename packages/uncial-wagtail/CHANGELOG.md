@@ -1,5 +1,12 @@
 # uncial-wagtail
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [e46d0e0]
+  - uncial@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes

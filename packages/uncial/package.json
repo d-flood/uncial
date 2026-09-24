@@ -1,6 +1,6 @@
 {
 	"name": "uncial",
-	"version": "3.0.0",
+	"version": "4.0.0",
 	"packageManager": "pnpm@11.15.1",
 	"license": "MIT",
 	"repository": {
