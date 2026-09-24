@@ -392,7 +392,7 @@ export function getStaticPaths() {
 
 `EditorSurface` forwards `extensions`, `toolbarFeatures` and
 `toolbarExtensions` to `Editor`, for custom marks and their controls, and takes
-a `sessionProvider`. Against the GitHub forge it shows a Sign in button first,
+a `sessionProvider` and an `imageSource` (see [Media](#media)). Against the GitHub forge it shows a Sign in button first,
 since a sign-in popup opened outside a click is blocked.
 
 Astro bundles a `client:only` island for any page file that renders it, even
@@ -633,8 +633,9 @@ Residual risks accepted for v1 (see the spec's §6.5 for the full treatment):
 ## Media
 
 A Block gets image upload by declaring an attribute with `input: 'image'`:
-`EditorPage` and `mountEditorPage` back its attributes-panel field with
-`cmsImageSource(config, { base, staticDir })`, which fits an upload under the
+`EditorPage`, `mountEditorPage` and the Astro `EditorSurface` back its
+attributes-panel field with `cmsImageSource(config, { base, staticDir })`,
+which fits an upload under the
 forge limit, commits it under `mediaDir`, stores its served URL and lists the
 media dir for Choose existing. Pass `list` and `thumbnail` to override the
 listing and tile URLs for a rendition pipeline, or `imageSource` to replace the

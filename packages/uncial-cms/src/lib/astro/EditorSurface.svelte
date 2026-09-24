@@ -11,10 +11,16 @@
 	import 'uncial/styles/chrome.css';
 	import { onMount, type ComponentProps } from 'svelte';
 	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-	import { Editor, type ToolbarFeature, type ToolbarFeatureSelection } from 'uncial/editor';
+	import {
+		Editor,
+		type ImageSource,
+		type ToolbarFeature,
+		type ToolbarFeatureSelection
+	} from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, StatusView } from '../editor-controller.js';
 	import { createEditorSession } from '../editor-session.js';
+	import { cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
@@ -41,6 +47,8 @@
 		attributesPanel?: 'docked' | 'overlay' | 'off';
 		/** Forwarded to `Editor`; `'bare'` draws no surface of the editor's own. */
 		presentation?: 'card' | 'bare';
+		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
+		imageSource?: ImageSource;
 	}
 
 	let {
@@ -54,10 +62,12 @@
 		toolbarFeatures,
 		toolbarExtensions,
 		attributesPanel = 'overlay',
-		presentation = 'bare'
+		presentation = 'bare',
+		imageSource
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
+	const resolvedImageSource = $derived(imageSource ?? cmsImageSource(site.config));
 	const signIn = $derived(site.config.forge === 'github');
 	const branch = $derived(
 		site.config.forge === 'github' ? site.config.branch : 'the local checkout'
@@ -165,6 +175,7 @@
 			{toolbarExtensions}
 			{attributesPanel}
 			{presentation}
+			imageSource={resolvedImageSource}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}
