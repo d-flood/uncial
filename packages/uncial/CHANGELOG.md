@@ -1,5 +1,11 @@
 # uncial
 
+## 4.0.0
+
+### Minor Changes
+
+- e46d0e0: Add `input: 'image'` field with upload and Choose existing, `cmsImageSource`, and `resolveImageSrc`; GitHub `listDir` handles large directories.
+
 ## 3.0.0
 
 ### Minor Changes
