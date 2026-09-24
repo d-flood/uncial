@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 4.0.1
+
+### Patch Changes
+
+- 475aa3e: The site index shows a Sign in button when sign-in fails, so a sign-in popup the browser blocked on page load can be retried from a click.
+
 ## 4.0.0
 
 ### Minor Changes
