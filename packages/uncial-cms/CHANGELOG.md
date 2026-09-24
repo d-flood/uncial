@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 4.0.2
+
+### Patch Changes
+
+- f2082ba: The Astro `EditorSurface` backs `input: 'image'` fields with `cmsImageSource(site.config)` by default and takes an `imageSource` prop, as `EditorPage` does.
+
 ## 4.0.1
 
 ### Patch Changes
