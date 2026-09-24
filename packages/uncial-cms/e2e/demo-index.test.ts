@@ -4,6 +4,7 @@ import {
 	ABOUT_DOC,
 	ABOUT_SOURCE,
 	CONTENT_DIR,
+	DEMO_REPO,
 	fromBase64,
 	interceptDemoGitHubWithStore,
 	seedDemoSession
@@ -110,4 +111,39 @@ test('fallback editor at #/about/ commits to the same source as /about/edit/', a
 	expect(puts).toHaveLength(1);
 	expect(puts[0]!.path).toBe(ABOUT_SOURCE); // identical PUT path to /about/edit/
 	expect(puts[0]!.body.message).toBe('uncial-cms: edit about');
+});
+
+test('a blocked sign-in popup can be retried from the Sign in button', async ({ page }) => {
+	await interceptDemoGitHubWithStore(page, { ...INITIAL_FILES });
+	// Browsers block a popup opened outside a click, which is how the index's
+	// first sign-in attempt runs.
+	await page.addInitScript(() => {
+		window.open = () => null;
+	});
+
+	await page.goto('/uncial/');
+	await expect(page.getByRole('status')).toContainText('popup was blocked');
+	const signIn = page.getByRole('button', { name: 'Sign in' });
+	await expect(signIn).toBeVisible();
+
+	await page.evaluate((repo) => {
+		sessionStorage.setItem(
+			`uncial-cms:session:${repo}`,
+			JSON.stringify({
+				token: 'ghs_e2e_installation_token',
+				expiresAt: null,
+				repo,
+				user: {
+					login: 'octocat',
+					name: 'Octo Cat',
+					email: '583231+octocat@users.noreply.github.com'
+				}
+			})
+		);
+	}, DEMO_REPO);
+	await signIn.click();
+
+	await expect(page.getByRole('status')).toContainText('as octocat');
+	await expect(signIn).toBeHidden();
+	await expect(page.locator('li', { hasText: '/about/' })).toBeVisible();
 });

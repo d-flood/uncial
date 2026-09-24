@@ -69,7 +69,13 @@ export function mountIndexPage(
 	editorView.className = 'uncial-cms-fallback-editor';
 	editorView.hidden = true;
 
-	root.append(status, listView, editorView);
+	const signInButton = document.createElement('button');
+	signInButton.type = 'button';
+	signInButton.className = 'uncial-cms-sign-in';
+	signInButton.textContent = 'Sign in';
+	signInButton.hidden = true;
+
+	root.append(status, signInButton, listView, editorView);
 	target.append(root);
 
 	let destroyed = false;
@@ -267,10 +273,20 @@ export function mountIndexPage(
 		applyHash();
 	};
 
-	void load().catch((error: unknown) => {
-		if (destroyed) return;
-		setStatus(error instanceof Error ? error.message : 'Failed to load the site index.');
-	});
+	// The first attempt runs outside a click, where browsers block the sign-in
+	// popup, so a failed sign-in is retried from a button.
+	const signIn = async () => {
+		signInButton.hidden = true;
+		try {
+			await load();
+		} catch (error) {
+			if (destroyed) return;
+			setStatus(error instanceof Error ? error.message : 'Failed to load the site index.');
+			signInButton.hidden = false;
+		}
+	};
+	signInButton.addEventListener('click', () => void signIn());
+	void signIn();
 
 	return {
 		destroy() {
