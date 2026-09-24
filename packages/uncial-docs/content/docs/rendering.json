@@ -1,12 +1,23 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Rendering & content", "navGroup": "Guides", "navOrder": 11 },
+	"meta": {
+		"title": "Rendering & content",
+		"navGroup": "Guides",
+		"navOrder": 11
+	},
 	"content": [
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Edit document-level metadata" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Edit document-level metadata"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -19,7 +30,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "svelte" },
+			"attrs": {
+				"language": "svelte"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -38,7 +51,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "svelte" },
+			"attrs": {
+				"language": "svelte"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -48,8 +63,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Match Uncial to your site" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Match Uncial to your site"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -62,7 +84,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -81,7 +105,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "css" },
+			"attrs": {
+				"language": "css"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -91,7 +117,12 @@
 		},
 		{
 			"type": "paragraph",
-			"content": [{ "type": "text", "text": "The most common tokens are:" }]
+			"content": [
+				{
+					"type": "text",
+					"text": "The most common tokens are:"
+				}
+			]
 		},
 		{
 			"type": "bulletList",
@@ -102,8 +133,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-primary", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Primary buttons, links, active controls, block focus outlines." }
+								{
+									"type": "text",
+									"text": "--uncial-color-primary",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Primary buttons, links, active controls, block focus outlines."
+								}
 							]
 						}
 					]
@@ -114,8 +156,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-primary-contrast", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Text/icons on primary buttons." }
+								{
+									"type": "text",
+									"text": "--uncial-color-primary-contrast",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Text/icons on primary buttons."
+								}
 							]
 						}
 					]
@@ -126,8 +179,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-accent", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Secondary emphasis color for consumers who want one." }
+								{
+									"type": "text",
+									"text": "--uncial-color-accent",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Secondary emphasis color for consumers who want one."
+								}
 							]
 						}
 					]
@@ -138,8 +202,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-surface", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Main editor and renderer background." }
+								{
+									"type": "text",
+									"text": "--uncial-color-surface",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Main editor and renderer background."
+								}
 							]
 						}
 					]
@@ -150,8 +225,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-surface-elevated", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Toolbar, inputs, nested block surfaces." }
+								{
+									"type": "text",
+									"text": "--uncial-color-surface-elevated",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Toolbar, inputs, nested block surfaces."
+								}
 							]
 						}
 					]
@@ -162,8 +248,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-border", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Control, panel, renderer, and block chrome borders." }
+								{
+									"type": "text",
+									"text": "--uncial-color-border",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Control, panel, renderer, and block chrome borders."
+								}
 							]
 						}
 					]
@@ -174,8 +271,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-text", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Editor UI and rich text foreground." }
+								{
+									"type": "text",
+									"text": "--uncial-color-text",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Editor UI and rich text foreground."
+								}
 							]
 						}
 					]
@@ -186,8 +294,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-color-code-bg", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Fenced code block background. Defaults dark in both light and dark themes." }
+								{
+									"type": "text",
+									"text": "--uncial-color-code-bg",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Fenced code block background. Defaults dark in both light and dark themes."
+								}
 							]
 						}
 					]
@@ -198,8 +317,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-radius-sm/md/lg", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Buttons, inputs, panels, renderer, and block chrome radius." }
+								{
+									"type": "text",
+									"text": "--uncial-radius-sm/md/lg",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Buttons, inputs, panels, renderer, and block chrome radius."
+								}
 							]
 						}
 					]
@@ -210,8 +340,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "--uncial-font-body/display/mono", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Editor UI, headings, and code typography." }
+								{
+									"type": "text",
+									"text": "--uncial-font-body/display/mono",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Editor UI, headings, and code typography."
+								}
 							]
 						}
 					]
@@ -229,7 +370,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "css" },
+			"attrs": {
+				"language": "css"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -239,8 +382,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Normalize and validate before publish" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Normalize and validate before publish"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -253,7 +403,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -263,8 +415,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Render on the server without the editor" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Render on the server without the editor"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -277,7 +436,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -291,6 +452,110 @@
 				{
 					"type": "text",
 					"text": "uncial/render and uncial/core are free of editor machinery, and a regression test walks the render/ import graph to keep it that way. The package root (import ... from 'uncial') also re-exports the editor, so prefer these entry points on the server."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Image attributes need one extra step when your site is served under a base path, such as a GitHub Pages project site. Stored image URLs start at the site root ("
+				},
+				{
+					"type": "text",
+					"text": "/media/photo.webp",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "), so add the base when you render them with "
+				},
+				{
+					"type": "text",
+					"text": "resolveImageSrc",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ":"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/lib/blocks/Figure.svelte -->\n<script lang=\"ts\">\n\timport { base } from '$app/paths';\n\timport { resolveImageSrc } from 'uncial/render';\n\n\tlet { src = '', alt = '' } = $props();\n</script>\n\n{#if src}<img src={resolveImageSrc(src, base)} {alt} />{/if}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "resolveImageSrc",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " only changes URLs that start with a single "
+				},
+				{
+					"type": "text",
+					"text": "/",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Full URLs, "
+				},
+				{
+					"type": "text",
+					"text": "data:",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " URLs and the editor's "
+				},
+				{
+					"type": "text",
+					"text": "blob:",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " previews pass through unchanged, so the same component works in the editor and on the live site."
 				}
 			]
 		}

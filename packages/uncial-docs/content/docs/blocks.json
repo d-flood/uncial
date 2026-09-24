@@ -1,12 +1,23 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Blocks & attributes", "navGroup": "Guides", "navOrder": 10 },
+	"meta": {
+		"title": "Blocks & attributes",
+		"navGroup": "Guides",
+		"navOrder": 10
+	},
 	"content": [
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Describe editable block data" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Describe editable block data"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -26,7 +37,15 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "default", "marks": [{ "type": "code" }] },
+								{
+									"type": "text",
+									"text": "default",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
 								{
 									"type": "text",
 									"text": " — Required fallback value. Shorthand values like title: \"\" become defaults."
@@ -41,10 +60,18 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "input", "marks": [{ "type": "code" }] },
 								{
 									"type": "text",
-									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, select, or image."
+									"text": "input",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, select, image, or hidden. Left out, it is guessed from the default value."
 								}
 							]
 						}
@@ -56,8 +83,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "required", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Marks an attribute as required during validation." }
+								{
+									"type": "text",
+									"text": "required",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Marks an attribute as required during validation."
+								}
 							]
 						}
 					]
@@ -68,8 +106,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "validate", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Custom predicate for accepting or rejecting an attribute value." }
+								{
+									"type": "text",
+									"text": "validate",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Custom predicate for accepting or rejecting an attribute value."
+								}
 							]
 						}
 					]
@@ -80,8 +129,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "parse / serialize", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Coerce values at editor or persistence boundaries." }
+								{
+									"type": "text",
+									"text": "parse / serialize",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Coerce values at editor or persistence boundaries."
+								}
 							]
 						}
 					]
@@ -92,8 +152,19 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "options", "marks": [{ "type": "code" }] },
-								{ "type": "text", "text": " — Allowed values for select-style attributes." }
+								{
+									"type": "text",
+									"text": "options",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Allowed values for select-style attributes."
+								}
 							]
 						}
 					]
@@ -102,8 +173,276 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Allow nested document flow" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Let authors add images"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Give an attribute "
+				},
+				{
+					"type": "text",
+					"text": "input: 'image'",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the attributes panel shows an image field for it. The attribute stores a plain URL string."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/blocks/figure.ts\nimport { defineSvelteBlock } from 'uncial';\nimport Figure from './Figure.svelte';\n\nexport const figure = defineSvelteBlock({\n\tid: 'figure',\n\tlabel: 'Figure',\n\tattributes: {\n\t\tsrc: { default: '', input: 'image' },\n\t\talt: ''\n\t},\n\tcomponent: Figure\n});"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Where images come from is up to you. Pass an "
+				},
+				{
+					"type": "text",
+					"text": "imageSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to "
+				},
+				{
+					"type": "text",
+					"text": "Editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " with any of these three functions, and the field shows a button for each one you provide:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "upload(file)",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — save the file somewhere and return the URL to store. Adds an Upload button."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "browse()",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — return the URLs of images that already exist. Adds a Choose existing button that opens a picker."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "thumbnail(src)",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — turn a stored URL into one the browser can show. Use it when the stored value is not directly displayable, such as an ID or a path without a base."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\timport { Editor, type ImageSource } from 'uncial';\n\timport { blocks, schema, attributesController } from './uncial';\n\n\tconst imageSource: ImageSource = {\n\t\tasync upload(file) {\n\t\t\tconst body = new FormData();\n\t\t\tbody.append('file', file);\n\t\t\tconst response = await fetch('/api/images', { method: 'POST', body });\n\t\t\treturn (await response.json()).url;\n\t\t},\n\t\tasync browse() {\n\t\t\treturn (await fetch('/api/images')).json();\n\t\t}\n\t};\n\n\tlet document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n</script>\n\n<Editor {blocks} {schema} {attributesController} {imageSource} bind:json={document} />"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Right after an upload, the editor shows the image from a local "
+				},
+				{
+					"type": "text",
+					"text": "blob:",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " copy, so it appears at once even if your server is slow to serve it. The document still stores the URL that "
+				},
+				{
+					"type": "text",
+					"text": "upload",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " returned."
+				}
+			]
+		},
+		{
+			"type": "callout",
+			"attrs": {
+				"variant": "tip"
+			},
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "On a site built with uncial-cms you do not write an image source: "
+						},
+						{
+							"type": "text",
+							"text": "EditorPage",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " uses "
+						},
+						{
+							"type": "text",
+							"text": "cmsImageSource",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": ", which commits uploads to your repository. See "
+						},
+						{
+							"type": "text",
+							"text": "Blocks, and an image that uploads",
+							"marks": [
+								{
+									"type": "link",
+									"attrs": {
+										"href": "../static-site/#blocks-and-an-image-that-uploads"
+									}
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": "."
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Allow nested document flow"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -116,7 +455,9 @@
 		},
 		{
 			"type": "callout",
-			"attrs": { "variant": "note" },
+			"attrs": {
+				"variant": "note"
+			},
 			"content": [
 				{
 					"type": "paragraph",
@@ -131,7 +472,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -141,7 +484,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "svelte" },
+			"attrs": {
+				"language": "svelte"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -151,8 +496,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Svelte ships first, core stays neutral" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Svelte ships first, core stays neutral"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -174,7 +526,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",

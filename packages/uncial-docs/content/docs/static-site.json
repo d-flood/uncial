@@ -1239,7 +1239,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Declaring "
+					"text": "Giving "
 				},
 				{
 					"type": "text",
@@ -1252,7 +1252,7 @@
 				},
 				{
 					"type": "text",
-					"text": " with "
+					"text": " the setting "
 				},
 				{
 					"type": "text",
@@ -1265,7 +1265,7 @@
 				},
 				{
 					"type": "text",
-					"text": " is all the block does for uploads. The attributes panel renders an image field for it with Upload and Choose existing, and "
+					"text": " is all the block needs. The attributes panel shows an image field with Upload and Choose existing buttons, and "
 				},
 				{
 					"type": "text",
@@ -1278,7 +1278,7 @@
 				},
 				{
 					"type": "text",
-					"text": " backs that field with "
+					"text": " connects it to your repository with "
 				},
 				{
 					"type": "text",
@@ -1291,7 +1291,7 @@
 				},
 				{
 					"type": "text",
-					"text": " by default: an upload is re-encoded to WebP if it is over the forge's size cap, so a photograph off a phone commits instead of failing, then committed under "
+					"text": ". Upload commits the file under "
 				},
 				{
 					"type": "text",
@@ -1304,12 +1304,22 @@
 				},
 				{
 					"type": "text",
-					"text": ", and Choose existing lists the images already there. The block itself stays a plain render of its attributes:"
+					"text": ", first shrinking it to WebP if it is too big to commit, so a phone photo just works. Choose existing lists the images already in "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". The block itself only renders its attributes:"
 				}
-			],
-			"attrs": {
-				"id": "deee8ec2-4aa4-4b22-9f51-6855726f3d0a"
-			}
+			]
 		},
 		{
 			"type": "codeBlock",
@@ -1342,20 +1352,7 @@
 				},
 				{
 					"type": "text",
-					"text": " is the site-root-relative URL the built site serves the file from, with no base path baked in, so it stays correct at every "
-				},
-				{
-					"type": "text",
-					"text": "paths.base",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " the same content is built at. "
+					"text": " is the URL the built site serves the file from, starting at the site root with no base path, so the same content works at any base. "
 				},
 				{
 					"type": "text",
@@ -1368,7 +1365,7 @@
 				},
 				{
 					"type": "text",
-					"text": " prepends "
+					"text": " adds "
 				},
 				{
 					"type": "text",
@@ -1381,20 +1378,7 @@
 				},
 				{
 					"type": "text",
-					"text": " to a root-relative "
-				},
-				{
-					"type": "text",
-					"text": "src",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and leaves "
+					"text": " in front and leaves "
 				},
 				{
 					"type": "text",
@@ -1420,7 +1404,7 @@
 				},
 				{
 					"type": "text",
-					"text": " and absolute URLs alone. A site built under a base path, or whose static dir is not "
+					"text": " and full URLs alone. If your site is built under a base path, or its static folder is not "
 				},
 				{
 					"type": "text",
@@ -1433,7 +1417,7 @@
 				},
 				{
 					"type": "text",
-					"text": ", passes "
+					"text": ", pass "
 				},
 				{
 					"type": "text",
@@ -1474,16 +1458,12 @@
 					"type": "text",
 					"text": " prop."
 				}
-			],
-			"attrs": {
-				"id": "57d9ad7e-dff4-47ad-93f4-74578e9a862c"
-			}
+			]
 		},
 		{
 			"type": "callout",
 			"attrs": {
-				"variant": "note",
-				"id": "29d829f1-8510-4021-9af6-146f0f986a49"
+				"variant": "note"
 			},
 			"content": [
 				{
@@ -1491,7 +1471,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "Until the next redeploy the committed image is not served yet, so the editor hands the block a local "
+							"text": "A new upload is not served until the site redeploys, so until then the editor shows it from a local "
 						},
 						{
 							"type": "text",
@@ -1504,7 +1484,7 @@
 						},
 						{
 							"type": "text",
-							"text": " preview of an image uploaded this session. The stored "
+							"text": " copy. The stored "
 						},
 						{
 							"type": "text",
@@ -1517,12 +1497,9 @@
 						},
 						{
 							"type": "text",
-							"text": " is always the served path, so a Content page never sees the preview."
+							"text": " is always the real URL, so live pages never see the copy."
 						}
-					],
-					"attrs": {
-						"id": "3eb6a356-78a9-4263-ad51-774946fda286"
-					}
+					]
 				}
 			]
 		},

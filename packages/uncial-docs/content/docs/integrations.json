@@ -1,12 +1,23 @@
 {
 	"type": "doc",
 	"version": 1,
-	"meta": { "title": "Integrations & security", "navGroup": "Advanced", "navOrder": 20 },
+	"meta": {
+		"title": "Integrations & security",
+		"navGroup": "Advanced",
+		"navOrder": 20
+	},
 	"content": [
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Use Uncial from React, Vue, or vanilla JS" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Use Uncial from React, Vue, or vanilla JS"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -19,14 +30,26 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
-			"content": [{ "type": "text", "text": "import 'uncial/web-components';" }]
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import 'uncial/web-components';"
+				}
+			]
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "html" },
+			"attrs": {
+				"language": "html"
+			},
 			"content": [
-				{ "type": "text", "text": "<uncial-editor></uncial-editor>\n<uncial-renderer></uncial-renderer>" }
+				{
+					"type": "text",
+					"text": "<uncial-editor></uncial-editor>\n<uncial-renderer></uncial-renderer>"
+				}
 			]
 		},
 		{
@@ -40,11 +63,73 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
-					"text": "const editor = document.querySelector('uncial-editor');\nObject.assign(editor, { blocks, schema, json: document, attributesController });\neditor.addEventListener('uncial-change', (event) => {\n\tdocument = event.detail;\n});\n\nconst renderer = document.querySelector('uncial-renderer');\nObject.assign(renderer, { blocks, schema, content: document });"
+					"text": "const editor = document.querySelector('uncial-editor');\nObject.assign(editor, { blocks, schema, json: document, attributesController, imageSource });\neditor.addEventListener('uncial-change', (event) => {\n\tdocument = event.detail;\n});\n\nconst renderer = document.querySelector('uncial-renderer');\nObject.assign(renderer, { blocks, schema, content: document });"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "imageSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is only needed if your blocks have "
+				},
+				{
+					"type": "text",
+					"text": "input: 'image'",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " attributes. It is the same object you would pass to the Svelte "
+				},
+				{
+					"type": "text",
+					"text": "Editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "; see "
+				},
+				{
+					"type": "text",
+					"text": "Let authors add images",
+					"marks": [
+						{
+							"type": "link",
+							"attrs": {
+								"href": "../blocks/#let-authors-add-images"
+							}
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
@@ -59,7 +144,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "ts" },
+			"attrs": {
+				"language": "ts"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -69,8 +156,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Store Uncial documents in Wagtail pages" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Store Uncial documents in Wagtail pages"
+				}
+			]
 		},
 		{
 			"type": "paragraph",
@@ -83,7 +177,9 @@
 		},
 		{
 			"type": "codeBlock",
-			"attrs": { "language": "python" },
+			"attrs": {
+				"language": "python"
+			},
 			"content": [
 				{
 					"type": "text",
@@ -94,14 +190,19 @@
 		{
 			"type": "paragraph",
 			"content": [
-				{ "type": "text", "text": "See the " },
+				{
+					"type": "text",
+					"text": "See the "
+				},
 				{
 					"type": "text",
 					"text": "uncial-wagtail README",
 					"marks": [
 						{
 							"type": "link",
-							"attrs": { "href": "https://github.com/d-flood/uncial/tree/main/packages/uncial-wagtail" }
+							"attrs": {
+								"href": "https://github.com/d-flood/uncial/tree/main/packages/uncial-wagtail"
+							}
 						}
 					]
 				},
@@ -113,8 +214,15 @@
 		},
 		{
 			"type": "heading",
-			"attrs": { "level": 2 },
-			"content": [{ "type": "text", "text": "Render known blocks, validate user content" }]
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Render known blocks, validate user content"
+				}
+			]
 		},
 		{
 			"type": "bulletList",
@@ -153,7 +261,10 @@
 						{
 							"type": "paragraph",
 							"content": [
-								{ "type": "text", "text": "Run validation before publishing or saving user-authored documents." }
+								{
+									"type": "text",
+									"text": "Run validation before publishing or saving user-authored documents."
+								}
 							]
 						}
 					]
