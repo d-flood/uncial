@@ -123,6 +123,17 @@ describe('readFile', () => {
 		expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-token');
 	});
 
+	it('revalidates rather than reusing a cached read, so the sha is current', async () => {
+		fetchMock.mockResolvedValueOnce(
+			jsonResponse({ content: toBase64('{}'), encoding: 'base64', sha: 's', size: 2 })
+		);
+		const adapter = await authenticatedAdapter();
+
+		await adapter.readFile('content/about.json');
+
+		expect(fetchMock.mock.calls[0]![1]?.cache).toBe('no-cache');
+	});
+
 	it('decodes non-ASCII content correctly', async () => {
 		fetchMock.mockResolvedValueOnce(
 			jsonResponse({ content: toBase64('déjà vu ✓'), encoding: 'base64', sha: 's', size: 12 })

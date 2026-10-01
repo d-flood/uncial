@@ -32,7 +32,10 @@ class GitHubAdapter implements ForgeAdapter {
 	}
 
 	async readFile(path: string): Promise<{ content: string; sha: string }> {
-		const response = await this.#request(`${this.#contentsUrl(path)}?ref=${this.#config!.branch}`);
+		const response = await this.#request(
+			`${this.#contentsUrl(path)}?ref=${this.#config!.branch}`,
+			{ cache: 'no-cache' }
+		);
 		if (response.status === 404) {
 			throw new NotFoundError(
 				`File not found in ${this.#config!.repo}@${this.#config!.branch}: ${path}`
