@@ -13,9 +13,9 @@ import {
 	pagePathFromHash,
 	validatePagePath
 } from './paths/index.js';
-import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
-import { createLocalAdapter } from './local/adapter.js';
-import { localSessionProvider } from './local/session.js';
+import { defaultSessionProvider, forgeAdapter } from './editor-session.js';
+import type { ServerForgeAdapter } from './server-forge/adapter.js';
+import { describeContentStatus } from './server-forge/protocol.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
@@ -35,24 +35,27 @@ export interface MountIndexPageOptions {
 	editorStylesheets?: string[];
 }
 
-function createAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
-	if (config.forge === 'github') return createGitHubAdapter();
-	if (config.forge === 'local') return createLocalAdapter();
-	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
-}
+type ListedPage = PageRef & { status?: string };
 
 export function mountIndexPage(
 	target: HTMLElement,
 	opts: MountIndexPageOptions
 ): { destroy(): void } {
 	const { config, basePath = '' } = opts;
-	const sessionProvider =
-		opts.sessionProvider ?? (config.forge === 'local' ? localSessionProvider : popupSessionProvider);
+	const sessionProvider = opts.sessionProvider ?? defaultSessionProvider(config);
+	const branchLabel =
+		config.forge === 'github'
+			? config.branch
+			: config.forge === 'server'
+				? 'the server'
+				: 'the local checkout';
 	const locationLabel =
-		config.forge === 'github' ? `${config.repo}@${config.branch}` : 'the local checkout';
-	const branchLabel = config.forge === 'github' ? config.branch : 'the local checkout';
+		config.forge === 'github' ? `${config.repo}@${config.branch}` : branchLabel;
 	const mapPathToSource =
-		opts.mapPathToSource ?? ((path: string) => defaultMapPathToSource(path, config.contentDir));
+		opts.mapPathToSource ??
+		(config.forge === 'server'
+			? (path: string) => path
+			: (path: string) => defaultMapPathToSource(path, config.contentDir));
 
 	const root = document.createElement('div');
 	root.className = 'uncial-cms-index';
@@ -91,7 +94,7 @@ export function mountIndexPage(
 
 	const livePageUrl = (pagePath: string) => `${basePath}/${pagePath === '' ? '' : `${pagePath}/`}`;
 
-	const renderList = (pages: PageRef[]) => {
+	const renderList = (pages: ListedPage[]) => {
 		listView.replaceChildren();
 
 		const heading = document.createElement('h2');
@@ -116,7 +119,14 @@ export function mountIndexPage(
 			del.textContent = 'Delete';
 			del.addEventListener('click', () => void onDelete(page));
 
-			item.append(live, ' ', edit, ' ', del);
+			item.append(live, ' ');
+			if (page.status) {
+				const status = document.createElement('span');
+				status.className = 'uncial-cms-index-status';
+				status.textContent = page.status;
+				item.append(status, ' ');
+			}
+			item.append(edit, ' ', del);
 			list.append(item);
 		}
 
@@ -151,7 +161,14 @@ export function mountIndexPage(
 	const refreshList = async () => {
 		if (!adapter) return;
 		setStatus('Loading pages…');
-		const pages = await listPages(adapter, config.contentDir, opts.mapSourceToPath);
+		const pages: ListedPage[] =
+			config.forge === 'server'
+				? (await (adapter as ServerForgeAdapter).list()).map((record) => ({
+						pagePath: record.path,
+						sourcePath: record.path,
+						status: describeContentStatus(record.status)
+					}))
+				: await listPages(adapter, config.contentDir, opts.mapSourceToPath);
 		if (destroyed) return;
 		renderList(pages);
 		setStatus(`Editing ${locationLabel} as ${session!.user.login}`);
@@ -187,7 +204,8 @@ export function mountIndexPage(
 	const onDelete = async (page: PageRef) => {
 		if (!adapter) return;
 		const confirmed = window.confirm(
-			`Delete ${page.sourcePath} from ${branchLabel}? This commits the deletion immediately.`
+			`Delete ${page.sourcePath} from ${branchLabel}? ` +
+				(config.forge === 'server' ? 'This cannot be undone.' : 'This commits the deletion immediately.')
 		);
 		if (!confirmed) return;
 		try {
@@ -267,7 +285,7 @@ export function mountIndexPage(
 
 	const load = async () => {
 		setStatus('Signing in…');
-		adapter = createAdapter(config);
+		adapter = forgeAdapter(config);
 		session = await adapter.authenticate(config, sessionProvider);
 		if (destroyed) return;
 		applyHash();

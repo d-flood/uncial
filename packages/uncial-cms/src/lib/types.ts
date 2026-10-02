@@ -14,7 +14,13 @@ export interface LocalSiteConfig {
 	mediaDir?: string;
 }
 
-export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig;
+export interface ServerSiteConfig {
+	forge: 'server';
+	apiBase: string; // the host's content endpoint, e.g. '/dashboard/api/content'
+	mediaApiBase?: string;
+}
+
+export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig | ServerSiteConfig;
 
 export interface ForgeSession {
 	token: string;

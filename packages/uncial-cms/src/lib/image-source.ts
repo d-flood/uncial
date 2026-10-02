@@ -3,7 +3,7 @@ import { resolveImageSrc } from 'uncial/render';
 import { resolveMediaDir, uploadImageAsset } from './index-actions.js';
 import { servedUrl } from './served-url.js';
 import type { UncialCmsSiteConfig } from './types.js';
-import { getActiveForge } from './upload-context.js';
+import { configMediaDir, getActiveForge } from './upload-context.js';
 
 const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
 
@@ -28,7 +28,7 @@ export function cmsImageSource(
 	const { base = '', staticDir = 'static', list } = options;
 	return {
 		upload: async (file) => {
-			const result = await uploadImageAsset(file, { fit: true, mediaDir: config.mediaDir });
+			const result = await uploadImageAsset(file, { fit: true, mediaDir: configMediaDir(config) });
 			return servedUrl({ config }, result.path, staticDir);
 		},
 		browse: list ?? (async () => {
@@ -39,7 +39,7 @@ export function cmsImageSource(
 				);
 			}
 			// The same resolution `uploadImageAsset` commits under, so browse lists what upload wrote.
-			const mediaDir = resolveMediaDir(config.mediaDir, forge.config.mediaDir);
+			const mediaDir = resolveMediaDir(configMediaDir(config), configMediaDir(forge.config));
 			const entries = await forge.adapter.listDir(mediaDir);
 			return entries
 				.filter((entry) => entry.type === 'file' && IMAGE_EXTENSION.test(entry.path))

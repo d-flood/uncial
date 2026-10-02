@@ -12,7 +12,7 @@ import { NotFoundError } from './errors.js';
 import { fitImage, type FitOptions, type ImageEncoder } from './fit-image.js';
 import { defaultMapSourceToPath } from './paths/index.js';
 import type { ForgeAdapter } from './types.js';
-import { getActiveForge } from './upload-context.js';
+import { configMediaDir, getActiveForge } from './upload-context.js';
 
 export interface CreatePageDeps {
 	adapter: ForgeAdapter;
@@ -126,7 +126,7 @@ export async function uploadAsset(
 
 	const ext = assetExtension(file.filename, file.contentType);
 	const hash = await contentHash(file.bytes);
-	const dir = resolveMediaDir(opts.mediaDir, opts.site?.config.mediaDir).replace(/\/+$/, '');
+	const dir = resolveMediaDir(opts.mediaDir, opts.site && configMediaDir(opts.site.config)).replace(/\/+$/, '');
 	const path = `${dir}/${hash}.${ext}`;
 
 	// Content-addressed: if the path already exists, the bytes are identical.
@@ -201,7 +201,11 @@ export async function uploadImageAsset(
 			'No active editor session — open a page in the editor and sign in before uploading.'
 		);
 	}
-	const mediaDir = resolveMediaDir(opts.mediaDir, opts.site?.config.mediaDir, forge.config.mediaDir);
+	const mediaDir = resolveMediaDir(
+		opts.mediaDir,
+		opts.site && configMediaDir(opts.site.config),
+		configMediaDir(forge.config)
+	);
 
 	const asset = opts.fit
 		? await fitImage(

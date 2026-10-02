@@ -31,7 +31,7 @@
 		This site edits <code>{data.config.repo}</code> on branch
 		<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
 	</p>
-{:else}
+{:else if data.config.forge === 'local'}
 	<p>This site edits the local checkout (content in <code>{data.config.contentDir}</code>).</p>
 {/if}
 

@@ -15,9 +15,10 @@
 	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import type { ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
-	import type { EditorController, StatusView } from '../editor-controller.js';
+	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
 	import { cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
+	import { contentStatus, describeContentStatus, type Action } from '../server-forge/protocol.js';
 	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
 
@@ -59,7 +60,11 @@
 	const manualSave = $derived(site.autosaveMs === undefined);
 	const resolvedImageSource = $derived(imageSource ?? cmsImageSource(site.config));
 	const branch = $derived(
-		site.config.forge === 'github' ? site.config.branch : 'the local checkout'
+		site.config.forge === 'github'
+			? site.config.branch
+			: site.config.forge === 'server'
+				? 'the server'
+				: 'the local checkout'
 	);
 
 	type EditorComponent = (typeof import('uncial/editor'))['Editor'];
@@ -70,6 +75,9 @@
 	let status = $state<StatusView | undefined>(undefined);
 	let conflict = $state(false);
 	let saveEnabled = $state(false);
+	let record = $state<RecordState | undefined>(undefined);
+	let deleted = $state(false);
+	const can = (action: Action) => record?.allowed.includes(action) ?? false;
 	let controller: EditorController | undefined;
 	let root: HTMLDivElement;
 
@@ -119,7 +127,8 @@
 						meta = next.meta ?? {};
 					},
 					saveEnabled: (enabled) => (saveEnabled = enabled),
-					conflictVisible: (visible) => (conflict = visible)
+					conflictVisible: (visible) => (conflict = visible),
+					record: (next) => (record = next)
 				}
 			});
 			void controller.load().catch((error: unknown) => {
@@ -141,10 +150,34 @@
 
 <div class="uncial-cms-editor-page" bind:this={root}>
 	<div class="uncial-cms-chrome">
-		{#if manualSave}
+		{#if manualSave && !deleted}
 			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
 				Save
 			</button>
+		{/if}
+		{#if record && !deleted}
+			<p class="uncial-cms-record-status">
+				{describeContentStatus(contentStatus(record.draft, record.published))}
+			</p>
+			{#if can('publish')}
+				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.publish()}>
+					Publish
+				</button>
+			{/if}
+			{#if can('unpublish') && record.published}
+				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.unpublish()}>
+					Unpublish
+				</button>
+			{/if}
+			{#if can('delete')}
+				<button
+					type="button"
+					disabled={!saveEnabled}
+					onclick={async () => (deleted = (await controller?.remove()) ?? false)}
+				>
+					Delete
+				</button>
+			{/if}
 		{/if}
 		{#if status}
 			<p class="uncial-cms-status" role="status" data-tone={status.tone}>
@@ -171,7 +204,7 @@
 		</div>
 	{/if}
 
-	{#if Editor && doc}
+	{#if Editor && doc && !deleted}
 		<Editor
 			{blocks}
 			schema={resolvedSchema}

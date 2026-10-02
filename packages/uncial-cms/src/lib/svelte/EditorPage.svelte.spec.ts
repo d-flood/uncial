@@ -4,7 +4,8 @@ import { page } from 'vitest/browser';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import type { ContentDocument } from 'uncial/core';
 import { encodeBase64 } from '../base64.js';
-import { defineSite } from '../define-site.js';
+import { defineServerSite, defineSite } from '../define-site.js';
+import type { Action } from '../server-forge/protocol.js';
 import type { ForgeSession, SessionProvider } from '../types.js';
 import EditorPage from './EditorPage.svelte';
 
@@ -198,5 +199,59 @@ describe('EditorPage conflict banner', () => {
 
 		await page.getByRole('button', { name: 'Dismiss' }).click();
 		await expect.element(banner).not.toBeInTheDocument();
+	});
+});
+
+describe('EditorPage on the server forge', () => {
+	const site = defineServerSite({ apiBase: '/dashboard/api/content' });
+
+	function stubServer(allowed: Action[]) {
+		globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = new URL(String(input instanceof Request ? input.url : input));
+			const method = (init?.method ?? 'GET').toUpperCase();
+			expect(init?.credentials).toBe('same-origin');
+			if (url.pathname === '/dashboard/api/content' && method === 'GET') {
+				if (url.searchParams.has('session')) {
+					return jsonResponse(200, { user: { id: 'u1', email: 'ada@example.org', name: 'Ada' } });
+				}
+				return jsonResponse(200, {
+					path: 'about',
+					kind: 'page',
+					draft: storedDocument(),
+					published: storedDocument(),
+					etag: 'etag-1',
+					publishedAt: '2026-01-01T00:00:00.000Z',
+					updatedAt: '2026-01-02T00:00:00.000Z',
+					updatedBy: 'ada@example.org',
+					allowed
+				});
+			}
+			throw new Error(`Unexpected request: ${method} ${url}`);
+		}) as unknown as typeof fetch;
+	}
+
+	const renderPage = () =>
+		render(EditorPage, { site, sourcePath: 'about', pagePath: 'about', blocks, schema });
+
+	it('shows the Draft/Published status and the controls authorize allows', async () => {
+		stubServer(['read-draft', 'save-draft', 'publish', 'unpublish', 'delete']);
+		renderPage();
+
+		await expect.element(page.getByText('Published with Draft changes')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+		await expect.element(page.getByRole('button', { name: 'Unpublish' })).toBeVisible();
+		await expect.element(page.getByRole('button', { name: 'Delete' })).toBeVisible();
+	});
+
+	it('hides Publish when allowed lacks publish', async () => {
+		stubServer(['read-draft', 'save-draft']);
+		renderPage();
+
+		await expect.element(page.getByText(BODY_TEXT)).toBeInTheDocument();
+		await expect.element(page.getByText('Published with Draft changes')).toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Publish', exact: true }))
+			.not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
 	});
 });
