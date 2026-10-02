@@ -33,6 +33,8 @@ export interface MountIndexPageOptions {
 	 * '/uncial/cms-demo'. Default ''. */
 	basePath?: string;
 	editorStylesheets?: string[];
+	/** Open pages in the host's own editing view instead of the Fallback editor. */
+	editorHref?: (pagePath: string) => string;
 }
 
 type ListedPage = PageRef & { status?: string };
@@ -51,11 +53,13 @@ export function mountIndexPage(
 				: 'the local checkout';
 	const locationLabel =
 		config.forge === 'github' ? `${config.repo}@${config.branch}` : branchLabel;
+	// A server record's path is the site path with its surrounding slashes ('/' = site root).
 	const mapPathToSource =
 		opts.mapPathToSource ??
 		(config.forge === 'server'
-			? (path: string) => path
+			? (path: string) => (path === '' ? '/' : `/${path}/`)
 			: (path: string) => defaultMapPathToSource(path, config.contentDir));
+	const editHref = opts.editorHref ?? hashForPagePath;
 
 	const root = document.createElement('div');
 	root.className = 'uncial-cms-index';
@@ -111,7 +115,7 @@ export function mountIndexPage(
 			// Always link the fallback editor — it works whether or not the page's
 			// static variant has deployed yet.
 			const edit = document.createElement('a');
-			edit.href = hashForPagePath(page.pagePath);
+			edit.href = editHref(page.pagePath);
 			edit.textContent = 'Edit';
 
 			const del = document.createElement('button');
@@ -164,7 +168,7 @@ export function mountIndexPage(
 		const pages: ListedPage[] =
 			config.forge === 'server'
 				? (await (adapter as ServerForgeAdapter).list()).map((record) => ({
-						pagePath: record.path,
+						pagePath: opts.mapSourceToPath?.(record.path) ?? record.path.replace(/^\/+|\/+$/g, ''),
 						sourcePath: record.path,
 						status: describeContentStatus(record.status)
 					}))
@@ -192,7 +196,8 @@ export function mountIndexPage(
 			);
 			// Open the fallback editor immediately — the static variant only
 			// appears after the next deploy.
-			location.hash = hashForPagePath(result.path);
+			if (opts.editorHref) location.assign(opts.editorHref(result.path));
+			else location.hash = hashForPagePath(result.path);
 		} catch (error) {
 			message.hidden = false;
 			message.textContent = error instanceof Error ? error.message : 'Create failed.';
