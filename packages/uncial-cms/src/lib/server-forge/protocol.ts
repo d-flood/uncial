@@ -39,6 +39,13 @@ export interface ContentView {
 	allowed: Action[];
 }
 
+/** One row of the history endpoint, newest first. */
+export interface VersionView {
+	id: string;
+	createdAt: string;
+	createdBy: string;
+}
+
 export type ContentStatus = 'draft' | 'published' | 'changed';
 
 /** One row of the list endpoint. */

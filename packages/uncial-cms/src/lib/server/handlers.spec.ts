@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ConflictError } from '../errors.js';
 import { createServerContentHandlers, type Action, type Authorize, type ServerUser } from './handlers.js';
-import type { ContentRecord, ContentStore } from './postgres-store.js';
+import type { ContentRecord, ContentStore, VersionSummary } from './postgres-store.js';
 
 const user: ServerUser = { id: 'u1', email: 'ada@example.org', name: 'Ada' };
 const doc = { type: 'doc', content: [] };
@@ -28,7 +28,7 @@ function fakeStore() {
 		unpublish: vi.fn(async () => record()),
 		delete: vi.fn(async () => {}),
 		move: vi.fn(async () => record()),
-		versions: vi.fn(async () => []),
+		versions: vi.fn(async (): Promise<VersionSummary[]> => []),
 		getVersion: vi.fn(async () => doc),
 		restore: vi.fn(async () => record())
 	} satisfies ContentStore;
@@ -100,6 +100,30 @@ const cases: Case[] = [
 		method: 'POST',
 		body: { action: 'unpublish', path: 'about', etag: 'etag-1' },
 		write: 'unpublish',
+		readsRecord: true
+	},
+	{
+		action: 'read-draft',
+		label: 'history',
+		method: 'GET',
+		query: '?path=about&history',
+		write: 'versions',
+		readsRecord: true
+	},
+	{
+		action: 'read-draft',
+		label: 'version',
+		method: 'GET',
+		query: '?path=about&version=7',
+		write: 'getVersion',
+		readsRecord: true
+	},
+	{
+		action: 'restore',
+		label: 'restore',
+		method: 'POST',
+		body: { action: 'restore', path: 'about', versionId: '7', etag: 'etag-1' },
+		write: 'restore',
 		readsRecord: true
 	},
 	{
@@ -222,6 +246,48 @@ describe('createServerContentHandlers responses', () => {
 		const response = await handlers.GET(event('GET', '?path=missing'));
 
 		expect(response.status).toBe(404);
+	});
+
+	it('lists Versions newest first, as the store orders them, with ISO dates', async () => {
+		const { store, handlers } = setup(() => true);
+		store.versions.mockResolvedValue([
+			{ id: '8', createdAt: new Date('2026-02-02T00:00:00Z'), createdBy: 'ada@example.org' },
+			{ id: '7', createdAt: new Date('2026-02-01T00:00:00Z'), createdBy: 'bo@example.org' }
+		]);
+		const body = await (await handlers.GET(event('GET', '?path=about&history'))).json();
+
+		expect(store.versions).toHaveBeenCalledWith('about');
+		expect(body).toEqual([
+			{ id: '8', createdAt: '2026-02-02T00:00:00.000Z', createdBy: 'ada@example.org' },
+			{ id: '7', createdAt: '2026-02-01T00:00:00.000Z', createdBy: 'bo@example.org' }
+		]);
+	});
+
+	it("returns a Version's document", async () => {
+		const { store, handlers } = setup(() => true);
+		const body = await (await handlers.GET(event('GET', '?path=about&version=7'))).json();
+
+		expect(store.getVersion).toHaveBeenCalledWith('about', '7');
+		expect(body).toEqual(doc);
+	});
+
+	it('restores into the Draft without touching the Published copy', async () => {
+		const { store, handlers } = setup(() => true);
+		const response = await handlers.POST(
+			event('POST', '', { action: 'restore', path: 'about', versionId: '7', etag: 'etag-1' })
+		);
+
+		expect(response.status).toBe(200);
+		expect(store.restore).toHaveBeenCalledWith('about', '7', { etag: 'etag-1', author: user.email });
+		expect(storeCalls(store)).toEqual(['get', 'restore']);
+	});
+
+	it('requires an etag to restore', async () => {
+		const { store, handlers } = setup(() => true);
+		const response = await handlers.POST(event('POST', '', { action: 'restore', path: 'about', versionId: '7' }));
+
+		expect(response.status).toBe(400);
+		expect(store.restore).not.toHaveBeenCalled();
 	});
 
 	it('reports the signed-in user for the session probe', async () => {

@@ -4,7 +4,8 @@ import {
 	contentStatus,
 	type Action,
 	type ContentSummary,
-	type ServerUser
+	type ServerUser,
+	type VersionView
 } from '../server-forge/protocol.js';
 import type { ContentRecord, ContentStore } from './postgres-store.js';
 
@@ -123,6 +124,16 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 			const record = await store.get(path);
 			await guard(user, 'read-draft', record);
 			if (!record) throw new HttpError(404, `No content at ${path}.`);
+			if (url.searchParams.has('history')) {
+				const versions: VersionView[] = (await store.versions(path)).map((version) => ({
+					id: version.id,
+					createdAt: version.createdAt.toISOString(),
+					createdBy: version.createdBy
+				}));
+				return Response.json(versions);
+			}
+			const versionId = url.searchParams.get('version');
+			if (versionId !== null) return Response.json(await store.getVersion(path, versionId));
 			return view(user, record);
 		}),
 
@@ -142,7 +153,14 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 				if (record.draft === null) throw new HttpError(400, `Nothing to publish: ${path} has no Draft.`);
 				return view(user, await store.publish(path, write));
 			}
-			throw new HttpError(400, 'Expected "action" to be create, publish or unpublish.');
+			if (input.action === 'restore') {
+				const record = await existing(path);
+				await guard(user, 'restore', record);
+				const versionId = text(input.versionId, 'versionId');
+				const write = { etag: text(input.etag, 'etag'), author: user.email };
+				return view(user, await store.restore(path, versionId, write));
+			}
+			throw new HttpError(400, 'Expected "action" to be create, publish, unpublish or restore.');
 		}),
 
 		PUT: handle(async ({ request }, user) => {

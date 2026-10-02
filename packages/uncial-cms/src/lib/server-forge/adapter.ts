@@ -6,13 +6,16 @@ import type {
 	SessionProvider,
 	UncialCmsSiteConfig
 } from '../types.js';
-import type { ContentSummary, ContentView } from './protocol.js';
+import type { ContentSummary, ContentView, VersionView } from './protocol.js';
 
 export interface ServerForgeAdapter extends ForgeAdapter {
 	getRecord(path: string): Promise<ContentView>;
 	list(): Promise<ContentSummary[]>;
 	publish(path: string, etag: string): Promise<ContentView>;
 	unpublish(path: string, etag: string): Promise<ContentView>;
+	versions(path: string): Promise<VersionView[]>;
+	getVersion(path: string, versionId: string): Promise<unknown>;
+	restore(path: string, versionId: string, etag: string): Promise<ContentView>;
 }
 
 export async function serverRequest<T>(
@@ -66,6 +69,18 @@ class ServerAdapter implements ServerForgeAdapter {
 
 	unpublish(path: string, etag: string): Promise<ContentView> {
 		return this.#request('POST', { body: { action: 'unpublish', path, etag } });
+	}
+
+	versions(path: string): Promise<VersionView[]> {
+		return this.#request('GET', { query: { path, history: '' } });
+	}
+
+	getVersion(path: string, versionId: string): Promise<unknown> {
+		return this.#request('GET', { query: { path, version: versionId } });
+	}
+
+	restore(path: string, versionId: string, etag: string): Promise<ContentView> {
+		return this.#request('POST', { body: { action: 'restore', path, versionId, etag } });
 	}
 
 	async readFile(path: string): Promise<{ content: string; sha: string }> {

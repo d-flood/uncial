@@ -19,7 +19,7 @@ import {
 	type Schedule
 } from './deploy-status.js';
 import type { ServerForgeAdapter } from './server-forge/adapter.js';
-import type { Action, ContentView } from './server-forge/protocol.js';
+import type { Action, ContentView, VersionView } from './server-forge/protocol.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { setActiveForge } from './upload-context.js';
 
@@ -99,6 +99,12 @@ export interface EditorController {
 	unpublish(): Promise<void>;
 	/** `server` forge only: delete the record (after confirm); true once deleted. */
 	remove(): Promise<boolean>;
+	/** `server` forge only: the record's Versions, newest first. */
+	history(): Promise<VersionView[]>;
+	/** `server` forge only: one Version's document, for read-only display. */
+	version(versionId: string): Promise<ContentDocument>;
+	/** `server` forge only: replace the Draft with a Version (after confirm); true once restored. */
+	restore(versionId: string): Promise<boolean>;
 	/** Forwarded editor change events. */
 	documentChanged(doc: ContentDocument): void;
 	isDirty(): boolean;
@@ -334,6 +340,38 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		}
 	};
 
+	const history = async () => (server ? server.versions(sourcePath) : []);
+
+	const version = async (versionId: string) => {
+		if (!server) throw new Error('Versions exist on the server forge only.');
+		const doc = await server.getVersion(sourcePath, versionId);
+		return parseDocument(JSON.stringify(doc), blocks, schema);
+	};
+
+	const restore = async (versionId: string) => {
+		if (!server || !session || sha === null) return false;
+		if (!opts.confirm('Restore this Version? It replaces the current Draft.')) return false;
+		cancelPendingAutosave();
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Restoring…' });
+		try {
+			const view = await server.restore(sourcePath, versionId, sha);
+			sha = view.etag;
+			applyView(view);
+			currentDocument = parseDocument(JSON.stringify(view.draft), blocks, schema);
+			ui.setDocument(currentDocument);
+			dirty = false;
+			ui.status({ tone: 'success', text: 'Version restored into the Draft' });
+			return true;
+		} catch (error) {
+			showFailure(error, 'Restore failed.');
+			return false;
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
 	const documentChanged = (doc: ContentDocument) => {
 		currentDocument = doc;
 		dirty = true;
@@ -354,6 +392,9 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		publish: () => transition('publish'),
 		unpublish: () => transition('unpublish'),
 		remove,
+		history,
+		version,
+		restore,
 		documentChanged,
 		isDirty: () => dirty,
 		stop: () => {

@@ -18,7 +18,12 @@
 	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
 	import { cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
-	import { contentStatus, describeContentStatus, type Action } from '../server-forge/protocol.js';
+	import {
+		contentStatus,
+		describeContentStatus,
+		type Action,
+		type VersionView
+	} from '../server-forge/protocol.js';
 	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
 
@@ -40,6 +45,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
+		/** Where the host previews a Draft; the editing view links there when given. */
+		previewUrl?: (sourcePath: string) => string;
 	}
 
 	let {
@@ -51,7 +58,8 @@
 		sessionProvider,
 		attributesPanel = 'overlay',
 		presentation = 'bare',
-		imageSource
+		imageSource,
+		previewUrl
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
@@ -68,6 +76,7 @@
 	);
 
 	type EditorComponent = (typeof import('uncial/editor'))['Editor'];
+	type RendererComponent = (typeof import('uncial/render'))['Renderer'];
 
 	let Editor = $state<EditorComponent | undefined>(undefined);
 	let doc = $state<ContentDocument | undefined>(undefined);
@@ -78,8 +87,45 @@
 	let record = $state<RecordState | undefined>(undefined);
 	let deleted = $state(false);
 	const can = (action: Action) => record?.allowed.includes(action) ?? false;
+	let historyOpen = $state(false);
+	let versions = $state<VersionView[] | undefined>(undefined);
+	let selected = $state<{ id: string; doc: ContentDocument } | undefined>(undefined);
+	let Renderer = $state<RendererComponent | undefined>(undefined);
 	let controller: EditorController | undefined;
 	let root: HTMLDivElement;
+
+	const failed = (error: unknown, fallback: string) =>
+		(status = { tone: 'error', text: error instanceof Error ? error.message : fallback });
+
+	function closeHistory() {
+		historyOpen = false;
+		versions = undefined;
+		selected = undefined;
+	}
+
+	async function openHistory() {
+		if (!controller) return;
+		historyOpen = true;
+		try {
+			const [list, render] = await Promise.all([controller.history(), import('uncial/render')]);
+			versions = list;
+			Renderer = render.Renderer;
+		} catch (error) {
+			failed(error, 'Failed to load the history.');
+		}
+	}
+
+	async function select(versionId: string) {
+		try {
+			selected = { id: versionId, doc: await controller!.version(versionId) };
+		} catch (error) {
+			failed(error, 'Failed to load the Version.');
+		}
+	}
+
+	async function restore(versionId: string) {
+		if (await controller?.restore(versionId)) closeHistory();
+	}
 
 	onMount(() => {
 		// The editor stack hangs off dynamic imports behind a statically decidable
@@ -169,6 +215,13 @@
 					Unpublish
 				</button>
 			{/if}
+			<button
+				type="button"
+				aria-expanded={historyOpen}
+				onclick={() => (historyOpen ? closeHistory() : void openHistory())}
+			>
+				History
+			</button>
 			{#if can('delete')}
 				<button
 					type="button"
@@ -178,6 +231,11 @@
 					Delete
 				</button>
 			{/if}
+		{/if}
+		{#if previewUrl && !deleted}
+			<a class="uncial-cms-preview" href={previewUrl(sourcePath)} target="_blank" rel="noopener">
+				Preview
+			</a>
 		{/if}
 		{#if status}
 			<p class="uncial-cms-status" role="status" data-tone={status.tone}>
@@ -202,6 +260,39 @@
 				<button type="button" onclick={() => controller?.dismissConflict()}>Dismiss</button>
 			</div>
 		</div>
+	{/if}
+
+	{#if historyOpen && !deleted}
+		<section class="uncial-cms-history" aria-label="History">
+			{#if versions === undefined}
+				<p>Loading history…</p>
+			{:else if versions.length === 0}
+				<p>No earlier Versions yet. Each publish keeps the copy it replaces.</p>
+			{:else}
+				<ol class="uncial-cms-history-list">
+					{#each versions as version (version.id)}
+						<li>
+							<button
+								type="button"
+								aria-pressed={selected?.id === version.id}
+								onclick={() => void select(version.id)}
+							>
+								{new Date(version.createdAt).toLocaleString()} · {version.createdBy}
+							</button>
+						</li>
+					{/each}
+				</ol>
+			{/if}
+			{#if selected && Renderer}
+				{@const versionId = selected.id}
+				<div class="uncial-cms-version" aria-label="Selected Version">
+					{#if can('restore')}
+						<button type="button" onclick={() => void restore(versionId)}>Restore</button>
+					{/if}
+					<Renderer content={selected.doc} {blocks} schema={resolvedSchema} />
+				</div>
+			{/if}
+		</section>
 	{/if}
 
 	{#if Editor && doc && !deleted}
