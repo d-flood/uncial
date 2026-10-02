@@ -27,6 +27,7 @@
 	} from './metaController.js';
 	import BlockAttributesPanel from './BlockAttributesPanel.svelte';
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
+	import { dropdownFloat } from './dropdownFloat.js';
 	import Toolbar from './Toolbar.svelte';
 	import type { ChooseAttributeRequest } from './chooseAttribute.js';
 	import type { ImageSource } from './imageSource.js';
@@ -386,7 +387,7 @@
 		{#if hasMetaFields || activeBlocks.length > 0}
 			<div class="uncial-toolbar__actions">
 				{#if hasMetaFields}
-					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss>
+					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss use:dropdownFloat>
 						<summary
 							bind:this={metaTriggerEl}
 							aria-label="Edit document metadata"
@@ -400,6 +401,8 @@
 								controller={documentMetaController}
 								fields={resolvedMetaFields}
 								onCommit={commitMeta}
+								{imageSource}
+								{imagePreviews}
 							/>
 						</div>
 					</details>

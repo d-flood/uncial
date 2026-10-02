@@ -282,3 +282,19 @@ describe('AttributeFieldControl datetime', () => {
 		expect(changes).toEqual(['2026-05-06T09:30:00-05:00']);
 	});
 });
+
+describe('AttributeFieldControl warn', () => {
+	it('shows advice for a value it does not reject', async () => {
+		const spec: AttributeSpec<string> = {
+			default: '',
+			input: 'textarea',
+			warn: (value) => (String(value).length > 5 ? 'Keep it short.' : null)
+		};
+		const short = render(AttributeFieldControl, { name: 'summary', spec, value: 'brief', onChange: () => {} });
+		expect(short.container.querySelector('.uncial-field__warning')).toBeNull();
+
+		const long = render(AttributeFieldControl, { name: 'summary', spec, value: 'too long', onChange: () => {} });
+		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe('Keep it short.');
+		expect(long.container.querySelector('.uncial-field__error')).toBeNull();
+	});
+});

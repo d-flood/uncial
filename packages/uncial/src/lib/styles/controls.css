@@ -135,8 +135,13 @@
 	color: var(--uncial-color-text-muted);
 }
 
-.uncial-field__error {
+.uncial-field__error,
+.uncial-field__warning {
 	font-size: 0.75rem;
+}
+
+.uncial-field__warning {
+	color: var(--uncial-color-accent);
 }
 
 .uncial-input,

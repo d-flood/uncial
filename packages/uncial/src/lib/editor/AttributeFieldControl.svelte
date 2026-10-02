@@ -61,6 +61,7 @@
 			inputKind !== 'image'
 	);
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
+	const warning = $derived(spec.warn?.(value) ?? '');
 	const stringValue = $derived.by(() => {
 		if (typeof value === 'string') return value;
 		if (value === undefined || value === null) return '';
@@ -402,6 +403,9 @@
 					onChange(target.value);
 				}}
 			/>
+		{/if}
+		{#if warning}
+			<span class="uncial-field__warning" role="status">{warning}</span>
 		{/if}
 		{#if error}
 			<span class="uncial-field__error">{error}</span>
