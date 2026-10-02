@@ -67,3 +67,25 @@ export function describeContentStatus(status: ContentStatus): string {
 	if (status === 'draft') return 'Draft only';
 	return status === 'published' ? 'Published' : 'Published with Draft changes';
 }
+
+/** One Media item as the media endpoint returns it. */
+export interface MediaItemView {
+	id: string;
+	key: string;
+	url: string;
+	filename: string;
+	title: string;
+	contentType: string;
+	width: number | null;
+	height: number | null;
+	size: number;
+	uploadedBy: string;
+	uploadedAt: string;
+}
+
+/** The media list endpoint's body. */
+export interface MediaListView {
+	items: Array<MediaItemView & { usage: number }>;
+	/** Of `media-upload` and `media-delete`, the actions `authorize` grants the requesting user. */
+	allowed: Action[];
+}

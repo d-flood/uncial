@@ -71,4 +71,9 @@ export {
 } from './paths/index.js';
 export { parseDocument, serializeDocument, type Blocks } from './document.js';
 export { patSessionProvider, popupSessionProvider } from './github/index.js';
-export type { Action, VersionView } from './server-forge/protocol.js';
+export type {
+	Action,
+	MediaItemView,
+	MediaListView,
+	VersionView
+} from './server-forge/protocol.js';

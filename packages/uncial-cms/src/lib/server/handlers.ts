@@ -4,9 +4,11 @@ import {
 	contentStatus,
 	type Action,
 	type ContentSummary,
+	type MediaListView,
 	type ServerUser,
 	type VersionView
 } from '../server-forge/protocol.js';
+import { MediaInUseError, type MediaLibrary } from './media.js';
 import type { ContentRecord, ContentStore } from './postgres-store.js';
 
 export type { Action, ServerUser };
@@ -41,6 +43,9 @@ class HttpError extends Error {
 
 function failure(error: unknown): Response {
 	if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status });
+	if (error instanceof MediaInUseError) {
+		return Response.json({ error: error.message, usage: error.usage }, { status: 409 });
+	}
 	if (error instanceof ConflictError) return Response.json({ error: error.message }, { status: 409 });
 	if (error instanceof NotFoundError) return Response.json({ error: error.message }, { status: 404 });
 	throw error;
@@ -176,6 +181,74 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 			const path = text(input.path, 'path');
 			await guard(user, 'delete', await existing(path));
 			await store.delete(path, { etag: text(input.etag, 'etag'), author: user.email });
+			return new Response(null, { status: 204 });
+		})
+	};
+}
+
+export interface ServerMediaHandlerOptions<Event extends ContentRequestEvent> {
+	library: MediaLibrary;
+	authorize: Authorize;
+	getUser: (event: Event) => ServerUser | null | Promise<ServerUser | null>;
+}
+
+const MEDIA_ACTIONS: Action[] = ['media-upload', 'media-delete'];
+
+/** The SvelteKit `+server.ts` exports for a `server` forge's `mediaApiBase`. */
+export function createServerMediaHandlers<Event extends ContentRequestEvent>(
+	opts: ServerMediaHandlerOptions<Event>
+): { GET: Handler<Event>; POST: Handler<Event>; DELETE: Handler<Event> } {
+	const { library, authorize } = opts;
+
+	const handle =
+		(action: Action, fn: (event: Event, user: ServerUser) => Promise<Response>): Handler<Event> =>
+		async (event) => {
+			try {
+				const user = await opts.getUser(event);
+				if (!user) throw new HttpError(401, 'You are signed out. Sign in again to continue.');
+				if (!(await authorize(user, action, null))) {
+					throw new HttpError(403, `You do not have permission to ${action.replace('-', ' ')}.`);
+				}
+				return await fn(event, user);
+			} catch (error) {
+				return failure(error);
+			}
+		};
+
+	return {
+		GET: handle('read-draft', async ({ url }, user) => {
+			const items = await library.list({
+				search: url.searchParams.get('search') || undefined,
+				contentType: url.searchParams.get('contentType') || undefined
+			});
+			const allowed: Action[] = [];
+			for (const action of MEDIA_ACTIONS) {
+				if (await authorize(user, action, null)) allowed.push(action);
+			}
+			const view: MediaListView = {
+				items: items.map((item) => ({ ...item, uploadedAt: item.uploadedAt.toISOString() })),
+				allowed
+			};
+			return Response.json(view);
+		}),
+
+		POST: handle('media-upload', async ({ request }, user) => {
+			const form = await request.formData().catch(() => null);
+			const file = form?.get('file');
+			if (!(file instanceof File)) throw new HttpError(400, 'Expected a multipart "file".');
+			const title = form?.get('title');
+			const item = await library.upload(new Uint8Array(await file.arrayBuffer()), {
+				filename: file.name,
+				title: typeof title === 'string' ? title : undefined,
+				contentType: file.type || 'application/octet-stream',
+				uploadedBy: user.email
+			});
+			return Response.json(item, { status: 201 });
+		}),
+
+		DELETE: handle('media-delete', async ({ request }) => {
+			const id = text((await body(request)).id, 'id');
+			await library.delete(id);
 			return new Response(null, { status: 204 });
 		})
 	};

@@ -18,12 +18,31 @@ export interface ImagePreviews {
 	revokeAll(): void;
 }
 
-export function createImagePreviews(): ImagePreviews {
+const MISSING_IMAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200"><rect width="320" height="200" fill="#f4f4f5" stroke="#d4d4d8" stroke-dasharray="6 4"/><text x="160" y="106" font-family="system-ui, sans-serif" font-size="16" fill="#71717a" text-anchor="middle">Missing image</text></svg>`;
+
+/** Unique per value, so {@link ImagePreviews.sourceOf} can map a placeholder back. */
+export function missingImagePlaceholder(src: string): string {
+	return `data:image/svg+xml,${encodeURIComponent(MISSING_IMAGE_SVG)}#${encodeURIComponent(src)}`;
+}
+
+/** `placeholder` answers a stand-in URL for a value with no preview, e.g. a missing image. */
+export function createImagePreviews(
+	placeholder: (src: string) => string | undefined = () => undefined
+): ImagePreviews {
 	const previews = new Map<string, string>();
 	const sources = new Map<string, string>();
 
 	return {
-		get: (src) => previews.get(src),
+		get(src) {
+			const known = previews.get(src);
+			if (known) return known;
+			const url = placeholder(src);
+			if (url) {
+				previews.set(src, url);
+				sources.set(url, src);
+			}
+			return url;
+		},
 		sourceOf: (url) => sources.get(url),
 		register(src, file) {
 			// A re-upload answers the same src, so nothing re-renders and the canvas
@@ -33,7 +52,9 @@ export function createImagePreviews(): ImagePreviews {
 			previews.set(src, url);
 		},
 		revokeAll() {
-			sources.forEach((_src, url) => URL.revokeObjectURL(url));
+			sources.forEach((_src, url) => {
+				if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+			});
 			sources.clear();
 			previews.clear();
 		}

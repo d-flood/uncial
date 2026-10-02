@@ -90,17 +90,22 @@
 		}
 	},
 	"peerDependencies": {
+		"@aws-sdk/client-s3": "^3.0.0",
 		"postgres": "^3.4.0",
 		"svelte": "^5.0.0",
 		"uncial": "workspace:^"
 	},
 	"peerDependenciesMeta": {
+		"@aws-sdk/client-s3": {
+			"optional": true
+		},
 		"postgres": {
 			"optional": true
 		}
 	},
 	"devDependencies": {
 		"@astrojs/svelte": "^7.2.5",
+		"@aws-sdk/client-s3": "^3.1144.0",
 		"@playwright/test": "^1.58.2",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.2",

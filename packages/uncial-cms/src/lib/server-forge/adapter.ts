@@ -30,7 +30,9 @@ export async function serverRequest<T>(
 		credentials: 'same-origin',
 		...(opts.body === undefined
 			? {}
-			: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opts.body) })
+			: opts.body instanceof FormData
+				? { body: opts.body }
+				: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opts.body) })
 	});
 	if (response.status === 204) return undefined as T;
 	if (response.ok) return (await response.json()) as T;

@@ -2,6 +2,7 @@ import type { ImageSource } from 'uncial/editor';
 import { resolveImageSrc } from 'uncial/render';
 import { resolveMediaDir, uploadImageAsset } from './index-actions.js';
 import { servedUrl } from './served-url.js';
+import { listMedia, uploadMedia } from './server-forge/media.js';
 import type { UncialCmsSiteConfig } from './types.js';
 import { configMediaDir, getActiveForge } from './upload-context.js';
 
@@ -14,7 +15,8 @@ const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
  * dir's images the same way. `base` and `staticDir` are the site's build-time
  * values, which the config does not carry. A site with a rendition pipeline
  * replaces the listing with `list` (served paths) and the tile URL with
- * `thumbnail`.
+ * `thumbnail`. On a `server` forge, upload and browse go to the Media
+ * library at `mediaApiBase` instead.
  */
 export function cmsImageSource(
 	config: UncialCmsSiteConfig,
@@ -26,6 +28,19 @@ export function cmsImageSource(
 	} = {}
 ): ImageSource {
 	const { base = '', staticDir = 'static', list } = options;
+	const thumbnail = options.thumbnail ?? ((src: string) => resolveImageSrc(src, base));
+	if (config.forge === 'server') {
+		const { mediaApiBase } = config;
+		if (!mediaApiBase) return { thumbnail };
+		return {
+			upload: async (file) => (await uploadMedia(mediaApiBase, file)).url,
+			browse:
+				list ??
+				(async () =>
+					(await listMedia(mediaApiBase, { contentType: 'image/*' })).items.map((item) => item.url)),
+			thumbnail
+		};
+	}
 	return {
 		upload: async (file) => {
 			const result = await uploadImageAsset(file, { fit: true, mediaDir: configMediaDir(config) });
@@ -47,6 +62,6 @@ export function cmsImageSource(
 				.sort()
 				.map((path) => servedUrl({ config }, path, staticDir));
 		}),
-		thumbnail: options.thumbnail ?? ((src) => resolveImageSrc(src, base))
+		thumbnail
 	};
 }

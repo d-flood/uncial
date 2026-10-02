@@ -12,11 +12,13 @@
 	 * that boundary, so the site has to restate every one of them.
 	 */
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import type { ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
 	import { cmsImageSource } from '../image-source.js';
+	import { isMediaUrl, listMedia } from '../server-forge/media.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import {
 		contentStatus,
@@ -66,7 +68,39 @@
 	// Autosave leaves nothing to press; a forge commit is never autosaved, so a
 	// Save button and autosave are exactly the two modes.
 	const manualSave = $derived(site.autosaveMs === undefined);
-	const resolvedImageSource = $derived(imageSource ?? cmsImageSource(site.config));
+	const mediaApiBase = $derived(site.config.forge === 'server' ? site.config.mediaApiBase : undefined);
+	// The Media library's URLs, so the editing view can flag media that is gone.
+	let library = $state<SvelteSet<string> | undefined>(undefined);
+	let libraryChecked = $state(false);
+	const isMissing = (src: string) => (library ? isMediaUrl(src) && !library.has(src) : false);
+	const resolvedImageSource = $derived.by((): ImageSource => {
+		const source = imageSource ?? cmsImageSource(site.config);
+		const { upload } = source;
+		if (!mediaApiBase) return source;
+		return {
+			...source,
+			upload:
+				upload &&
+				(async (file) => {
+					const src = await upload(file);
+					library?.add(src);
+					return src;
+				}),
+			missing: isMissing
+		};
+	});
+	const missingMedia = $derived.by(() => {
+		const found = new Set<string>();
+		const walk = (value: unknown): void => {
+			if (typeof value === 'string') {
+				if (isMissing(value)) found.add(value);
+			} else if (value && typeof value === 'object') {
+				Object.values(value).forEach(walk);
+			}
+		};
+		walk(doc);
+		return [...found];
+	});
 	const branch = $derived(
 		site.config.forge === 'github'
 			? site.config.branch
@@ -140,6 +174,16 @@
 		root.dataset.uncialCmsRuntime = UNCIAL_CMS_RUNTIME_SENTINEL;
 
 		let cancelled = false;
+
+		if (mediaApiBase) {
+			listMedia(mediaApiBase)
+				.then((view) => (library = new SvelteSet(view.items.map((item) => item.url))))
+				// Without the list nothing can be flagged missing; the editor still opens.
+				.catch(() => {})
+				.finally(() => (libraryChecked = true));
+		} else {
+			libraryChecked = true;
+		}
 
 		void Promise.all([
 			import('uncial/editor'),
@@ -262,6 +306,18 @@
 		</div>
 	{/if}
 
+	{#if missingMedia.length > 0 && !deleted}
+		<div class="uncial-cms-banner uncial-cms-missing-media" role="alert">
+			<p class="uncial-cms-banner-message">
+				{missingMedia.length === 1 ? 'An image' : `${missingMedia.length} images`} on this page {missingMedia.length ===
+				1
+					? 'is'
+					: 'are'} no longer in the Media library. The editing view shows a placeholder; readers see no
+				image. Choose a replacement or clear it.
+			</p>
+		</div>
+	{/if}
+
 	{#if historyOpen && !deleted}
 		<section class="uncial-cms-history" aria-label="History">
 			{#if versions === undefined}
@@ -295,7 +351,7 @@
 		</section>
 	{/if}
 
-	{#if Editor && doc && !deleted}
+	{#if Editor && doc && libraryChecked && !deleted}
 		<Editor
 			{blocks}
 			schema={resolvedSchema}

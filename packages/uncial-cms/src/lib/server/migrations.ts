@@ -26,3 +26,23 @@ export const contentStoreMigrations: Array<{ id: string; sql: string }> = [
 		`
 	}
 ];
+
+export const mediaLibraryMigrations: Array<{ id: string; sql: string }> = [
+	{
+		id: '0001_media_library.sql',
+		sql: `
+			create table uncial_media (
+				id text primary key check (id ~ '^[0-9a-f]{64}$'),
+				key text not null unique,
+				filename text not null,
+				title text not null,
+				content_type text not null,
+				width integer,
+				height integer,
+				size integer not null,
+				uploaded_by text not null,
+				uploaded_at timestamptz not null default now()
+			);
+		`
+	}
+];

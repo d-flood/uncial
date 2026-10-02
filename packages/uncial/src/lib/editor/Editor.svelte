@@ -30,7 +30,7 @@
 	import Toolbar from './Toolbar.svelte';
 	import type { ChooseAttributeRequest } from './chooseAttribute.js';
 	import type { ImageSource } from './imageSource.js';
-	import { createImagePreviews } from '../shared/imagePreviews.js';
+	import { createImagePreviews, missingImagePlaceholder } from '../shared/imagePreviews.js';
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
 
@@ -115,7 +115,9 @@
 	const internalController = createBlockAttributesController();
 	const internalMetaController = createDocumentMetaController();
 	// Per instance: two editors on one page must not see each other's uploads.
-	const imagePreviews = createImagePreviews();
+	const imagePreviews = createImagePreviews((src) =>
+		imageSource?.missing?.(src) ? missingImagePlaceholder(src) : undefined
+	);
 	let metaState = $state<DocumentMetaState>({
 		draft: {},
 		errors: {},
