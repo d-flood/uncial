@@ -55,7 +55,7 @@ export interface EditorPageUi {
 	conflictVisible(visible: boolean): void;
 	/** The record's state, reported by the `server` forge only. */
 	record?(state: RecordState): void;
-	/** A save moved the record to a new path; this controller no longer addresses it. */
+	/** The record moved to a new path; this controller no longer addresses it. */
 	moved?(path: string): void;
 }
 
@@ -107,6 +107,8 @@ export interface EditorController {
 	version(versionId: string): Promise<ContentDocument>;
 	/** `server` forge only: replace the Draft with a Version (after confirm); true once restored. */
 	restore(versionId: string): Promise<boolean>;
+	/** `server` forge only: save any unsaved edit, then move the record to `to`. */
+	move(to: string): Promise<void>;
 	/** Forwarded editor change events. */
 	documentChanged(doc: ContentDocument): void;
 	isDirty(): boolean;
@@ -378,6 +380,28 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		}
 	};
 
+	const move = async (to: string) => {
+		if (!server || !session || sha === null) return;
+		cancelPendingAutosave();
+		if (dirty) {
+			await save();
+			if (dirty) return;
+		}
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Moving…' });
+		try {
+			const view = await server.move(sourcePath, to, sha);
+			sha = view.etag;
+			ui.status({ tone: 'success', text: `Moved to ${view.path}` });
+			ui.moved?.(view.path);
+		} catch (error) {
+			showFailure(error, 'Move failed.');
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
 	const documentChanged = (doc: ContentDocument) => {
 		currentDocument = doc;
 		dirty = true;
@@ -401,6 +425,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		history,
 		version,
 		restore,
+		move,
 		documentChanged,
 		isDirty: () => dirty,
 		stop: () => {

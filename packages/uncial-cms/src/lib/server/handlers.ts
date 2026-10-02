@@ -34,6 +34,8 @@ export interface ServerContentHandlerOptions<Event extends ContentRequestEvent> 
 	 * the record there, which `authorize` must also grant as `move`.
 	 */
 	derivePath?: (kind: string, draft: unknown) => string | null;
+	/** The host's form of a path an author asked to move a record to, or null to refuse it. */
+	normalizePath?: (path: string) => string | null;
 }
 
 type Handler<Event> = (event: Event) => Promise<Response>;
@@ -171,7 +173,26 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 				const write = { etag: text(input.etag, 'etag'), author: user.email };
 				return view(user, await store.restore(path, versionId, write));
 			}
-			throw new HttpError(400, 'Expected "action" to be create, publish, unpublish or restore.');
+			if (input.action === 'move') {
+				const record = await existing(path);
+				await guard(user, 'move', record);
+				const requested = text(input.to, 'to');
+				const to = opts.normalizePath ? opts.normalizePath(requested) : requested;
+				if (to === null) throw new HttpError(400, `${requested} is not a path content can live at.`);
+				if (opts.derivePath?.(record.kind, record.draft ?? record.published)) {
+					throw new HttpError(400, `The path of ${path} follows its metadata; edit that instead.`);
+				}
+				if (to === path) throw new HttpError(400, `${path} is already there.`);
+				if (await store.get(to)) {
+					throw new HttpError(400, `Something else is already at ${to}. Choose another path.`);
+				}
+				const write = { etag: text(input.etag, 'etag'), author: user.email };
+				return view(user, await store.move(path, to, write));
+			}
+			throw new HttpError(
+				400,
+				'Expected "action" to be create, publish, unpublish, restore or move.'
+			);
 		}),
 
 		PUT: handle(async ({ request }, user) => {

@@ -16,6 +16,7 @@ export interface ServerForgeAdapter extends ForgeAdapter {
 	versions(path: string): Promise<VersionView[]>;
 	getVersion(path: string, versionId: string): Promise<unknown>;
 	restore(path: string, versionId: string, etag: string): Promise<ContentView>;
+	move(path: string, to: string, etag: string): Promise<ContentView>;
 }
 
 export async function serverRequest<T>(
@@ -83,6 +84,10 @@ class ServerAdapter implements ServerForgeAdapter {
 
 	restore(path: string, versionId: string, etag: string): Promise<ContentView> {
 		return this.#request('POST', { body: { action: 'restore', path, versionId, etag } });
+	}
+
+	move(path: string, to: string, etag: string): Promise<ContentView> {
+		return this.#request('POST', { body: { action: 'move', path, to, etag } });
 	}
 
 	async readFile(path: string): Promise<{ content: string; sha: string }> {

@@ -2,6 +2,7 @@ export { createPostgresContentStore } from './postgres-store.js';
 export type {
 	ContentRecord,
 	ContentStore,
+	OnMove,
 	RetentionPolicy,
 	VersionSummary
 } from './postgres-store.js';

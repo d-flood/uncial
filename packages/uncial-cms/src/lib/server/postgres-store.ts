@@ -67,13 +67,23 @@ function toRecord(row: Row): ContentRecord {
 	};
 }
 
+/**
+ * Runs inside a move's transaction, after the record has moved, so a host can
+ * keep its own rows (a Redirect from the old path, say) in step with it. A
+ * throw rolls the move back.
+ */
+export type OnMove = (
+	tx: TransactionSql,
+	move: { from: string; to: string; record: ContentRecord }
+) => Promise<void>;
+
 function isUniqueViolation(error: unknown): boolean {
 	return (error as { code?: string })?.code === UNIQUE_VIOLATION;
 }
 
 export function createPostgresContentStore(
 	sql: Sql,
-	opts: { retention: RetentionPolicy }
+	opts: { retention: RetentionPolicy; onMove?: OnMove }
 ): ContentStore {
 	const json = (doc: unknown) => sql.json(doc as postgres.JSONValue);
 
@@ -206,7 +216,9 @@ export function createPostgresContentStore(
 						where path = ${from}
 						returning *
 					`;
-					return toRecord(row);
+					const record = toRecord(row);
+					await opts.onMove?.(tx, { from, to, record });
+					return record;
 				});
 			} catch (error) {
 				if (isUniqueViolation(error)) throw new ConflictError(`Content already exists at ${to}.`);

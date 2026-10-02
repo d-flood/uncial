@@ -20,7 +20,7 @@ const record = (): ContentRecord => ({
 
 function fakeStore() {
 	return {
-		get: vi.fn(async (_path: string) => record()),
+		get: vi.fn(async (path: string): Promise<ContentRecord | null> => (path === 'elsewhere' ? null : record())),
 		list: vi.fn(async () => [record()]),
 		create: vi.fn(async () => record()),
 		saveDraft: vi.fn(async () => record()),
@@ -124,6 +124,14 @@ const cases: Case[] = [
 		method: 'POST',
 		body: { action: 'restore', path: 'about', versionId: '7', etag: 'etag-1' },
 		write: 'restore',
+		readsRecord: true
+	},
+	{
+		action: 'move',
+		label: 'move',
+		method: 'POST',
+		body: { action: 'move', path: 'about', to: 'elsewhere', etag: 'etag-1' },
+		write: 'move',
 		readsRecord: true
 	},
 	{
@@ -242,7 +250,7 @@ describe('createServerContentHandlers responses', () => {
 
 	it('returns 404 for a missing record', async () => {
 		const { store, handlers } = setup(() => true);
-		store.get.mockResolvedValue(null as unknown as ContentRecord);
+		store.get.mockResolvedValue(null);
 		const response = await handlers.GET(event('GET', '?path=missing'));
 
 		expect(response.status).toBe(404);
@@ -328,6 +336,34 @@ describe('createServerContentHandlers responses', () => {
 
 			expect(response.status).toBe(400);
 			expect(store.saveDraft).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('moving a record', () => {
+		const move = (to: string, opts: Partial<Parameters<typeof createServerContentHandlers>[0]> = {}) => {
+			const store = fakeStore();
+			const handlers = createServerContentHandlers({ store, authorize: () => true, getUser: () => user, ...opts });
+			const response = handlers.POST(event('POST', '', { action: 'move', path: 'about', to, etag: 'etag-1' }));
+			return { store, response };
+		};
+
+		it('moves the record to the normalized path', async () => {
+			const { store, response } = move('Elsewhere', { normalizePath: (path) => path.toLowerCase() });
+
+			expect((await response).status).toBe(200);
+			expect(store.move).toHaveBeenCalledWith('about', 'elsewhere', { etag: 'etag-1', author: user.email });
+		});
+
+		it.each([
+			['a path the host refuses', 'elsewhere', { normalizePath: () => null }],
+			['a taken path', 'taken', {}],
+			['its own path', 'about', {}],
+			['a record whose path the host derives', 'elsewhere', { derivePath: () => 'derived' }]
+		])('refuses %s', async (_label, to, opts) => {
+			const { store, response } = move(to, opts);
+
+			expect((await response).status).toBe(400);
+			expect(store.move).not.toHaveBeenCalled();
 		});
 	});
 

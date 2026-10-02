@@ -240,6 +240,25 @@ describe.skipIf(!url)('Postgres ContentStore contract', () => {
 		expect(await store.get('/b/')).toEqual(b);
 	});
 
+	it("runs onMove in the move's transaction, rolling the move back when it throws", async () => {
+		const seen: Array<{ from: string; to: string; path: string }> = [];
+		store = createPostgresContentStore(sql, {
+			retention: { keep: 10 },
+			onMove: async (tx, { from, to, record }) => {
+				const [row] = await tx`select path from uncial_content where id = ${record.id}`;
+				seen.push({ from, to, path: row.path });
+				if (to === '/fail/') throw new Error('refused');
+			}
+		});
+		const a = await published('/a/', 'One');
+		const moved = await store.move('/a/', '/b/', { etag: a.etag, author });
+		expect(seen).toEqual([{ from: '/a/', to: '/b/', path: '/b/' }]);
+
+		await expect(store.move('/b/', '/fail/', { etag: moved.etag, author })).rejects.toThrow('refused');
+		expect(await store.get('/b/')).toEqual(moved);
+		expect(await store.get('/fail/')).toBeNull();
+	});
+
 	it('lists by kind and status', async () => {
 		await store.create('/draft/', 'page', doc('Draft'), { author });
 		await published('/live/', 'Live');

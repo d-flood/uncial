@@ -49,8 +49,10 @@
 		imageSource?: ImageSource;
 		/** Where the host previews a Draft; the editing view links there when given. */
 		previewUrl?: (sourcePath: string) => string;
-		/** A save moved the record (the host derives its path); reopen it at `sourcePath`. */
+		/** The record moved, by a save that derived a new path or by Move; reopen it at `sourcePath`. */
 		onMoved?: (sourcePath: string) => void;
+		/** Offer Move, for records whose path an author chooses rather than one their metadata derives. */
+		movable?: boolean;
 	}
 
 	let {
@@ -64,7 +66,8 @@
 		presentation = 'bare',
 		imageSource,
 		previewUrl,
-		onMoved
+		onMoved,
+		movable = false
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
@@ -124,6 +127,7 @@
 	let record = $state<RecordState | undefined>(undefined);
 	let deleted = $state(false);
 	const can = (action: Action) => record?.allowed.includes(action) ?? false;
+	let moveTo = $state<string | undefined>(undefined);
 	let historyOpen = $state(false);
 	let versions = $state<VersionView[] | undefined>(undefined);
 	let selected = $state<{ id: string; doc: ContentDocument } | undefined>(undefined);
@@ -270,6 +274,15 @@
 			>
 				History
 			</button>
+			{#if movable && can('move')}
+				<button
+					type="button"
+					aria-expanded={moveTo !== undefined}
+					onclick={() => (moveTo = moveTo === undefined ? sourcePath : undefined)}
+				>
+					Move
+				</button>
+			{/if}
 			{#if can('delete')}
 				<button
 					type="button"
@@ -293,6 +306,19 @@
 			</p>
 		{/if}
 	</div>
+
+	{#if moveTo !== undefined && !deleted}
+		<form
+			class="uncial-cms-move"
+			onsubmit={(event) => {
+				event.preventDefault();
+				void controller?.move(moveTo!);
+			}}
+		>
+			<label>New path <input type="text" bind:value={moveTo} required /></label>
+			<button type="submit" disabled={!saveEnabled || moveTo === sourcePath}>Move here</button>
+		</form>
+	{/if}
 
 	{#if conflict}
 		<div class="uncial-cms-banner" role="alert">
