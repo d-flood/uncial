@@ -264,3 +264,21 @@ describe('AttributeFieldControl date', () => {
 		expect(changes).toEqual(['2026-05-06']);
 	});
 });
+
+describe('AttributeFieldControl datetime', () => {
+	it('edits an ISO date-time as a wall clock in its time zone', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'start',
+			spec: { default: '', input: 'datetime', timeZone: 'America/Chicago' },
+			value: '2026-03-04T19:00:00-06:00',
+			onChange: (value: unknown) => changes.push(value)
+		});
+
+		const input = rendered.container.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+		expect(input?.value).toBe('2026-03-04T19:00');
+		input!.value = '2026-05-06T09:30';
+		input!.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(changes).toEqual(['2026-05-06T09:30:00-05:00']);
+	});
+});

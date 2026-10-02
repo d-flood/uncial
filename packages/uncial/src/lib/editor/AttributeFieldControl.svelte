@@ -22,6 +22,7 @@
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import ImagePicker from './ImagePicker.svelte';
+	import { fromWallClock, toWallClock } from './zonedDateTime.js';
 	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
 	// A list item's fields are ordinary attributes, edited by this same control.
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
@@ -120,6 +121,7 @@
 			'checkbox',
 			'number',
 			'date',
+			'datetime',
 			'richtext',
 			'select',
 			'textarea',
@@ -204,6 +206,17 @@
 				onchange={(event) => {
 					const target = event.currentTarget as HTMLInputElement;
 					onChange(target.value);
+				}}
+			/>
+		{:else if inputKind === 'datetime'}
+			<input
+				id={fieldId}
+				class="uncial-input uncial-input--sm"
+				type="datetime-local"
+				value={toWallClock(stringValue, spec.timeZone)}
+				onchange={(event) => {
+					const target = event.currentTarget as HTMLInputElement;
+					onChange(fromWallClock(target.value, spec.timeZone));
 				}}
 			/>
 		{:else if inputKind === 'richtext'}
