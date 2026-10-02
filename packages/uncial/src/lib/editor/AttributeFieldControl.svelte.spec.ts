@@ -246,3 +246,21 @@ describe('AttributeFieldControl image', () => {
 		expect(changes).toEqual(['']);
 	});
 });
+
+describe('AttributeFieldControl date', () => {
+	it('edits an ISO date with a native date input', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'date',
+			spec: { default: '', input: 'date' },
+			value: '2026-03-04',
+			onChange: (value: unknown) => changes.push(value)
+		});
+
+		const input = rendered.container.querySelector<HTMLInputElement>('input[type="date"]');
+		expect(input?.value).toBe('2026-03-04');
+		input!.value = '2026-05-06';
+		input!.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(changes).toEqual(['2026-05-06']);
+	});
+});

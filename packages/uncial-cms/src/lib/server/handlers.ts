@@ -28,6 +28,12 @@ export interface ServerContentHandlerOptions<Event extends ContentRequestEvent> 
 	store: ContentStore;
 	authorize: Authorize;
 	getUser: (event: Event) => ServerUser | null | Promise<ServerUser | null>;
+	/**
+	 * The path a record of this kind belongs at, given its Draft, when the host
+	 * derives paths from metadata. Saving a Draft that derives a new path moves
+	 * the record there, which `authorize` must also grant as `move`.
+	 */
+	derivePath?: (kind: string, draft: unknown) => string | null;
 }
 
 type Handler<Event> = (event: Event) => Promise<Response>;
@@ -171,9 +177,19 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 		PUT: handle(async ({ request }, user) => {
 			const input = await body(request);
 			const path = text(input.path, 'path');
-			await guard(user, 'save-draft', await existing(path));
-			const write = { etag: text(input.etag, 'etag'), author: user.email };
-			return view(user, await store.saveDraft(path, input.draft, write));
+			const record = await existing(path);
+			await guard(user, 'save-draft', record);
+			const etag = text(input.etag, 'etag');
+			const target = opts.derivePath?.(record.kind, input.draft) ?? path;
+			if (target !== path) {
+				await guard(user, 'move', record);
+				if (await store.get(target)) {
+					throw new HttpError(400, `Something else is already at ${target}. Choose another path.`);
+				}
+			}
+			const saved = await store.saveDraft(path, input.draft, { etag, author: user.email });
+			if (target === path) return view(user, saved);
+			return view(user, await store.move(path, target, { etag: saved.etag, author: user.email }));
 		}),
 
 		DELETE: handle(async ({ request }, user) => {

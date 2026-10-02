@@ -49,6 +49,8 @@
 		imageSource?: ImageSource;
 		/** Where the host previews a Draft; the editing view links there when given. */
 		previewUrl?: (sourcePath: string) => string;
+		/** A save moved the record (the host derives its path); reopen it at `sourcePath`. */
+		onMoved?: (sourcePath: string) => void;
 	}
 
 	let {
@@ -61,7 +63,8 @@
 		attributesPanel = 'overlay',
 		presentation = 'bare',
 		imageSource,
-		previewUrl
+		previewUrl,
+		onMoved
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
@@ -218,7 +221,8 @@
 					},
 					saveEnabled: (enabled) => (saveEnabled = enabled),
 					conflictVisible: (visible) => (conflict = visible),
-					record: (next) => (record = next)
+					record: (next) => (record = next),
+					moved: (path) => onMoved?.(path)
 				}
 			});
 			void controller.load().catch((error: unknown) => {

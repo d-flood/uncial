@@ -10,6 +10,7 @@ export type AttributeInputKind =
 	| 'text'
 	| 'textarea'
 	| 'number'
+	| 'date'
 	| 'checkbox'
 	| 'json'
 	| 'list'

@@ -55,6 +55,8 @@ export interface EditorPageUi {
 	conflictVisible(visible: boolean): void;
 	/** The record's state, reported by the `server` forge only. */
 	record?(state: RecordState): void;
+	/** A save moved the record to a new path; this controller no longer addresses it. */
+	moved?(path: string): void;
 }
 
 export interface EditorControllerOptions {
@@ -245,7 +247,11 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			});
 			sha = result.sha;
 			dirty = false;
-			if (server) {
+			if (server && result.path && result.path !== sourcePath) {
+				saveAgain = false;
+				ui.status({ tone: 'success', text: `Draft saved · moved to ${result.path}` });
+				ui.moved?.(result.path);
+			} else if (server) {
 				if (record) showRecord({ ...record, draft: true });
 				ui.status({ tone: 'success', text: 'Draft saved' });
 			} else {

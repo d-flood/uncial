@@ -94,7 +94,7 @@ class ServerAdapter implements ServerForgeAdapter {
 		path: string,
 		content: string | Uint8Array,
 		opts: { message: string; sha?: string; author: { name: string; email: string } }
-	): Promise<{ sha: string; commitSha: string }> {
+	): Promise<{ sha: string; commitSha: string; path: string }> {
 		if (typeof content !== 'string') {
 			throw new Error('The server forge stores Content documents only; upload media separately.');
 		}
@@ -103,7 +103,7 @@ class ServerAdapter implements ServerForgeAdapter {
 			opts.sha === undefined
 				? await this.#request('POST', { body: { action: 'create', path, draft } })
 				: await this.#request('PUT', { body: { path, draft, etag: opts.sha } });
-		return { sha: record.etag, commitSha: '' };
+		return { sha: record.etag, commitSha: '', path: record.path };
 	}
 
 	async deleteFile(path: string, opts: { message: string; sha: string }): Promise<void> {

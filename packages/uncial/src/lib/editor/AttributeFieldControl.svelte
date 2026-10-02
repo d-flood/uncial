@@ -119,6 +119,7 @@
 		return [
 			'checkbox',
 			'number',
+			'date',
 			'richtext',
 			'select',
 			'textarea',
@@ -192,6 +193,17 @@
 				oninput={(event) => {
 					const target = event.currentTarget as HTMLInputElement;
 					onChange(target.value === '' ? '' : target.valueAsNumber);
+				}}
+			/>
+		{:else if inputKind === 'date'}
+			<input
+				id={fieldId}
+				class="uncial-input uncial-input--sm"
+				type="date"
+				value={stringValue}
+				onchange={(event) => {
+					const target = event.currentTarget as HTMLInputElement;
+					onChange(target.value);
 				}}
 			/>
 		{:else if inputKind === 'richtext'}

@@ -20,7 +20,7 @@ const record = (): ContentRecord => ({
 
 function fakeStore() {
 	return {
-		get: vi.fn(async () => record()),
+		get: vi.fn(async (_path: string) => record()),
 		list: vi.fn(async () => [record()]),
 		create: vi.fn(async () => record()),
 		saveDraft: vi.fn(async () => record()),
@@ -288,6 +288,47 @@ describe('createServerContentHandlers responses', () => {
 
 		expect(response.status).toBe(400);
 		expect(store.restore).not.toHaveBeenCalled();
+	});
+
+	describe('a Draft whose derived path changes', () => {
+		const derivePath = (_kind: string, draft: unknown) => (draft as { path?: string }).path ?? null;
+		const moving = (authorize: Authorize) => {
+			const store = fakeStore();
+			store.get.mockImplementation(async (path: string) =>
+				path === 'about' ? record() : (null as unknown as ContentRecord)
+			);
+			store.saveDraft.mockResolvedValue({ ...record(), etag: 'etag-2' });
+			store.move.mockResolvedValue({ ...record(), path: 'renamed', etag: 'etag-3' });
+			const handlers = createServerContentHandlers({ store, authorize, getUser: () => user, derivePath });
+			const save = () => handlers.PUT(event('PUT', '', { path: 'about', etag: 'etag-1', draft: { path: 'renamed' } }));
+			return { store, save };
+		};
+
+		it('saves, then moves the record to it', async () => {
+			const { store, save } = moving(() => true);
+			const response = await save();
+
+			expect(response.status).toBe(200);
+			expect((await response.json()).path).toBe('renamed');
+			expect(store.move).toHaveBeenCalledWith('about', 'renamed', { etag: 'etag-2', author: user.email });
+		});
+
+		it('refuses before saving when authorize denies move', async () => {
+			const { store, save } = moving((_user, action) => action !== 'move');
+			const response = await save();
+
+			expect(response.status).toBe(403);
+			expect(store.saveDraft).not.toHaveBeenCalled();
+		});
+
+		it('refuses before saving when the path is taken', async () => {
+			const { store, save } = moving(() => true);
+			store.get.mockResolvedValue(record());
+			const response = await save();
+
+			expect(response.status).toBe(400);
+			expect(store.saveDraft).not.toHaveBeenCalled();
+		});
 	});
 
 	it('reports the signed-in user for the session probe', async () => {
