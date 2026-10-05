@@ -27,7 +27,7 @@
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0",
-		"uncial": "workspace:*"
+		"uncial": "workspace:^"
 	},
 	"devDependencies": {
 		"@sveltejs/package": "^2.5.7",

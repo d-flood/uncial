@@ -267,7 +267,7 @@ importers:
   packages/uncial-wagtail:
     dependencies:
       uncial:
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../uncial
     devDependencies:
       '@sveltejs/package':
