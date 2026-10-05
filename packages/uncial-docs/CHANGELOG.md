@@ -1,5 +1,13 @@
 # uncial-docs
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [fc4c385]
+  - uncial@5.0.0
+  - uncial-cms@5.0.0
+
 ## 0.0.4
 
 ### Patch Changes
