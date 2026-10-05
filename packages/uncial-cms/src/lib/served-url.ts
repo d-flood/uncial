@@ -2,6 +2,7 @@
  * Map a committed repo path to the URL the built site serves it from.
  */
 import type { Site } from './define-site.js';
+import { configMediaDir } from './upload-context.js';
 
 /**
  * Everything under the site's static directory is copied to the site root at
@@ -16,7 +17,7 @@ import type { Site } from './define-site.js';
  */
 export function servedUrl(site: Pick<Site, 'config'>, repoPath: string, staticDir = 'static'): string {
 	const prefix = `${staticDir.replace(/\/+$/, '')}/`;
-	const mediaDir = site.config.mediaDir;
+	const mediaDir = configMediaDir(site.config);
 	if (mediaDir?.startsWith(prefix) && repoPath.startsWith(prefix)) {
 		return repoPath.slice(prefix.length - 1);
 	}

@@ -29,6 +29,8 @@ import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
 import { createLocalAdapter } from './local/adapter.js';
 import type { DeployStatusTimings, Schedule } from './deploy-status.js';
 import { localSessionProvider } from './local/session.js';
+import { createServerAdapter } from './server-forge/adapter.js';
+import { serverSessionProvider } from './server-forge/session.js';
 import type { BlockRegistry, ContentSchema } from 'uncial/core';
 import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
@@ -36,6 +38,7 @@ export type {
 	DownloadPayload,
 	EditorController,
 	EditorPageUi,
+	RecordState,
 	StatusView
 } from './editor-controller.js';
 
@@ -77,11 +80,14 @@ export interface CreateEditorSessionOptions {
 export function forgeAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 	if (config.forge === 'github') return createGitHubAdapter();
 	if (config.forge === 'local') return createLocalAdapter();
+	if (config.forge === 'server') return createServerAdapter();
 	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
 }
 
 export function defaultSessionProvider(config: UncialCmsSiteConfig): SessionProvider {
-	return config.forge === 'local' ? localSessionProvider : popupSessionProvider;
+	if (config.forge === 'local') return localSessionProvider;
+	if (config.forge === 'server') return serverSessionProvider;
+	return popupSessionProvider;
 }
 
 function triggerDownload(payload: { filename: string; content: string; mimeType: string }): void {

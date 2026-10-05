@@ -246,3 +246,55 @@ describe('AttributeFieldControl image', () => {
 		expect(changes).toEqual(['']);
 	});
 });
+
+describe('AttributeFieldControl date', () => {
+	it('edits an ISO date with a native date input', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'date',
+			spec: { default: '', input: 'date' },
+			value: '2026-03-04',
+			onChange: (value: unknown) => changes.push(value)
+		});
+
+		const input = rendered.container.querySelector<HTMLInputElement>('input[type="date"]');
+		expect(input?.value).toBe('2026-03-04');
+		input!.value = '2026-05-06';
+		input!.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(changes).toEqual(['2026-05-06']);
+	});
+});
+
+describe('AttributeFieldControl datetime', () => {
+	it('edits an ISO date-time as a wall clock in its time zone', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'start',
+			spec: { default: '', input: 'datetime', timeZone: 'America/Chicago' },
+			value: '2026-03-04T19:00:00-06:00',
+			onChange: (value: unknown) => changes.push(value)
+		});
+
+		const input = rendered.container.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+		expect(input?.value).toBe('2026-03-04T19:00');
+		input!.value = '2026-05-06T09:30';
+		input!.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(changes).toEqual(['2026-05-06T09:30:00-05:00']);
+	});
+});
+
+describe('AttributeFieldControl warn', () => {
+	it('shows advice for a value it does not reject', async () => {
+		const spec: AttributeSpec<string> = {
+			default: '',
+			input: 'textarea',
+			warn: (value) => (String(value).length > 5 ? 'Keep it short.' : null)
+		};
+		const short = render(AttributeFieldControl, { name: 'summary', spec, value: 'brief', onChange: () => {} });
+		expect(short.container.querySelector('.uncial-field__warning')).toBeNull();
+
+		const long = render(AttributeFieldControl, { name: 'summary', spec, value: 'too long', onChange: () => {} });
+		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe('Keep it short.');
+		expect(long.container.querySelector('.uncial-field__error')).toBeNull();
+	});
+});

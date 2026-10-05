@@ -37,8 +37,29 @@ _Avoid_: Generic editor
 
 **Index page**:
 The `/uncial/` (CMS) landing that lists Content documents in a content dir and
-hosts create/delete plus the Fallback editor.
-_Avoid_: Dashboard, admin home
+hosts create/delete plus the Fallback editor. Within a **Dashboard** it is the
+Pages section.
+_Avoid_: Admin home
+
+**Dashboard**:
+The host's whole signed-in area, of which the Index page is the Pages section.
+_Avoid_: Admin, back office
+
+**Draft**:
+The working copy of a Content document, unseen by the public. A Content document has at most one.
+_Avoid_: Revision, unsaved changes
+
+**Published copy**:
+The copy of a Content document the public sees.
+_Avoid_: Live version, current version
+
+**Version**:
+A former Published copy, kept so it can be restored. One is created every time a Draft is published.
+_Avoid_: Revision, backup, snapshot
+
+**Retention policy**:
+The rule deciding how long Versions are kept, either a number of Versions or a number of days. It never removes a Published copy or a Draft.
+_Avoid_: Backup schedule
 
 **Site config**:
 The per-site record (`UncialCmsSiteConfig`) baked at build time naming the

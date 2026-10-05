@@ -3,3 +3,4 @@
  * only; the runtime root still imports no Svelte.
  */
 export { default as EditorPage } from './EditorPage.svelte';
+export { default as MediaLibrary } from './MediaLibrary.svelte';

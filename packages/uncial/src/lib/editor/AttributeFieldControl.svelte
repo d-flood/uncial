@@ -22,6 +22,7 @@
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import ImagePicker from './ImagePicker.svelte';
+	import { fromWallClock, toWallClock } from './zonedDateTime.js';
 	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
 	// A list item's fields are ordinary attributes, edited by this same control.
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
@@ -60,6 +61,7 @@
 			inputKind !== 'image'
 	);
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
+	const warning = $derived(spec.warn?.(value) ?? '');
 	const stringValue = $derived.by(() => {
 		if (typeof value === 'string') return value;
 		if (value === undefined || value === null) return '';
@@ -119,6 +121,8 @@
 		return [
 			'checkbox',
 			'number',
+			'date',
+			'datetime',
 			'richtext',
 			'select',
 			'textarea',
@@ -192,6 +196,28 @@
 				oninput={(event) => {
 					const target = event.currentTarget as HTMLInputElement;
 					onChange(target.value === '' ? '' : target.valueAsNumber);
+				}}
+			/>
+		{:else if inputKind === 'date'}
+			<input
+				id={fieldId}
+				class="uncial-input uncial-input--sm"
+				type="date"
+				value={stringValue}
+				onchange={(event) => {
+					const target = event.currentTarget as HTMLInputElement;
+					onChange(target.value);
+				}}
+			/>
+		{:else if inputKind === 'datetime'}
+			<input
+				id={fieldId}
+				class="uncial-input uncial-input--sm"
+				type="datetime-local"
+				value={toWallClock(stringValue, spec.timeZone)}
+				onchange={(event) => {
+					const target = event.currentTarget as HTMLInputElement;
+					onChange(fromWallClock(target.value, spec.timeZone));
 				}}
 			/>
 		{:else if inputKind === 'richtext'}
@@ -377,6 +403,9 @@
 					onChange(target.value);
 				}}
 			/>
+		{/if}
+		{#if warning}
+			<span class="uncial-field__warning" role="status">{warning}</span>
 		{/if}
 		{#if error}
 			<span class="uncial-field__error">{error}</span>

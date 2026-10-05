@@ -14,7 +14,13 @@ export interface LocalSiteConfig {
 	mediaDir?: string;
 }
 
-export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig;
+export interface ServerSiteConfig {
+	forge: 'server';
+	apiBase: string; // the host's content endpoint, e.g. '/dashboard/api/content'
+	mediaApiBase?: string;
+}
+
+export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig | ServerSiteConfig;
 
 export interface ForgeSession {
 	token: string;
@@ -36,7 +42,7 @@ export interface ForgeAdapter {
 			sha?: string; // absent = create; stale → ConflictError
 			author: { name: string; email: string };
 		}
-	): Promise<{ sha: string; commitSha: string }>;
+	): Promise<{ sha: string; commitSha: string; path?: string }>;
 	deleteFile(path: string, opts: { message: string; sha: string }): Promise<void>;
 	listDir(path: string): Promise<Array<{ path: string; type: 'file' | 'dir' }>>;
 	commitStatus(commitSha: string): Promise<'pending' | 'success' | 'failure' | 'unknown'>;

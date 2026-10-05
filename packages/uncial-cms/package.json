@@ -75,6 +75,10 @@
 			"types": "./dist/sveltekit/index.d.ts",
 			"default": "./dist/sveltekit/index.js"
 		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"default": "./dist/server/index.js"
+		},
 		"./astro": {
 			"types": "./dist/astro/index.d.ts",
 			"default": "./dist/astro/index.js"
@@ -86,11 +90,22 @@
 		}
 	},
 	"peerDependencies": {
+		"@aws-sdk/client-s3": "^3.0.0",
+		"postgres": "^3.4.0",
 		"svelte": "^5.0.0",
 		"uncial": "workspace:^"
 	},
+	"peerDependenciesMeta": {
+		"@aws-sdk/client-s3": {
+			"optional": true
+		},
+		"postgres": {
+			"optional": true
+		}
+	},
 	"devDependencies": {
 		"@astrojs/svelte": "^7.2.5",
+		"@aws-sdk/client-s3": "^3.1144.0",
 		"@playwright/test": "^1.58.2",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.2",
@@ -99,6 +114,7 @@
 		"@vitest/browser-playwright": "^4.0.18",
 		"astro": "^5.18.2",
 		"playwright": "^1.58.2",
+		"postgres": "^3.4.7",
 		"publint": "^0.3.17",
 		"svelte": "^5.56.10",
 		"svelte-check": "^4.4.2",

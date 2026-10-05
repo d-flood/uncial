@@ -9,4 +9,6 @@ export interface ImageSource {
 	browse?: () => Promise<string[]>;
 	/** A displayable URL for a stored value; identity when absent. */
 	thumbnail?: (src: string) => string;
+	/** Whether a stored value names an image that no longer exists; the canvas shows a placeholder for it. */
+	missing?: (src: string) => boolean;
 }

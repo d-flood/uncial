@@ -1,15 +1,19 @@
 <script lang="ts">
 	import type { AttributeSpec } from '../core/types.js';
+	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
+	import type { ImageSource } from './imageSource.js';
 	import type { DocumentMetaController, DocumentMetaState } from './metaController.js';
 
 	interface Props {
 		controller: DocumentMetaController;
 		fields?: ReadonlyMap<string, AttributeSpec<unknown>>;
 		onCommit?: (meta: Record<string, unknown>) => void;
+		imageSource?: ImageSource;
+		imagePreviews?: ImagePreviews;
 	}
 
-	let { controller, fields = new Map(), onCommit }: Props = $props();
+	let { controller, fields = new Map(), onCommit, imageSource, imagePreviews }: Props = $props();
 
 	let controllerState = $state<DocumentMetaState>({
 		draft: {},
@@ -47,6 +51,8 @@
 			value={controllerState.draft[name]}
 			error={controllerState.errors[name]}
 			onChange={(value) => controller.setDraft(name, value)}
+			{imageSource}
+			{imagePreviews}
 		/>
 	{:else}
 		<p class="uncial-help-text">No metadata fields configured.</p>

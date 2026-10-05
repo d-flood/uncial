@@ -31,3 +31,8 @@ export function clearActiveForge(): void {
 export function getActiveForge(): ActiveForge | null {
 	return active;
 }
+
+/** The git forges commit media under `mediaDir`; the server forge has none. */
+export function configMediaDir(config: UncialCmsSiteConfig): string | undefined {
+	return config.forge === 'server' ? undefined : config.mediaDir;
+}

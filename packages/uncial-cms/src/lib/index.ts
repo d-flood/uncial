@@ -2,13 +2,16 @@ export type {
 	ForgeAdapter,
 	ForgeSession,
 	GitHubSiteConfig,
+	ServerSiteConfig,
 	SessionProvider,
 	UncialCmsSiteConfig
 } from './types.js';
 export {
+	defineServerSite,
 	defineSite,
 	DEFAULT_APP_SLUG,
 	DEFAULT_AUTH_WORKER_URL,
+	type ServerSiteOptions,
 	type Site,
 	type SiteOptions
 } from './define-site.js';
@@ -35,6 +38,7 @@ export {
 	type EditorController,
 	type EditorControllerOptions,
 	type EditorPageUi,
+	type RecordState,
 	type StatusView
 } from './editor-controller.js';
 export { mountIndexPage, type MountIndexPageOptions } from './index-page.js';
@@ -67,3 +71,9 @@ export {
 } from './paths/index.js';
 export { parseDocument, serializeDocument, type Blocks } from './document.js';
 export { patSessionProvider, popupSessionProvider } from './github/index.js';
+export type {
+	Action,
+	MediaItemView,
+	MediaListView,
+	VersionView
+} from './server-forge/protocol.js';

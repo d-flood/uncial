@@ -10,6 +10,8 @@ export type AttributeInputKind =
 	| 'text'
 	| 'textarea'
 	| 'number'
+	| 'date'
+	| 'datetime'
 	| 'checkbox'
 	| 'json'
 	| 'list'
@@ -62,6 +64,10 @@ export interface AttributeSpec<T> {
 	serialize?: AttrSerializer;
 	input?: AttributeInputKind;
 	placeholder?: string;
+	/** Advice shown under the field for a value that is valid but unwise; it never blocks a save. */
+	warn?: (value: unknown) => string | null | undefined;
+	/** IANA zone in which a `datetime` input shows and writes its wall clock; the browser's own by default. */
+	timeZone?: string;
 	options?: ReadonlyArray<T | AttributeOption<T>>;
 	/** Item shape for an array-valued attribute; implies `input: 'list'`. */
 	list?: AttributeListSpec;

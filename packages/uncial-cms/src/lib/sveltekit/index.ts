@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import type { Site } from '../define-site.js';
-import type { UncialCmsSiteConfig } from '../types.js';
+import type { GitHubSiteConfig, LocalSiteConfig, UncialCmsSiteConfig } from '../types.js';
 import { listContentSources } from '../content-sources.js';
 import { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
 
@@ -57,20 +57,22 @@ interface RouteEntry {
 }
 
 interface ResolvedSite {
-	config: UncialCmsSiteConfig;
+	config: GitHubSiteConfig | LocalSiteConfig;
 	localContentDir: string;
 	localOnly: boolean;
 }
 
 function resolveSite(opts: ContentHandlerOptions): ResolvedSite {
-	if (opts.site) {
-		return {
-			config: opts.site.config,
-			localContentDir: opts.site.localContentDir,
-			localOnly: opts.site.localOnly
-		};
+	const config = opts.site ? opts.site.config : opts.config;
+	if (config.forge === 'server') {
+		throw new Error(
+			'These route factories read a content directory; a server site serves its content through createServerContentHandlers.'
+		);
 	}
-	return { config: opts.config, localContentDir: opts.localContentDir, localOnly: false };
+	if (opts.site) {
+		return { config, localContentDir: opts.site.localContentDir, localOnly: opts.site.localOnly };
+	}
+	return { config, localContentDir: opts.localContentDir, localOnly: false };
 }
 
 function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => RouteEntry[] {

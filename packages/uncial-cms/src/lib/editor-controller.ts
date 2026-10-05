@@ -18,6 +18,8 @@ import {
 	type DeployStatusTimings,
 	type Schedule
 } from './deploy-status.js';
+import type { ServerForgeAdapter } from './server-forge/adapter.js';
+import type { Action, ContentView, VersionView } from './server-forge/protocol.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { setActiveForge } from './upload-context.js';
 
@@ -26,6 +28,13 @@ export interface StatusView {
 	/** Optional commit permalink, rendered as a follow-up link. */
 	href?: string;
 	tone: 'progress' | 'success' | 'error';
+}
+
+/** A `server` forge record's Draft/Published state and the user's permitted actions. */
+export interface RecordState {
+	draft: boolean;
+	published: boolean;
+	allowed: Action[];
 }
 
 export interface DownloadPayload {
@@ -44,6 +53,10 @@ export interface EditorPageUi {
 	saveEnabled(enabled: boolean): void;
 	/** Show or hide the conflict recovery banner. */
 	conflictVisible(visible: boolean): void;
+	/** The record's state, reported by the `server` forge only. */
+	record?(state: RecordState): void;
+	/** The record moved to a new path; this controller no longer addresses it. */
+	moved?(path: string): void;
 }
 
 export interface EditorControllerOptions {
@@ -82,6 +95,20 @@ export interface EditorController {
 	downloadMyVersion(): void;
 	/** Close the banner, leaving content and the save button untouched. */
 	dismissConflict(): void;
+	/** `server` forge only: save any unsaved edit, then publish the Draft. */
+	publish(): Promise<void>;
+	/** `server` forge only: withdraw the Published copy. */
+	unpublish(): Promise<void>;
+	/** `server` forge only: delete the record (after confirm); true once deleted. */
+	remove(): Promise<boolean>;
+	/** `server` forge only: the record's Versions, newest first. */
+	history(): Promise<VersionView[]>;
+	/** `server` forge only: one Version's document, for read-only display. */
+	version(versionId: string): Promise<ContentDocument>;
+	/** `server` forge only: replace the Draft with a Version (after confirm); true once restored. */
+	restore(versionId: string): Promise<boolean>;
+	/** `server` forge only: save any unsaved edit, then move the record to `to`. */
+	move(to: string): Promise<void>;
 	/** Forwarded editor change events. */
 	documentChanged(doc: ContentDocument): void;
 	isDirty(): boolean;
@@ -100,7 +127,13 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const timings = opts.timings ?? DEFAULT_DEPLOY_STATUS_TIMINGS;
 	const schedule = opts.schedule ?? defaultSchedule;
 	const destroyed = () => opts.isDestroyed?.() ?? false;
-	const branch = config.forge === 'github' ? config.branch : 'the local checkout';
+	const server = config.forge === 'server' ? (adapter as ServerForgeAdapter) : null;
+	const branch =
+		config.forge === 'github'
+			? config.branch
+			: config.forge === 'server'
+				? 'the server'
+				: 'the local checkout';
 
 	let session: ForgeSession | null = null;
 	let sha: string | null = null;
@@ -110,6 +143,36 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	let cancelAutosave: (() => void) | null = null;
 	let saving = false;
 	let saveAgain = false;
+	let record: RecordState | null = null;
+
+	const showRecord = (next: RecordState) => {
+		record = next;
+		ui.record?.(record);
+	};
+
+	const read = async (): Promise<{ content: string; sha: string; view?: ContentView }> => {
+		if (!server) return adapter.readFile(sourcePath);
+		const view = await server.getRecord(sourcePath);
+		return { content: JSON.stringify(view.draft ?? view.published), sha: view.etag, view };
+	};
+
+	const applyView = (view: ContentView | undefined) => {
+		if (!view) return;
+		showRecord({ draft: view.draft !== null, published: view.published !== null, allowed: view.allowed });
+	};
+
+	const showFailure = (error: unknown, fallback: string) => {
+		if (error instanceof ConflictError) {
+			// Do NOT touch content or dirty state: the unsaved edit must survive.
+			ui.conflictVisible(true);
+			ui.status({
+				tone: 'error',
+				text: `Save conflicted — this page changed on ${branch} since you loaded it.`
+			});
+		} else {
+			ui.status({ tone: 'error', text: error instanceof Error ? error.message : fallback });
+		}
+	};
 
 	const editingStatus = () =>
 		ui.status({ tone: 'progress', text: `Editing ${sourcePath} as ${session?.user.login ?? '…'}` });
@@ -151,9 +214,10 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			config
 		});
 		ui.status({ tone: 'progress', text: 'Loading…' });
-		const file = await adapter.readFile(sourcePath);
+		const file = await read();
 		if (destroyed()) return;
 		sha = file.sha;
+		applyView(file.view);
 		currentDocument = parseDocument(file.content, blocks, schema);
 		ui.setDocument(currentDocument);
 		dirty = false;
@@ -185,18 +249,18 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			});
 			sha = result.sha;
 			dirty = false;
-			startPolling(result.commitSha);
-		} catch (error) {
-			if (error instanceof ConflictError) {
-				// Do NOT touch content or dirty state: the unsaved edit must survive.
-				ui.conflictVisible(true);
-				ui.status({
-					tone: 'error',
-					text: `Save conflicted — this page changed on ${branch} since you loaded it.`
-				});
+			if (server && result.path && result.path !== sourcePath) {
+				saveAgain = false;
+				ui.status({ tone: 'success', text: `Draft saved · moved to ${result.path}` });
+				ui.moved?.(result.path);
+			} else if (server) {
+				if (record) showRecord({ ...record, draft: true });
+				ui.status({ tone: 'success', text: 'Draft saved' });
 			} else {
-				ui.status({ tone: 'error', text: error instanceof Error ? error.message : 'Save failed.' });
+				startPolling(result.commitSha);
 			}
+		} catch (error) {
+			showFailure(error, 'Save failed.');
 		} finally {
 			saving = false;
 			if (!destroyed()) ui.saveEnabled(true);
@@ -213,9 +277,10 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 				' unless you have downloaded them.'
 		);
 		if (!proceed) return; // Only "Reload latest" (confirmed) replaces content + sha.
-		const file = await adapter.readFile(sourcePath);
+		const file = await read();
 		if (destroyed()) return;
 		sha = file.sha;
+		applyView(file.view);
 		currentDocument = parseDocument(file.content, blocks, schema);
 		ui.setDocument(currentDocument);
 		dirty = false;
@@ -236,6 +301,107 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		ui.conflictVisible(false);
 	};
 
+	const transition = async (action: 'publish' | 'unpublish') => {
+		if (!server || !session || sha === null) return;
+		cancelPendingAutosave();
+		if (dirty) {
+			await save();
+			if (dirty) return;
+		}
+		if (action === 'publish' && !record?.draft) {
+			ui.status({ tone: 'success', text: 'Nothing to publish · the Published copy is current' });
+			return;
+		}
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: action === 'publish' ? 'Publishing…' : 'Unpublishing…' });
+		try {
+			const view = await server[action](sourcePath, sha);
+			sha = view.etag;
+			applyView(view);
+			ui.status({
+				tone: 'success',
+				text: action === 'publish' ? 'Published · live now' : 'Unpublished · no longer public'
+			});
+		} catch (error) {
+			showFailure(error, `${action === 'publish' ? 'Publish' : 'Unpublish'} failed.`);
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
+	const remove = async () => {
+		if (!server || !session || sha === null) return false;
+		if (!opts.confirm(`Delete ${opts.pagePath ?? sourcePath}? This cannot be undone.`)) return false;
+		cancelPendingAutosave();
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Deleting…' });
+		try {
+			await adapter.deleteFile(sourcePath, { message: '', sha });
+			dirty = false;
+			ui.status({ tone: 'success', text: 'Deleted' });
+			return true;
+		} catch (error) {
+			showFailure(error, 'Delete failed.');
+			if (!destroyed()) ui.saveEnabled(true);
+			return false;
+		}
+	};
+
+	const history = async () => (server ? server.versions(sourcePath) : []);
+
+	const version = async (versionId: string) => {
+		if (!server) throw new Error('Versions exist on the server forge only.');
+		const doc = await server.getVersion(sourcePath, versionId);
+		return parseDocument(JSON.stringify(doc), blocks, schema);
+	};
+
+	const restore = async (versionId: string) => {
+		if (!server || !session || sha === null) return false;
+		if (!opts.confirm('Restore this Version? It replaces the current Draft.')) return false;
+		cancelPendingAutosave();
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Restoring…' });
+		try {
+			const view = await server.restore(sourcePath, versionId, sha);
+			sha = view.etag;
+			applyView(view);
+			currentDocument = parseDocument(JSON.stringify(view.draft), blocks, schema);
+			ui.setDocument(currentDocument);
+			dirty = false;
+			ui.status({ tone: 'success', text: 'Version restored into the Draft' });
+			return true;
+		} catch (error) {
+			showFailure(error, 'Restore failed.');
+			return false;
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
+	const move = async (to: string) => {
+		if (!server || !session || sha === null) return;
+		cancelPendingAutosave();
+		if (dirty) {
+			await save();
+			if (dirty) return;
+		}
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Moving…' });
+		try {
+			const view = await server.move(sourcePath, to, sha);
+			sha = view.etag;
+			ui.status({ tone: 'success', text: `Moved to ${view.path}` });
+			ui.moved?.(view.path);
+		} catch (error) {
+			showFailure(error, 'Move failed.');
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
 	const documentChanged = (doc: ContentDocument) => {
 		currentDocument = doc;
 		dirty = true;
@@ -253,6 +419,13 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		reloadLatest,
 		downloadMyVersion,
 		dismissConflict,
+		publish: () => transition('publish'),
+		unpublish: () => transition('unpublish'),
+		remove,
+		history,
+		version,
+		restore,
+		move,
 		documentChanged,
 		isDirty: () => dirty,
 		stop: () => {

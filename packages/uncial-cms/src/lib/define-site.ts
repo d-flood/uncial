@@ -7,7 +7,12 @@ import {
 	DEFAULT_DEPLOY_STATUS_TIMINGS,
 	type DeployStatusTimings
 } from './deploy-status.js';
-import type { UncialCmsSiteConfig } from './types.js';
+import type {
+	GitHubSiteConfig,
+	LocalSiteConfig,
+	ServerSiteConfig,
+	UncialCmsSiteConfig
+} from './types.js';
 
 /** The auth worker this project operates for sites using the canonical GitHub App. */
 export const DEFAULT_AUTH_WORKER_URL = 'https://uncial-cms-auth.dflood.workers.dev';
@@ -38,8 +43,8 @@ export interface SiteOptions {
 	deployStatus?: Partial<DeployStatusTimings>;
 }
 
-export interface Site {
-	config: UncialCmsSiteConfig;
+export interface Site<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
+	config: Config;
 	/** No GitHub half was declared, so this site is only editable in development. */
 	localOnly: boolean;
 	autosaveMs: number | undefined;
@@ -58,9 +63,9 @@ function resolveDeployStatusTimings(overrides: Partial<DeployStatusTimings> = {}
 export function defineSite(
 	options: SiteOptions,
 	env: { dev: boolean } = { dev: import.meta.env.DEV }
-): Site {
+): Site<GitHubSiteConfig | LocalSiteConfig> {
 	const localOnly = options.github === undefined;
-	const config: UncialCmsSiteConfig =
+	const config: GitHubSiteConfig | LocalSiteConfig =
 		env.dev || options.github === undefined
 			? { forge: 'local', contentDir: options.contentDir, mediaDir: options.mediaDir }
 			: {
@@ -78,5 +83,24 @@ export function defineSite(
 		autosaveMs: config.forge === 'local' ? options.autosaveMs : undefined,
 		localContentDir: options.localContentDir ?? options.contentDir,
 		deployStatusTimings: resolveDeployStatusTimings(options.deployStatus)
+	};
+}
+
+export interface ServerSiteOptions {
+	/** The host endpoint serving `createServerContentHandlers`, e.g. '/dashboard/api/content'. */
+	apiBase: string;
+	mediaApiBase?: string;
+	/** Autosave writes only the Draft, so a server site may autosave. */
+	autosaveMs?: number;
+}
+
+/** A site whose content lives behind the host's own endpoints, in every build. */
+export function defineServerSite(options: ServerSiteOptions): Site<ServerSiteConfig> {
+	return {
+		config: { forge: 'server', apiBase: options.apiBase, mediaApiBase: options.mediaApiBase },
+		localOnly: false,
+		autosaveMs: options.autosaveMs,
+		localContentDir: '',
+		deployStatusTimings: resolveDeployStatusTimings()
 	};
 }
