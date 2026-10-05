@@ -33,15 +33,15 @@ interface HandlerOptionsBase {
 }
 
 /** The site object from `defineSite`, or the resolved config plus its build-time FS path. */
-interface SiteSource {
-	site: Site;
+interface SiteSource<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
+	site: Site<Config>;
 	config?: never;
 	localContentDir?: never;
 }
 
-interface ConfigSource {
+interface ConfigSource<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
 	site?: never;
-	config: UncialCmsSiteConfig;
+	config: Config;
 	/** FS path of the content dir at build time (differs from config.contentDir,
 	 * which is repo-root-relative for the forge API). */
 	localContentDir: string;
@@ -49,8 +49,12 @@ interface ConfigSource {
 
 export type ContentHandlerOptions = HandlerOptionsBase & (SiteSource | ConfigSource);
 
-export type IndexHandlerOptions = HandlerOptionsBase &
-	(SiteSource | (Omit<ConfigSource, 'localContentDir'> & { localContentDir?: string }));
+export type IndexHandlerOptions<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> =
+	HandlerOptionsBase &
+		(
+			| SiteSource<Config>
+			| (Omit<ConfigSource<Config>, 'localContentDir'> & { localContentDir?: string })
+		);
 
 interface RouteEntry {
 	path: string;
@@ -160,10 +164,12 @@ export function createEditorHandlers(opts: ContentHandlerOptions & { devOnly?: b
 	};
 }
 
-export function createIndexHandlers(opts: IndexHandlerOptions): {
+export function createIndexHandlers<Config extends UncialCmsSiteConfig>(
+	opts: IndexHandlerOptions<Config>
+): {
 	// '/uncial/' shell: session status + placeholder nav; create/delete and the
 	// fallback editor arrive in a later slice (issue 04).
-	load: () => Promise<{ config: UncialCmsSiteConfig }>;
+	load: () => Promise<{ config: Config }>;
 } {
 	const config = opts.site ? opts.site.config : opts.config;
 	return {
