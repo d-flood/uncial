@@ -276,4 +276,4 @@ if (typeof customElements !== 'undefined') {
 	}
 }
 
-export { UncialEditor, UncialEditorElement, UncialRenderer, UncialRendererElement };
+export { UncialEditor, UncialEditorElement, UncialElement, UncialRenderer, UncialRendererElement };

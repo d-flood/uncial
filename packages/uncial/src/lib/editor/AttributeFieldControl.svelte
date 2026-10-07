@@ -32,6 +32,8 @@
 		spec: AttributeSpec<unknown>;
 		value?: unknown;
 		error?: string;
+		path?: string;
+		errors?: Record<string, string>;
 		onChange: (value: unknown) => void;
 		onCustom?: (name: string, inputKind: string) => void;
 		imageSource?: ImageSource;
@@ -43,6 +45,8 @@
 		spec,
 		value = undefined,
 		error = '',
+		path,
+		errors = {},
 		onChange,
 		onCustom,
 		imageSource,
@@ -82,6 +86,7 @@
 	const listValueSpec = $derived(attributeListValueSpec(list));
 	const itemLabel = $derived(list.itemLabel ?? 'item');
 	const items = $derived(Array.isArray(value) ? (value as unknown[]) : []);
+	const fieldPath = $derived(path ?? name);
 
 	let fileInput = $state<HTMLInputElement>();
 	let picker = $state<ImagePicker>();
@@ -244,6 +249,7 @@
 		{:else if inputKind === 'list'}
 			<div class="uncial-list-field">
 				{#each items as item, index (index)}
+					{@const itemPath = `${fieldPath}.${index}`}
 					<div class="uncial-list-item">
 						<div class="uncial-list-item__head">
 							<span class="uncial-section-label">{itemLabel} {index + 1}</span>
@@ -255,7 +261,7 @@
 									disabled={index === 0}
 									onclick={() => moveItem(index, index - 1)}
 								>
-									<ArrowUpIcon size={12} weight="bold" />
+									<ArrowUpIcon size={12} weight="bold" aria-hidden="true" />
 								</button>
 								<button
 									type="button"
@@ -264,7 +270,7 @@
 									disabled={index === items.length - 1}
 									onclick={() => moveItem(index, index + 1)}
 								>
-									<ArrowDownIcon size={12} weight="bold" />
+									<ArrowDownIcon size={12} weight="bold" aria-hidden="true" />
 								</button>
 								<button
 									type="button"
@@ -272,7 +278,7 @@
 									aria-label={`Remove ${itemLabel}`}
 									onclick={() => removeItem(index)}
 								>
-									<TrashIcon size={12} weight="bold" />
+									<TrashIcon size={12} weight="bold" aria-hidden="true" />
 								</button>
 							</div>
 						</div>
@@ -281,6 +287,9 @@
 								name={itemLabel}
 								spec={listValueSpec}
 								value={item}
+								path={itemPath}
+								error={errors[itemPath]}
+								{errors}
 								onChange={(next) => replaceItem(index, next)}
 								{onCustom}
 								{imageSource}
@@ -288,10 +297,14 @@
 							/>
 						{:else}
 							{#each listFields as [fieldName, fieldSpec] (fieldName)}
+								{@const subPath = `${itemPath}.${fieldName}`}
 								<AttributeFieldControl
 									name={fieldName}
 									spec={fieldSpec}
 									value={(item as Record<string, unknown>)?.[fieldName]}
+									path={subPath}
+									error={errors[subPath]}
+									{errors}
 									onChange={(next) => setItemField(index, fieldName, next)}
 									{onCustom}
 									{imageSource}
@@ -308,7 +321,7 @@
 					class="uncial-btn uncial-btn--primary uncial-btn--xs uncial-btn--start"
 					onclick={addItem}
 				>
-					<PlusIcon size={12} weight="bold" />
+					<PlusIcon size={12} weight="bold" aria-hidden="true" />
 					<span>Add {itemLabel}</span>
 				</button>
 			</div>

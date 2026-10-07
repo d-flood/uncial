@@ -25,7 +25,7 @@ function errorsFromIssues(issues: ValidationIssue[]): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const issue of issues) {
 		if (issue.severity !== 'error') continue;
-		const field = issue.path[0] === 'meta' ? String(issue.path[1] ?? '') : '';
+		const field = issue.path[0] === 'meta' ? issue.path.slice(1).join('.') : '';
 		if (field) errors[field] = issue.message;
 	}
 	return errors;
@@ -52,7 +52,12 @@ export function createDocumentMetaController(
 			state.update((current) => ({
 				...current,
 				draft: { ...current.draft, [name]: value },
-				errors: { ...current.errors, [name]: '' },
+				errors: Object.fromEntries(
+					Object.entries({ ...current.errors, [name]: '' }).map(([key, message]) => [
+						key,
+						key.startsWith(`${name}.`) ? '' : message
+					])
+				),
 				dirty: true
 			}));
 		},

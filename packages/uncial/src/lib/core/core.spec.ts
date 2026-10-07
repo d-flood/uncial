@@ -441,6 +441,90 @@ describe('core', () => {
 		expect(issues).toHaveLength(result.issues.length);
 	});
 
+	describe('metadata lists', () => {
+		const isPath = (value: unknown) => typeof value === 'string' && value.startsWith('/');
+		const registry = createBlockRegistry([]);
+		const schema = createSchema(registry, {
+			metaFields: {
+				footer: {
+					default: [],
+					list: {
+						fields: {
+							heading: { default: '', required: true },
+							links: {
+								default: [],
+								list: {
+									fields: {
+										label: { default: '', required: true },
+										href: { default: '', validate: isPath }
+									}
+								}
+							}
+						}
+					}
+				},
+				tags: {
+					default: [] as string[],
+					list: { value: { default: '', validate: isNonEmptyString } }
+				}
+			}
+		});
+		const validateMeta = (meta: Record<string, unknown>) =>
+			validateDocument({ type: 'doc', meta, content: [] }, registry, schema);
+
+		it('reports a required or invalid item field at its full path', () => {
+			const result = validateMeta({
+				footer: [
+					{ heading: 'About', links: [{ label: 'Home', href: '/' }] },
+					{ heading: '', links: [] },
+					{
+						heading: 'Visit',
+						links: [
+							{ label: 'Map', href: '/map' },
+							{ label: '', href: 'map' }
+						]
+					}
+				],
+				tags: ['news', '']
+			});
+
+			expect(result.ok).toBe(false);
+			expect(
+				result.issues
+					.filter((issue) => issue.severity === 'error')
+					.map((issue) => [issue.path.join('.'), issue.message])
+			).toEqual([
+				['meta.footer.1.heading', 'Required metadata field "footer.1.heading" is missing'],
+				[
+					'meta.footer.2.links.1.label',
+					'Required metadata field "footer.2.links.1.label" is missing'
+				],
+				['meta.footer.2.links.1.href', 'Metadata field "footer.2.links.1.href" is invalid'],
+				['meta.tags.1', 'Metadata field "tags.1" is invalid']
+			]);
+		});
+
+		it('accepts valid nested items', () => {
+			const result = validateMeta({
+				footer: [
+					{ heading: 'About', links: [{ label: 'Home', href: '/' }] },
+					{ heading: 'Visit', links: [{ label: 'Map', href: '/map' }] }
+				],
+				tags: ['news']
+			});
+
+			expect(result).toEqual({ ok: true, issues: [] });
+		});
+
+		it('rejects a metadata list with no item shape at createSchema', () => {
+			expect(() =>
+				createSchema(registry, { metaFields: { footer: { default: [], list: {} } } })
+			).toThrow(
+				/Metadata field "footer" declares "list" but neither "list.fields" nor "list.value"/
+			);
+		});
+	});
+
 	it('coerces rich text documents from common input shapes', () => {
 		const doc = richTextDocument('Hello world');
 

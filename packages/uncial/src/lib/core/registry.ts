@@ -4,8 +4,10 @@ import type {
 	BlockRegistry,
 	ContentSchema,
 	CreateSchemaOptions,
+	DocumentMetaSchema,
 	MarkDefinition,
-	MarkRegistry
+	MarkRegistry,
+	MetaValues
 } from './types.js';
 
 /**
@@ -95,10 +97,10 @@ export function createMarkRegistry(marks: MarkDefinition[]): MarkRegistry {
 	};
 }
 
-export function createSchema(
+export function createSchema<Fields extends DocumentMetaSchema = DocumentMetaSchema>(
 	registry: BlockRegistry,
-	options: CreateSchemaOptions = {}
-): ContentSchema {
+	options: CreateSchemaOptions<Fields> = {}
+): ContentSchema<MetaValues<Fields>> {
 	let allowedBlocks: Set<string>;
 	if (options.allowedBlocks) {
 		const unknown = options.allowedBlocks.filter((id: string) => !registry.has(id));
@@ -118,6 +120,14 @@ export function createSchema(
 
 	const allowedMarks = new Set(options.allowedMarks ?? DEFAULT_MARKS);
 	const metaFields = new Map(Object.entries(options.metaFields ?? {}));
+	for (const [name, spec] of metaFields) {
+		if (spec.list && !spec.list.fields && spec.list.value === undefined) {
+			throw new Error(
+				`Metadata field "${name}" declares "list" but neither ` +
+					`"list.fields" nor "list.value", so the editor has no item shape to render.`
+			);
+		}
+	}
 
 	return {
 		allowedBlocks,

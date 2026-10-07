@@ -47,7 +47,7 @@ export type RichTextFeatureSelection = '*' | '__all__' | RichTextFeature[];
  * The shape of one item in a list-valued attribute, which the editor renders as
  * a stack of real fields with add/remove/reorder instead of raw JSON. Declare
  * `fields` for items that are records and `value` for items that are single
- * values; `defineBlock` rejects a list that declares neither.
+ * values; `defineBlock` and `createSchema` reject a list that declares neither.
  */
 export interface AttributeListSpec {
 	fields?: Record<string, AttributeConfig<unknown>>;
@@ -80,6 +80,9 @@ export interface AttributeSpec<T> {
 export type AttributeConfig<T> = AttributeSpec<T> | T;
 export type MetaFieldSpec<T> = AttributeSpec<T>;
 export type DocumentMetaSchema = Record<string, MetaFieldSpec<unknown>>;
+export type MetaValues<Fields extends DocumentMetaSchema> = {
+	[Name in keyof Fields]: Fields[Name]['default'];
+};
 
 export type BlockAttributes = Record<string, unknown>;
 /**
@@ -208,10 +211,14 @@ export interface MarkRegistry {
 	has(id: string): boolean;
 }
 
-export interface ContentSchema {
+declare const metaValues: unique symbol;
+
+export interface ContentSchema<Meta extends Record<string, unknown> = Record<string, unknown>> {
 	allowedBlocks: ReadonlySet<string>;
 	allowedMarks: ReadonlySet<string>;
 	metaFields: ReadonlyMap<string, AttributeSpec<unknown>>;
+	/** Never set: carries the meta type `createSchema` infers from `metaFields`. */
+	readonly [metaValues]?: Meta;
 }
 
 export type ValidationCode =
@@ -238,10 +245,10 @@ export interface ValidationResult {
 	issues: ValidationIssue[];
 }
 
-export interface CreateSchemaOptions {
+export interface CreateSchemaOptions<Fields extends DocumentMetaSchema = DocumentMetaSchema> {
 	allowedBlocks?: string[];
 	allowedMarks?: string[];
-	metaFields?: DocumentMetaSchema;
+	metaFields?: Fields;
 }
 
 export interface ValidateDocumentOptions {

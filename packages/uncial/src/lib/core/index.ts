@@ -69,6 +69,7 @@ export type {
 	MarkDefinition,
 	MarkRegistry,
 	MetaFieldSpec,
+	MetaValues,
 	RichTextFeature,
 	RichTextFeatureSelection,
 	RuntimeBlockConfig,

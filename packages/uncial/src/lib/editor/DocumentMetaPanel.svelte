@@ -50,6 +50,7 @@
 			{spec}
 			value={controllerState.draft[name]}
 			error={controllerState.errors[name]}
+			errors={controllerState.errors}
 			onChange={(value) => controller.setDraft(name, value)}
 			{imageSource}
 			{imagePreviews}

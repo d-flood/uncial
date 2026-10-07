@@ -164,6 +164,66 @@ describe('AttributeFieldControl list', () => {
 		selects[0].dispatchEvent(new Event('change', { bubbles: true }));
 		expect(changes.at(-1)).toEqual(['one']);
 	});
+
+	describe('nested in a list item', () => {
+		const footerSpec: AttributeSpec<unknown> = {
+			default: [],
+			list: {
+				itemLabel: 'column',
+				fields: {
+					heading: '',
+					links: { default: [], list: { itemLabel: 'link', fields: { label: '', href: '' } } }
+				}
+			}
+		};
+		const about = { heading: 'About', links: [{ label: 'Home', href: '/' }] };
+		const hours = { label: 'Hours', href: '/hours' };
+		const map = { label: 'Map', href: '/map' };
+		const footer = [about, { heading: 'Visit', links: [hours, map] }];
+
+		it('adds, reorders and removes items of the right inner list', async () => {
+			const changes: unknown[] = [];
+			const rendered = render(AttributeFieldControl, {
+				name: 'footer',
+				spec: footerSpec,
+				value: footer,
+				onChange: (next) => changes.push(next)
+			});
+
+			const visitLinks = rendered.container.querySelectorAll<HTMLElement>('.uncial-list-field')[2];
+			const button = (label: string, index = 0) =>
+				visitLinks.querySelectorAll<HTMLButtonElement>(`button[aria-label="${label}"]`)[index];
+
+			button('Move link down').click();
+			expect(changes.at(-1)).toEqual([about, { heading: 'Visit', links: [map, hours] }]);
+
+			button('Remove link', 1).click();
+			expect(changes.at(-1)).toEqual([about, { heading: 'Visit', links: [hours] }]);
+
+			visitLinks.querySelector<HTMLButtonElement>(':scope > button')?.click();
+			expect(changes.at(-1)).toEqual([
+				about,
+				{ heading: 'Visit', links: [hours, map, { label: '', href: '' }] }
+			]);
+		});
+
+		it('shows an item field error beside that field', async () => {
+			const message = 'Metadata field "footer.1.links.0.href" is invalid';
+			const rendered = render(AttributeFieldControl, {
+				name: 'footer',
+				spec: footerSpec,
+				value: footer,
+				errors: { 'footer.1.links.0.href': message },
+				onChange: () => {}
+			});
+
+			const href = rendered.container.querySelectorAll('input[placeholder="href"]')[1];
+			expect(
+				href.closest('.uncial-field')?.querySelector('.uncial-field__error')?.textContent
+			).toBe(message);
+			expect(rendered.container.querySelectorAll('.uncial-field__error')).toHaveLength(1);
+		});
+	});
 });
 
 describe('AttributeFieldControl image', () => {

@@ -1,5 +1,7 @@
 import type { PMPath } from '../shared/document.js';
 import {
+	attributeListFields,
+	attributeListValueSpec,
 	coerceAttributeValue,
 	serializeAttributeValue,
 	toAttributeDraftValue
@@ -50,31 +52,65 @@ export function validateMeta(
 		}
 	}
 
-	for (const [name, spec] of metaFields) {
-		const value = source[name];
+	function validateValue(
+		spec: AttributeSpec<unknown>,
+		value: unknown,
+		label: string,
+		valuePath: PMPath
+	): void {
+		if (spec.validate && !spec.validate(value)) {
+			pushIssue(issues, options, {
+				code: 'INVALID_META',
+				path: valuePath,
+				message: `Metadata field "${label}" is invalid`,
+				severity: 'error',
+				details: { value }
+			});
+		}
+
+		if (!spec.list || !Array.isArray(value)) return;
+
+		const valueSpec = attributeListValueSpec(spec.list);
+		const fields = attributeListFields(spec.list);
+		value.forEach((item, index) => {
+			if (valueSpec) {
+				validateValue(valueSpec, item, `${label}.${index}`, [...valuePath, index]);
+				return;
+			}
+			const record = isRecord(item) ? item : {};
+			for (const [name, fieldSpec] of fields) {
+				validateField(fieldSpec, record[name], `${label}.${index}.${name}`, [
+					...valuePath,
+					index,
+					name
+				]);
+			}
+		});
+	}
+
+	function validateField(
+		spec: AttributeSpec<unknown>,
+		value: unknown,
+		label: string,
+		fieldPath: PMPath
+	): void {
 		const missing = value === undefined || value === null || value === '';
 
 		if (missing && spec.required) {
 			pushIssue(issues, options, {
 				code: 'INVALID_META',
-				path: [...path, name],
-				message: `Required metadata field "${name}" is missing`,
+				path: fieldPath,
+				message: `Required metadata field "${label}" is missing`,
 				severity: 'error'
 			});
-			continue;
+			return;
 		}
 
-		if (missing) continue;
+		if (!missing) validateValue(spec, value, label, fieldPath);
+	}
 
-		if (spec.validate && !spec.validate(value)) {
-			pushIssue(issues, options, {
-				code: 'INVALID_META',
-				path: [...path, name],
-				message: `Metadata field "${name}" is invalid`,
-				severity: 'error',
-				details: { value }
-			});
-		}
+	for (const [name, spec] of metaFields) {
+		validateField(spec, source[name], name, [...path, name]);
 	}
 }
 
