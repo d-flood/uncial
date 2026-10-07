@@ -1,4 +1,5 @@
-import { ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, MediaInUseError, NotFoundError } from '../errors.js';
+import { assertPagePath, GLOBAL_KIND, GLOBAL_NAME, globalRecordPath } from '../globals.js';
 import {
 	ACTIONS,
 	contentStatus,
@@ -8,7 +9,7 @@ import {
 	type ServerUser,
 	type VersionView
 } from '../server-forge/protocol.js';
-import { MediaInUseError, type MediaLibrary } from './media.js';
+import type { MediaLibrary } from './media.js';
 import type { ContentRecord, ContentStore } from './postgres-store.js';
 
 export type { Action, ServerUser };
@@ -70,9 +71,20 @@ function text(value: unknown, name: string): string {
 	return value;
 }
 
+function pagePath(path: string): string {
+	try {
+		assertPagePath(path);
+		return path;
+	} catch (error) {
+		throw new HttpError(400, (error as Error).message);
+	}
+}
+
 function summary(record: ContentRecord): ContentSummary {
+	const { meta } = (record.draft ?? record.published ?? {}) as { meta?: { title?: unknown } };
 	return {
 		path: record.path,
+		title: typeof meta?.title === 'string' ? meta.title : undefined,
 		kind: record.kind,
 		status: contentStatus(record.draft !== null, record.published !== null),
 		publishedAt: record.publishedAt?.toISOString() ?? null,
@@ -152,10 +164,22 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 
 		POST: handle(async ({ request }, user) => {
 			const input = await body(request);
-			const path = text(input.path, 'path');
+			if (input.action === 'global-edit') {
+				const name = text(input.name, 'name');
+				if (!GLOBAL_NAME.test(name)) throw new HttpError(400, `"${name}" is not a Global name.`);
+				await guard(user, 'global-edit', await store.get(globalRecordPath(name)));
+				const etag = input.etag === undefined ? undefined : text(input.etag, 'etag');
+				const record = await store.publishGlobal(name, input.document, {
+					etag,
+					author: user.email
+				});
+				return view(user, record, etag === undefined ? 201 : 200);
+			}
+			const path = pagePath(text(input.path, 'path'));
 			if (input.action === 'create') {
 				await guard(user, 'create', null);
 				const kind = input.kind === undefined ? 'page' : text(input.kind, 'kind');
+				if (kind === GLOBAL_KIND) throw new HttpError(400, 'Globals are saved with global-edit.');
 				return view(user, await store.create(path, kind, input.draft, { author: user.email }), 201);
 			}
 			if (input.action === 'publish' || input.action === 'unpublish') {
@@ -179,6 +203,7 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 				const requested = text(input.to, 'to');
 				const to = opts.normalizePath ? opts.normalizePath(requested) : requested;
 				if (to === null) throw new HttpError(400, `${requested} is not a path content can live at.`);
+				pagePath(to);
 				if (opts.derivePath?.(record.kind, record.draft ?? record.published)) {
 					throw new HttpError(400, `The path of ${path} follows its metadata; edit that instead.`);
 				}
@@ -191,17 +216,18 @@ export function createServerContentHandlers<Event extends ContentRequestEvent>(
 			}
 			throw new HttpError(
 				400,
-				'Expected "action" to be create, publish, unpublish, restore or move.'
+				'Expected "action" to be create, publish, unpublish, restore, move or global-edit.'
 			);
 		}),
 
 		PUT: handle(async ({ request }, user) => {
 			const input = await body(request);
-			const path = text(input.path, 'path');
+			const path = pagePath(text(input.path, 'path'));
 			const record = await existing(path);
 			await guard(user, 'save-draft', record);
 			const etag = text(input.etag, 'etag');
 			const target = opts.derivePath?.(record.kind, input.draft) ?? path;
+			pagePath(target);
 			if (target !== path) {
 				await guard(user, 'move', record);
 				if (await store.get(target)) {

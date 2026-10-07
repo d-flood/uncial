@@ -18,8 +18,8 @@ itself. The docs are the live demo.
   Uncial document). Nested paths map naturally: `/blog/hello/` ↔
   `content/blog/hello.json`.
 - Production (non-editor) pages ship **zero** uncial-cms JavaScript. The editing
-  surface exists only on generated editor variants (`/about/edit/`) and the site
-  index (`/uncial/`).
+  surface exists only on generated editor variants (`/about/edit/`) and the
+  Dashboard (`/uncial/`).
 - **Load:** the runtime fetches the JSON + its blob sha live from the forge
   (never the baked build output), normalizes it, and mounts `<uncial-editor>`.
 - **Save:** validate → serialize → commit with the recorded sha (optimistic
@@ -54,6 +54,8 @@ The package also ships a `uncial-cms` command; see
   `ConflictError`, `NotFoundError`, and the shared types (`Site`,
   `SiteOptions`, `UncialCmsSiteConfig`, `ForgeSession`, `SessionProvider`,
   `ForgeAdapter`).
+- `uncial-cms/dashboard` — registers `<uncial-dashboard>`, the `/uncial/`
+  Dashboard.
 - `uncial-cms/svelte` — `EditorPage`, the Svelte component that is the
   recommended door onto an Editor variant in a SvelteKit site.
 - `uncial-cms/session` — `createEditorSession`: the same editing session
@@ -264,9 +266,10 @@ wants editing in development only; a local-only site gets that behaviour without
 saying so. Kit reports a prerenderable route it never crawled, so a build strict
 about that also names the route in `prerender.handleUnseenRoutes`.
 
-**3. Site index** — `src/routes/uncial/+page.server.ts` + `+page.svelte` (OAuth
-landing, create/delete, hash-routed fallback editor). The Index page keeps the
-plain-DOM mount:
+**3. Dashboard** — `src/routes/uncial/+page.server.ts` + `+page.svelte`. One
+custom element, `<uncial-dashboard>`, is the whole signed-in area: Pages (list,
+search, create, delete, and the hash-routed Fallback editor), Media, Globals and
+the host's own App sections.
 
 ```ts
 import { createIndexHandlers } from 'uncial-cms/sveltekit';
@@ -281,23 +284,28 @@ export const load = handlers.load;
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { mountIndexPage } from 'uncial-cms';
+	import 'uncial-cms/dashboard';
 	import { blocks, schema, site } from '../site.js';
 
-	let target: HTMLElement;
-	onMount(() => {
-		const handle = mountIndexPage(target, { config: site.config, blocks, schema, basePath: base });
-		return () => handle.destroy();
-	});
+	let mounted = $state(false);
+	onMount(() => (mounted = true));
 </script>
 
-<div bind:this={target}></div>
+{#if mounted}
+	<uncial-dashboard config={site} {blocks} {schema} basePath={base}></uncial-dashboard>
+{/if}
 ```
 
-When the site is served under a base path (e.g. GitHub Pages project sites at
-`/owner/repo/`), pass the framework's base path to `mountIndexPage`
-(`basePath`) so live-page links resolve; the default mapping always operates on
-**site-relative** paths with the base stripped.
+The element's options are objects and functions, which a prerendered attribute
+cannot carry, so it renders after mount and Svelte sets them as properties.
+`config` takes the whole site object, Globals included. When the site is served
+under a base path (e.g. GitHub Pages project sites at `/owner/repo/`), pass the
+framework's base path as `basePath` so live-page links resolve; the default
+mapping always operates on **site-relative** paths with the base stripped. The
+other options (`editorHref`, `can`, `appSections`, `staticDir`, `theme` and
+more) are in the [Dashboard docs](https://d-flood.github.io/uncial/docs/dashboard/).
+`mountIndexPage` still works, as a deprecated wrapper that renders the Dashboard
+showing only Pages.
 
 ### Excluding non-page files, and a schema per path
 
@@ -394,6 +402,34 @@ export function getStaticPaths() {
 `toolbarExtensions` to `Editor`, for custom marks and their controls, and takes
 a `sessionProvider` and an `imageSource` (see [Media](#media)). Against the GitHub forge it shows a Sign in button first,
 since a sign-in popup opened outside a click is blocked.
+
+The Dashboard is one page that renders `<uncial-dashboard>` and sets its
+options from a script, which Astro bundles for that page alone:
+
+```astro
+---
+// src/pages/uncial.astro
+---
+
+<html lang="en">
+	<head><title>Dashboard</title></head>
+	<body>
+		<uncial-dashboard></uncial-dashboard>
+		<script>
+			import 'uncial-cms/dashboard';
+			import { defineSite } from 'uncial-cms';
+			import { blocks, schema } from '../site';
+			import { siteOptions } from '../site-options';
+
+			Object.assign(document.querySelector('uncial-dashboard')!, {
+				config: defineSite(siteOptions),
+				blocks,
+				schema
+			});
+		</script>
+	</body>
+</html>
+```
 
 Astro bundles a `client:only` island for any page file that renders it, even
 one whose `getStaticPaths` returns nothing. A site that wants no editor code in
@@ -640,6 +676,15 @@ forge limit, commits it under `mediaDir`, stores its served URL and lists the
 media dir for Choose existing. Pass `list` and `thumbnail` to override the
 listing and tile URLs for a rendition pipeline, or `imageSource` to replace the
 source outright.
+
+The picker and `MediaLibrary` from `uncial-cms/svelte` both read media through a
+**Media source**. `mediaSourceFor(config, session, { staticDir })` picks the
+server forge's Media library, or the git forge's `mediaDir` through an editing
+session's adapter and author. A source's `capabilities` say whether it has
+titles and dimensions (`metadata`), `usage`, `delete` and `search`, and
+`<MediaLibrary {source} />` shows only those; a git source keeps no metadata.
+Deleting a server item that Content documents still use rejects with
+`MediaInUseError`. `MediaLibrary`'s `apiBase` prop is deprecated.
 
 Underneath, single-image upload commits an image straight into the repo and
 answers its served path. It is exposed as pure, adapter-injected functions in

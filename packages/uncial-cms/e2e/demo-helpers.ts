@@ -9,7 +9,7 @@ export const DEMO_REPO = 'd-flood/uncial';
  * popup sign-in: the runtime keys sessions by repo and skips renewal while one
  * is present and unexpired. The `octocat` identity matches the mocked `/user`.
  */
-export async function seedDemoSession(page: Page): Promise<void> {
+export async function seedDemoSession(page: Page, repo = DEMO_REPO): Promise<void> {
 	await page.addInitScript((repo) => {
 		sessionStorage.setItem(
 			`uncial-cms:session:${repo}`,
@@ -24,7 +24,7 @@ export async function seedDemoSession(page: Page): Promise<void> {
 				}
 			})
 		);
-	}, DEMO_REPO);
+	}, repo);
 }
 
 export const ABOUT_SOURCE = 'packages/uncial-cms/content/about.json';
@@ -126,21 +126,26 @@ export interface RecordedDelete {
 
 export const CONTENT_DIR = 'packages/uncial-cms/content';
 
-/**
- * Store-backed api.github.com mock: GET serves files and directory listings
- * from an in-memory map, PUT upserts (recording the body), DELETE removes.
- * Models the demo repo (d-flood/uncial) for the index-page flows.
- */
 export async function interceptDemoGitHubWithStore(
 	page: Page,
-	initialFiles: Record<string, string>
-): Promise<{ puts: RecordedPut[]; deletes: RecordedDelete[] }> {
+	initialFiles: Record<string, string>,
+	opts: Pick<InterceptDemoOptions, 'commitStatuses'> = {}
+): Promise<{
+	puts: RecordedPut[];
+	deletes: RecordedDelete[];
+	commitElsewhere: (path: string, content: string) => void;
+}> {
 	const files = new Map(Object.entries(initialFiles));
 	const shas = new Map<string, string>();
 	let shaCounter = 0;
+	let statusCall = 0;
 	const shaOf = (path: string) => shas.get(path) ?? 'sha-original';
 	const puts: RecordedPut[] = [];
 	const deletes: RecordedDelete[] = [];
+	const commitElsewhere = (path: string, content: string) => {
+		files.set(path, content);
+		shas.set(path, `sha-elsewhere-${++shaCounter}`);
+	};
 
 	await page.route('https://api.github.com/**', async (route: Route) => {
 		const request = route.request();
@@ -148,6 +153,18 @@ export async function interceptDemoGitHubWithStore(
 
 		if (url.pathname === '/user') {
 			await route.fulfill({ json: { login: 'octocat', id: 583231, name: 'Octo Cat' } });
+			return;
+		}
+
+		if (/^\/repos\/d-flood\/uncial\/commits\/.+\/status$/.test(url.pathname)) {
+			const states = opts.commitStatuses;
+			if (states && states.length > 0) {
+				const state = states[Math.min(statusCall, states.length - 1)]!;
+				statusCall += 1;
+				await route.fulfill({ json: { state, statuses: [{ state, context: 'deploy' }] } });
+				return;
+			}
+			await route.fulfill({ status: 404, json: { message: 'Not Found' } });
 			return;
 		}
 
@@ -199,6 +216,10 @@ export async function interceptDemoGitHubWithStore(
 
 		if (request.method() === 'PUT') {
 			const body = request.postDataJSON() as Record<string, unknown>;
+			if (body.sha !== undefined && files.has(path) && body.sha !== shaOf(path)) {
+				await route.fulfill({ status: 409, json: { message: `${path} does not match ${body.sha}` } });
+				return;
+			}
 			puts.push({ path, body });
 			files.set(path, fromBase64(String(body.content)));
 			shas.set(path, `sha-${++shaCounter}`);
@@ -220,5 +241,5 @@ export async function interceptDemoGitHubWithStore(
 		await route.fulfill({ status: 404, json: { message: 'Not Found' } });
 	});
 
-	return { puts, deletes };
+	return { puts, deletes, commitElsewhere };
 }

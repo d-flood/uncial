@@ -14,7 +14,8 @@ export const ACTIONS = [
 	'move',
 	'restore',
 	'media-upload',
-	'media-delete'
+	'media-delete',
+	'global-edit'
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -51,6 +52,7 @@ export type ContentStatus = 'draft' | 'published' | 'changed';
 /** One row of the list endpoint. */
 export interface ContentSummary {
 	path: string;
+	title?: string;
 	kind: string;
 	status: ContentStatus;
 	publishedAt: string | null;
@@ -85,7 +87,7 @@ export interface MediaItemView {
 
 /** The media list endpoint's body. */
 export interface MediaListView {
-	items: Array<MediaItemView & { usage: number }>;
+	items: Array<MediaItemView & { usage: number; usagePaths: string[] }>;
 	/** Of `media-upload` and `media-delete`, the actions `authorize` grants the requesting user. */
 	allowed: Action[];
 }

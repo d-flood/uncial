@@ -1,22 +1,31 @@
 <script lang="ts">
-	// The index page's runtime carries the sentinel too, so it gates on the same
+	// The Dashboard's runtime carries the sentinel too, so it gates on the same
 	// statically decidable condition `EditorPage` uses: a local-only production
 	// build must reach no CMS runtime at all.
 	import { onMount } from 'svelte';
 	import { blocks, schema, site } from '../site.js';
 
-	let target: HTMLElement;
+	const appSections = [{ id: 'redirects', label: 'Redirects' }];
+
+	let mounted = $state(false);
 
 	onMount(() => {
 		if (!import.meta.env.DEV && import.meta.env.UNCIAL_CMS_FORGE === 'none') return;
-
-		let handle: { destroy(): void } | undefined;
-		void import('uncial-cms').then((cms) => {
-			handle = cms.mountIndexPage(target, { config: site.config, blocks, schema });
-		});
-		return () => handle?.destroy();
+		void import('uncial-cms/dashboard').then(() => (mounted = true));
 	});
 </script>
 
-<h1>Site index</h1>
-<div bind:this={target}></div>
+<svelte:head>
+	<title>Dashboard · local-only fixture</title>
+</svelte:head>
+
+{#if mounted}
+	<uncial-dashboard config={site} {blocks} {schema} {appSections}>
+		<div slot="redirects">
+			<p>Redirects the host site serves:</p>
+			<ul>
+				<li><code>/blog/</code> → <code>/news/</code></li>
+			</ul>
+		</div>
+	</uncial-dashboard>
+{/if}

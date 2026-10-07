@@ -17,6 +17,7 @@ export default defineConfig({
 				...uncialAliases,
 				{ find: 'uncial-cms/astro/editor', replacement: src('astro/editor.ts') },
 				{ find: 'uncial-cms/astro', replacement: src('astro/index.ts') },
+				{ find: 'uncial-cms/dashboard', replacement: src('dashboard/element.ts') },
 				{ find: /^uncial-cms$/, replacement: src('index.ts') }
 			]
 		}

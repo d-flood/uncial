@@ -3,6 +3,7 @@
  * build: the local forge while developing, the declared GitHub forge in a
  * production build, and a local-only site when no GitHub half is declared.
  */
+import type { ContentSchema } from 'uncial/core';
 import {
 	DEFAULT_DEPLOY_STATUS_TIMINGS,
 	type DeployStatusTimings
@@ -19,7 +20,9 @@ export const DEFAULT_AUTH_WORKER_URL = 'https://uncial-cms-auth.dflood.workers.d
 /** The canonical GitHub App a site installs on its repository. */
 export const DEFAULT_APP_SLUG = 'uncial-cms';
 
-export interface SiteOptions {
+export type Globals = Record<string, ContentSchema>;
+
+export interface SiteOptions<G extends Globals = Globals> {
 	/** Repo-root-relative content directory, as the forge APIs address it. */
 	contentDir: string;
 	/** FS path of that directory at build time; defaults to `contentDir`. */
@@ -41,15 +44,20 @@ export interface SiteOptions {
 	 * ends on "status unknown". Each field falls back to its default.
 	 */
 	deployStatus?: Partial<DeployStatusTimings>;
+	globals?: G;
 }
 
-export interface Site<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
+export interface Site<
+	Config extends UncialCmsSiteConfig = UncialCmsSiteConfig,
+	G extends Globals = Globals
+> {
 	config: Config;
 	/** No GitHub half was declared, so this site is only editable in development. */
 	localOnly: boolean;
 	autosaveMs: number | undefined;
 	localContentDir: string;
 	deployStatusTimings: DeployStatusTimings;
+	globals: G;
 }
 
 function resolveDeployStatusTimings(overrides: Partial<DeployStatusTimings> = {}): DeployStatusTimings {
@@ -60,10 +68,10 @@ function resolveDeployStatusTimings(overrides: Partial<DeployStatusTimings> = {}
 	};
 }
 
-export function defineSite(
-	options: SiteOptions,
+export function defineSite<G extends Globals = {}>(
+	options: SiteOptions<G>,
 	env: { dev: boolean } = { dev: import.meta.env.DEV }
-): Site<GitHubSiteConfig | LocalSiteConfig> {
+): Site<GitHubSiteConfig | LocalSiteConfig, G> {
 	const localOnly = options.github === undefined;
 	const config: GitHubSiteConfig | LocalSiteConfig =
 		env.dev || options.github === undefined
@@ -82,25 +90,30 @@ export function defineSite(
 		localOnly,
 		autosaveMs: config.forge === 'local' ? options.autosaveMs : undefined,
 		localContentDir: options.localContentDir ?? options.contentDir,
-		deployStatusTimings: resolveDeployStatusTimings(options.deployStatus)
+		deployStatusTimings: resolveDeployStatusTimings(options.deployStatus),
+		globals: options.globals ?? ({} as G)
 	};
 }
 
-export interface ServerSiteOptions {
+export interface ServerSiteOptions<G extends Globals = Globals> {
 	/** The host endpoint serving `createServerContentHandlers`, e.g. '/dashboard/api/content'. */
 	apiBase: string;
 	mediaApiBase?: string;
 	/** Autosave writes only the Draft, so a server site may autosave. */
 	autosaveMs?: number;
+	globals?: G;
 }
 
 /** A site whose content lives behind the host's own endpoints, in every build. */
-export function defineServerSite(options: ServerSiteOptions): Site<ServerSiteConfig> {
+export function defineServerSite<G extends Globals = {}>(
+	options: ServerSiteOptions<G>
+): Site<ServerSiteConfig, G> {
 	return {
 		config: { forge: 'server', apiBase: options.apiBase, mediaApiBase: options.mediaApiBase },
 		localOnly: false,
 		autosaveMs: options.autosaveMs,
 		localContentDir: '',
-		deployStatusTimings: resolveDeployStatusTimings()
+		deployStatusTimings: resolveDeployStatusTimings(),
+		globals: options.globals ?? ({} as G)
 	};
 }

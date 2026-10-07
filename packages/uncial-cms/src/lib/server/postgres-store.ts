@@ -1,6 +1,7 @@
 import type postgres from 'postgres';
 import type { Row, Sql, TransactionSql } from 'postgres';
 import { ConflictError, NotFoundError } from '../errors.js';
+import { assertPagePath, GLOBAL_KIND, globalRecordPath, GLOBALS_DIR } from '../globals.js';
 
 export type RetentionPolicy = { keep: number } | { days: number };
 
@@ -24,6 +25,7 @@ export interface VersionSummary {
 
 export interface ContentStore {
 	get(path: string): Promise<ContentRecord | null>;
+	/** Globals are listed only when asked for by their kind, `global`. */
 	list(query?: { kind?: string; status?: 'draft' | 'published' | 'any' }): Promise<ContentRecord[]>;
 	create(
 		path: string,
@@ -46,6 +48,11 @@ export interface ContentStore {
 		path: string,
 		versionId: string,
 		opts: { etag: string; author: string }
+	): Promise<ContentRecord>;
+	publishGlobal(
+		name: string,
+		doc: unknown,
+		opts: { etag?: string; author: string }
 	): Promise<ContentRecord>;
 }
 
@@ -94,6 +101,14 @@ export function createPostgresContentStore(
 		return row;
 	}
 
+	async function keepPublished(tx: TransactionSql, current: Row, author: string) {
+		if (current.published === null) return;
+		await tx`
+			insert into uncial_content_versions (content_id, doc, created_by)
+			values (${current.id}, ${json(current.published)}, ${author})
+		`;
+	}
+
 	async function prune(tx: TransactionSql, contentId: string) {
 		const { retention } = opts;
 		if ('keep' in retention) {
@@ -129,12 +144,15 @@ export function createPostgresContentStore(
 					${kind === undefined ? sql`` : sql`and kind = ${kind}`}
 					${status === 'draft' ? sql`and draft is not null` : sql``}
 					${status === 'published' ? sql`and published is not null` : sql``}
+					${kind === GLOBAL_KIND ? sql`` : sql`and not starts_with(path, ${`/${GLOBALS_DIR}/`})`}
 				order by path
 			`;
 			return rows.map(toRecord);
 		},
 
 		async create(path, kind, draft, { author }) {
+			assertPagePath(path);
+			if (kind === GLOBAL_KIND) throw new Error('Globals are saved with publishGlobal.');
 			try {
 				const [row] = await sql`
 					insert into uncial_content (kind, path, draft, updated_by)
@@ -149,6 +167,7 @@ export function createPostgresContentStore(
 		},
 
 		async saveDraft(path, draft, { etag, author }) {
+			assertPagePath(path);
 			return sql.begin(async (tx) => {
 				await lock(tx, path, etag);
 				const [row] = await tx`
@@ -163,15 +182,11 @@ export function createPostgresContentStore(
 		},
 
 		async publish(path, { etag, author }) {
+			assertPagePath(path);
 			return sql.begin(async (tx) => {
 				const current = await lock(tx, path, etag);
 				if (current.draft === null) throw new Error(`Nothing to publish: ${path} has no Draft.`);
-				if (current.published !== null) {
-					await tx`
-						insert into uncial_content_versions (content_id, doc, created_by)
-						values (${current.id}, ${json(current.published)}, ${author})
-					`;
-				}
+				await keepPublished(tx, current, author);
 				const [row] = await tx`
 					update uncial_content
 					set published = draft, draft = null, published_at = now(),
@@ -184,7 +199,38 @@ export function createPostgresContentStore(
 			});
 		},
 
+		async publishGlobal(name, doc, { etag, author }) {
+			const path = globalRecordPath(name);
+			if (etag === undefined) {
+				try {
+					const [row] = await sql`
+						insert into uncial_content (kind, path, published, published_at, updated_by)
+						values (${GLOBAL_KIND}, ${path}, ${json(doc)}, now(), ${author})
+						returning *
+					`;
+					return toRecord(row);
+				} catch (error) {
+					if (isUniqueViolation(error)) throw new ConflictError();
+					throw error;
+				}
+			}
+			return sql.begin(async (tx) => {
+				const current = await lock(tx, path, etag);
+				await keepPublished(tx, current, author);
+				const [row] = await tx`
+					update uncial_content
+					set published = ${json(doc)}, draft = null, published_at = now(),
+						etag = gen_random_uuid()::text, updated_at = now(), updated_by = ${author}
+					where id = ${current.id}
+					returning *
+				`;
+				await prune(tx, current.id);
+				return toRecord(row);
+			});
+		},
+
 		async unpublish(path, { etag, author }) {
+			assertPagePath(path);
 			return sql.begin(async (tx) => {
 				await lock(tx, path, etag);
 				const [row] = await tx`
@@ -206,6 +252,8 @@ export function createPostgresContentStore(
 		},
 
 		async move(from, to, { etag, author }) {
+			assertPagePath(from);
+			assertPagePath(to);
 			try {
 				return await sql.begin(async (tx) => {
 					await lock(tx, from, etag);
@@ -251,6 +299,7 @@ export function createPostgresContentStore(
 		},
 
 		async restore(path, versionId, { etag, author }) {
+			assertPagePath(path);
 			return sql.begin(async (tx) => {
 				const current = await lock(tx, path, etag);
 				const [version] = await tx`

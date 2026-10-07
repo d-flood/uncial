@@ -7,9 +7,9 @@ export type {
 	VersionSummary
 } from './postgres-store.js';
 export { contentStoreMigrations, mediaLibraryMigrations } from './migrations.js';
+export { MediaInUseError } from '../errors.js';
 export {
 	createMediaLibrary,
-	MediaInUseError,
 	type MediaItem,
 	type MediaLibrary,
 	type MediaLibraryOptions

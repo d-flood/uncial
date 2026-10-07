@@ -7,11 +7,13 @@ import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
 import type { Site } from './define-site.js';
-import { serializeDocument } from './document.js';
+import { parseDocument, serializeDocument } from './document.js';
 import { NotFoundError } from './errors.js';
 import { fitImage, type FitOptions, type ImageEncoder } from './fit-image.js';
+import { globalDocument, globalRecordPath, globalSourcePath, GLOBALS_DIR } from './globals.js';
 import { defaultMapSourceToPath } from './paths/index.js';
-import type { ForgeAdapter } from './types.js';
+import type { ServerForgeAdapter } from './server-forge/adapter.js';
+import type { ForgeAdapter, UncialCmsSiteConfig } from './types.js';
 import { configMediaDir, getActiveForge } from './upload-context.js';
 
 export interface CreatePageDeps {
@@ -63,6 +65,48 @@ export async function deletePage(
 ): Promise<void> {
 	const { sha } = await adapter.readFile(sourcePath);
 	await adapter.deleteFile(sourcePath, { message: `uncial-cms: delete ${pagePath}`, sha });
+}
+
+export async function readStoredGlobal(
+	deps: { adapter: ForgeAdapter; config: UncialCmsSiteConfig },
+	global: { name: string; schema: ContentSchema }
+): Promise<{ value: Record<string, unknown>; sha?: string }> {
+	const { config } = deps;
+	const path =
+		config.forge === 'server'
+			? globalRecordPath(global.name)
+			: globalSourcePath(config.contentDir, global.name);
+	try {
+		const file = await deps.adapter.readFile(path);
+		return { value: parseDocument(file.content, [], global.schema).meta ?? {}, sha: file.sha };
+	} catch (error) {
+		if (!(error instanceof NotFoundError)) throw error;
+		return { value: normalizeDocument(null, [], global.schema).meta ?? {} };
+	}
+}
+
+export interface SaveGlobalDeps {
+	adapter: ForgeAdapter;
+	config: UncialCmsSiteConfig;
+	author: { name: string; email: string };
+}
+
+export async function saveGlobal(
+	deps: SaveGlobalDeps,
+	global: { name: string; schema: ContentSchema; value: Record<string, unknown>; sha?: string }
+): Promise<{ sha: string; commitSha: string }> {
+	const { name, schema, value, sha } = global;
+	const content = serializeDocument(globalDocument(value), [], schema);
+	if (deps.config.forge === 'server') {
+		const adapter = deps.adapter as ServerForgeAdapter;
+		const record = await adapter.saveGlobal(name, JSON.parse(content), sha);
+		return { sha: record.etag, commitSha: '' };
+	}
+	return deps.adapter.writeFile(globalSourcePath(deps.config.contentDir, name), content, {
+		message: `uncial-cms: save global ${name}`,
+		sha,
+		author: deps.author
+	});
 }
 
 export interface UploadAssetFile {
@@ -219,7 +263,6 @@ export async function uploadImageAsset(
 	return uploadAsset({ adapter: forge.adapter }, asset, { mediaDir, author: forge.author });
 }
 
-/** Recursively list the content dir's JSON sources, sorted by page path. */
 export async function listPages(
 	adapter: ForgeAdapter,
 	contentDir: string,
@@ -227,10 +270,12 @@ export async function listPages(
 		defaultMapSourceToPath(source, contentDir)
 ): Promise<PageRef[]> {
 	const sources: string[] = [];
+	const globalsDir = `${contentDir}/${GLOBALS_DIR}`;
 	const walk = async (dir: string): Promise<void> => {
 		for (const entry of await adapter.listDir(dir)) {
-			if (entry.type === 'dir') await walk(entry.path);
-			else if (entry.path.endsWith('.json')) sources.push(entry.path);
+			if (entry.type === 'dir') {
+				if (entry.path !== globalsDir) await walk(entry.path);
+			} else if (entry.path.endsWith('.json')) sources.push(entry.path);
 		}
 	};
 	await walk(contentDir);

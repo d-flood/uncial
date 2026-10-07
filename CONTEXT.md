@@ -31,19 +31,26 @@ Content document is edited in the WYSIWYG editor. Carries the editor JS
 _Avoid_: Edit page, admin page
 
 **Fallback editor**:
-The hash-routed editor served from the index for a page that has no prerendered
-Editor variant yet (e.g. a just-created page before redeploy).
+The hash-routed editor (`#/edit/<path>`) served from the Dashboard for a page
+that has no prerendered Editor variant yet (e.g. a just-created page before
+redeploy).
 _Avoid_: Generic editor
 
 **Index page**:
-The `/uncial/` (CMS) landing that lists Content documents in a content dir and
-hosts create/delete plus the Fallback editor. Within a **Dashboard** it is the
-Pages section.
+The Dashboard's Pages section, which lists, searches, creates and deletes
+Content documents and opens each in its Editor variant or the Fallback editor.
+`mountIndexPage`, which once mounted it alone, is deprecated.
 _Avoid_: Admin home
 
 **Dashboard**:
-The host's whole signed-in area, of which the Index page is the Pages section.
+The `/uncial/` signed-in area itself, rendered by `<uncial-dashboard>`, with
+sections Pages, Media, Globals and App sections.
 _Avoid_: Admin, back office
+
+**App section**:
+A host-supplied Dashboard section, either slotted (the host's own markup shown
+in the frame) or linked (a nav link to a host route).
+_Avoid_: Plugin, extension, custom section
 
 **Draft**:
 The working copy of a Content document, unseen by the public. A Content document has at most one.
@@ -68,9 +75,23 @@ _Avoid_: Settings, options
 
 **Site object**:
 What `defineSite(siteOptions)` returns: the Site config resolved for the current
-build, plus `localOnly`, `autosaveMs` and `localContentDir`. The thing the route
-factories, the Editor page component and the index mount are handed.
+build, plus `localOnly`, `autosaveMs`, `localContentDir` and `globals`. The thing
+the route factories, the Editor page component and the Dashboard are handed.
 _Avoid_: Site, config object
+
+**Global**:
+A named, schema-defined Content document with meta fields only, holding
+site-wide data such as menus or a banner. Declared on the Site object, edited in
+the Dashboard's Globals section, published on every save, read with
+`loadGlobal`, and kept under `_globals/`, which is never a page.
+_Avoid_: Settings (reserved by Site config), site data
+
+**Media source**:
+The interface (`MediaSource`) the Dashboard's Media section and the editor's
+image picker read and write media through: the Media library on a server forge,
+the `mediaDir` on a git forge. Its capabilities say whether it has metadata,
+usage, delete and search.
+_Avoid_: Media adapter, media store
 
 **Local-only site**:
 A site declaring no GitHub half, so it has no forge to commit to and its Editor

@@ -51,6 +51,7 @@ export interface MountEditorPageOptions {
 	editorStylesheets?: string[];
 	/** Where `input: 'image'` fields get images; defaults to `cmsImageSource(config)`. */
 	imageSource?: UncialEditorElement['imageSource'];
+	onerror?: (error: unknown) => void;
 }
 
 function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: string[]): void {
@@ -146,6 +147,7 @@ export function mountEditorPage(
 	let destroyed = false;
 
 	const ui: EditorPageUi = {
+		failed: opts.onerror,
 		status(view: StatusView) {
 			status.replaceChildren(document.createTextNode(view.text));
 			status.dataset.tone = view.tone;
@@ -198,6 +200,7 @@ export function mountEditorPage(
 
 	void controller.load().catch((error: unknown) => {
 		if (destroyed) return;
+		opts.onerror?.(error);
 		ui.status({
 			tone: 'error',
 			text: error instanceof Error ? error.message : 'Failed to load the document.'

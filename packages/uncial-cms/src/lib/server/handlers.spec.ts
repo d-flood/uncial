@@ -30,7 +30,8 @@ function fakeStore() {
 		move: vi.fn(async () => record()),
 		versions: vi.fn(async (): Promise<VersionSummary[]> => []),
 		getVersion: vi.fn(async () => doc),
-		restore: vi.fn(async () => record())
+		restore: vi.fn(async () => record()),
+		publishGlobal: vi.fn(async () => record())
 	} satisfies ContentStore;
 }
 
@@ -210,6 +211,37 @@ describe('createServerContentHandlers authorization', () => {
 });
 
 describe('createServerContentHandlers responses', () => {
+	it.each([
+		{ method: 'POST' as const, body: { action: 'create', path: '/_globals/menus/', draft: doc }, write: 'create' as const },
+		{ method: 'POST' as const, body: { action: 'create', path: '/menus/', kind: 'global', draft: doc }, write: 'create' as const },
+		{ method: 'PUT' as const, body: { path: '/_globals/menus/', draft: doc, etag: 'etag-1' }, write: 'saveDraft' as const },
+		{ method: 'POST' as const, body: { action: 'restore', path: '/_globals/menus/', versionId: '7', etag: 'etag-1' }, write: 'restore' as const },
+		{ method: 'POST' as const, body: { action: 'unpublish', path: '/_globals/menus/', etag: 'etag-1' }, write: 'unpublish' as const },
+		{ method: 'POST' as const, body: { action: 'move', path: '/_globals/menus/', to: 'elsewhere', etag: 'etag-1' }, write: 'move' as const },
+		{ method: 'POST' as const, body: { action: 'move', path: 'about', to: '/_globals/menus/', etag: 'etag-1' }, write: 'move' as const }
+	])('keeps Globals out of legacy $write mutations: $body', async ({ method, body, write }) => {
+		const { store, handlers } = setup(() => true);
+		store.get.mockImplementation(async (path) => path === body.path ? record() : null);
+		const response = await handlers[method](event(method, '', body));
+		expect(response.status).toBe(400);
+		expect(store[write]).not.toHaveBeenCalled();
+	});
+
+	it('refuses a derived move into the reserved namespace before saving a Draft', async () => {
+		const store = fakeStore();
+		store.get.mockImplementation(async (path) => path === 'about' ? record() : null);
+		const handlers = createServerContentHandlers({
+			store,
+			authorize: () => true,
+			getUser: () => user,
+			derivePath: () => '/_globals/menus/'
+		});
+		const response = await handlers.PUT(event('PUT', '', { path: 'about', draft: doc, etag: 'etag-1' }));
+		expect(response.status).toBe(400);
+		expect(store.saveDraft).not.toHaveBeenCalled();
+		expect(store.move).not.toHaveBeenCalled();
+	});
+
 	it('returns the record with its etag and the actions authorize allows', async () => {
 		const { handlers } = setup((_user, action) => action === 'read-draft' || action === 'save-draft');
 		const response = await handlers.GET(event('GET', '?path=about'));
@@ -220,16 +252,18 @@ describe('createServerContentHandlers responses', () => {
 		expect(body.allowed).toEqual(['read-draft', 'save-draft']);
 	});
 
-	it('lists records with their Draft/Published status', async () => {
+	it('lists records with their Draft/Published status and title', async () => {
 		const { store, handlers } = setup(() => true);
+		const titled = (title: string) => ({ ...doc, meta: { title } });
 		store.list.mockResolvedValue([
 			{ ...record(), path: 'a', published: null },
-			{ ...record(), path: 'b', draft: null },
-			{ ...record(), path: 'c' }
+			{ ...record(), path: 'b', draft: null, published: titled('Published B') },
+			{ ...record(), path: 'c', draft: titled('Draft C'), published: titled('Published C') }
 		]);
 		const { records } = await (await handlers.GET(event('GET', ''))).json();
 
 		expect(records.map((r: { status: string }) => r.status)).toEqual(['draft', 'published', 'changed']);
+		expect(records.map((r: { title?: string }) => r.title)).toEqual([undefined, 'Published B', 'Draft C']);
 	});
 
 	it('creates new records as Drafts of the default kind', async () => {

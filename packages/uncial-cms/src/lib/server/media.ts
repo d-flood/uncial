@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { Row, Sql } from 'postgres';
-import { NotFoundError } from '../errors.js';
+import { MediaInUseError, NotFoundError } from '../errors.js';
+import { GLOBAL_KIND } from '../globals.js';
 import type { ContentStore } from './postgres-store.js';
 
 export interface MediaItem {
@@ -35,22 +36,15 @@ export interface MediaLibraryOptions {
 }
 
 export interface MediaLibrary {
-	list(query?: { search?: string; contentType?: string }): Promise<Array<MediaItem & { usage: number }>>;
+	list(
+		query?: { search?: string; contentType?: string }
+	): Promise<Array<MediaItem & { usage: number; usagePaths: string[] }>>;
 	upload(
 		bytes: Uint8Array,
 		meta: { filename: string; title?: string; contentType: string; uploadedBy: string }
 	): Promise<MediaItem>;
 	usage(id: string): Promise<{ count: number; paths: string[] }>;
 	delete(id: string): Promise<void>;
-}
-
-export class MediaInUseError extends Error {
-	constructor(readonly usage: { count: number; paths: string[] }) {
-		super(
-			`This Media item is used by ${usage.count} Content document${usage.count === 1 ? '' : 's'}: ${usage.paths.join(', ')}.`
-		);
-		this.name = 'MediaInUseError';
-	}
 }
 
 const EXTENSIONS: Record<string, string> = {
@@ -151,7 +145,7 @@ export function createMediaLibrary(opts: MediaLibraryOptions): MediaLibrary {
 		})));
 
 	async function referencing(urls: string[]): Promise<Map<string, string[]>> {
-		const records = await store.list();
+		const records = (await Promise.all([store.list(), store.list({ kind: GLOBAL_KIND })])).flat();
 		const paths = new Map(urls.map((url) => [url, [] as string[]]));
 		for (const record of records) {
 			const docs = [record.draft, record.published]
@@ -188,7 +182,10 @@ export function createMediaLibrary(opts: MediaLibraryOptions): MediaLibrary {
 			`;
 			const items = rows.map((row) => toItem(row, publicBaseUrl));
 			const paths = await referencing(items.map((item) => item.url));
-			return items.map((item) => ({ ...item, usage: paths.get(item.url)!.length }));
+			return items.map((item) => {
+				const usagePaths = paths.get(item.url)!;
+				return { ...item, usage: usagePaths.length, usagePaths };
+			});
 		},
 
 		async upload(bytes, { filename, title, contentType, uploadedBy }) {

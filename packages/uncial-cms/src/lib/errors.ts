@@ -13,3 +13,19 @@ export class NotFoundError extends Error {
 		this.name = 'NotFoundError';
 	}
 }
+
+export class MediaInUseError extends Error {
+	constructor(readonly usage: { count: number; paths: string[] }) {
+		super(
+			`This Media item is used by ${usage.count} Content document${usage.count === 1 ? '' : 's'}: ${usage.paths.join(', ')}.`
+		);
+		this.name = 'MediaInUseError';
+	}
+}
+
+export class SignedOutError extends Error {
+	constructor(message = 'You are signed out. Sign in again to keep editing.') {
+		super(message);
+		this.name = 'SignedOutError';
+	}
+}

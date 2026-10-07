@@ -4,8 +4,14 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { createServer, type ViteDevServer } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createBlockRegistry, createSchema } from 'uncial/core';
+import { mediaSourceContract } from '../../fixtures/media-source-contract.js';
 import { MAX_CONTENT_BYTES } from '../constants.js';
+import { loadGlobal } from '../content-sources.js';
+import { defineSite } from '../define-site.js';
 import { ConflictError } from '../errors.js';
+import { saveGlobal } from '../index-actions.js';
+import { mediaSourceFor } from '../media-source.js';
 import type { UncialCmsSiteConfig } from '../types.js';
 import { createLocalAdapter, createLocalVitePlugin, localSessionProvider } from './index.js';
 
@@ -241,6 +247,41 @@ describe('createLocalVitePlugin', () => {
 		expect(readFileSync(target, 'utf8')).toBe('{"title":"Changed underneath"}');
 	});
 
+	it('saves a Global to <contentDir>/_globals/<name>.json and refuses a stale sha', async () => {
+		const root = repository();
+		const origin = await startServer(root);
+		vi.stubGlobal('location', { origin });
+		const config: UncialCmsSiteConfig = { forge: 'local', contentDir: CONTENT_DIR };
+		const adapter = createLocalAdapter();
+		const session = await adapter.authenticate(config, localSessionProvider);
+		const deps = {
+			adapter,
+			config,
+			author: { name: session.user.name, email: session.user.email }
+		};
+		const banner = createSchema(createBlockRegistry([]), {
+			metaFields: { text: { default: '' }, enabled: { default: false } }
+		});
+		const site = defineSite(
+			{ contentDir: CONTENT_DIR, localContentDir: join(root, CONTENT_DIR), globals: { banner } },
+			{ dev: true }
+		);
+
+		const first = await saveGlobal(deps, {
+			name: 'banner',
+			schema: banner,
+			value: { text: 'Hello' }
+		});
+		expect(await loadGlobal(site, 'banner')).toEqual({ text: 'Hello', enabled: false });
+
+		const target = join(root, CONTENT_DIR, '_globals/banner.json');
+		writeFileSync(target, '{"meta":{"text":"Changed underneath"}}');
+		await expect(
+			saveGlobal(deps, { name: 'banner', schema: banner, value: { text: 'Mine' }, sha: first.sha })
+		).rejects.toBeInstanceOf(ConflictError);
+		expect(readFileSync(target, 'utf8')).toBe('{"meta":{"text":"Changed underneath"}}');
+	});
+
 	it('exposes only complete documents at the target while writing', async () => {
 		const root = repository();
 		const target = join(root, CONTENT_DIR, 'about.json');
@@ -310,5 +351,33 @@ describe('createLocalVitePlugin', () => {
 			sha: write.sha
 		});
 		await expect(adapter.readFile(`${CONTENT_DIR}/about.json`)).rejects.toThrow(/not found/i);
+	});
+});
+
+describe('the git Media source over the local adapter', () => {
+	async function source() {
+		const root = repository();
+		mkdirSync(join(root, MEDIA_DIR), { recursive: true });
+		vi.stubGlobal('location', { origin: await startServer(root, [CONTENT_DIR, MEDIA_DIR]) });
+		const config: UncialCmsSiteConfig = { forge: 'local', contentDir: CONTENT_DIR, mediaDir: MEDIA_DIR };
+		const adapter = createLocalAdapter();
+		const { user } = await adapter.authenticate(config, localSessionProvider);
+		return mediaSourceFor(
+			config,
+			{ adapter, author: { name: user.name, email: user.email } },
+			{ staticDir: 'packages/site/static' }
+		);
+	}
+
+	mediaSourceContract({ metadata: false, usage: false, delete: true, search: false }, source);
+
+	it('rejects a file over 1 MB without writing it', async () => {
+		const media = await source();
+		const scan = new File([new Uint8Array(MAX_CONTENT_BYTES + 1)], 'scan.pdf', {
+			type: 'application/pdf'
+		});
+
+		await expect(media.upload(scan)).rejects.toThrow(/over the 1 MB limit/);
+		expect(await media.list()).toEqual([]);
 	});
 });

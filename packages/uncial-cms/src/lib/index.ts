@@ -15,7 +15,7 @@ export {
 	type Site,
 	type SiteOptions
 } from './define-site.js';
-export { ConflictError, NotFoundError } from './errors.js';
+export { ConflictError, MediaInUseError, NotFoundError } from './errors.js';
 export { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 export { mountEditorPage, type MountEditorPageOptions } from './mount.js';
 /*
@@ -42,13 +42,17 @@ export {
 	type StatusView
 } from './editor-controller.js';
 export { mountIndexPage, type MountIndexPageOptions } from './index-page.js';
+export type { UncialDashboardElement } from './dashboard/element.js';
+export type { DashboardAction, DashboardOptions } from './dashboard/types.js';
 export {
 	createPage,
 	deletePage,
 	listPages,
+	saveGlobal,
 	uploadAsset,
 	uploadImageAsset,
 	type PageRef,
+	type SaveGlobalDeps,
 	type UploadAssetFile,
 	type UploadAssetOptions,
 	type UploadAssetResult,
@@ -63,6 +67,7 @@ export {
 } from './fit-image.js';
 export { servedUrl } from './served-url.js';
 export { cmsImageSource } from './image-source.js';
+export { mediaSourceFor, type MediaItem, type MediaSource } from './media-source.js';
 export { MAX_CONTENT_BYTES } from './constants.js';
 export {
 	hashForPagePath,

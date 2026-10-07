@@ -35,6 +35,8 @@ writeFileSync(join(localContentDir, 'about.json'), JSON.stringify(doc('About')))
 mkdirSync(join(localContentDir, 'guide'), { recursive: true });
 writeFileSync(join(localContentDir, 'guide/start.json'), JSON.stringify(doc('Start')));
 writeFileSync(join(localContentDir, 'settings.json'), JSON.stringify(doc('Settings')));
+mkdirSync(join(localContentDir, '_globals'));
+writeFileSync(join(localContentDir, '_globals/menus.json'), JSON.stringify(doc('Menus')));
 
 afterAll(() => rmSync(localContentDir, { recursive: true, force: true }));
 
@@ -119,6 +121,15 @@ describe('createContentHandlers', () => {
 		await expect(handlers.load({ params: { path: 'settings' } })).rejects.toThrow(
 			/"settings" is excluded/
 		);
+	});
+
+	it('never routes a Global, with no exclude from the site', async () => {
+		const bare = { config, blocks, schema, localContentDir };
+		expect(createContentHandlers(bare).entries()).not.toContainEqual({ path: '_globals/menus' });
+		expect(createEditorHandlers(bare).entries()).not.toContainEqual({ path: '_globals/menus' });
+		await expect(
+			createContentHandlers(bare).load({ params: { path: '_globals/menus' } })
+		).rejects.toThrow(/"_globals\/menus" is excluded/);
 	});
 
 	it('load() normalizes with the schema the resolver picks for the page path', async () => {

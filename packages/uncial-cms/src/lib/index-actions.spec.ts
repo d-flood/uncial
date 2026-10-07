@@ -2,8 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import { MAX_CONTENT_BYTES } from './constants.js';
 import { defineSite } from './define-site.js';
-import { NotFoundError } from './errors.js';
-import { createPage, deletePage, listPages, uploadAsset, uploadImageAsset } from './index-actions.js';
+import { ConflictError, NotFoundError } from './errors.js';
+import {
+	createPage,
+	deletePage,
+	listPages,
+	saveGlobal,
+	uploadAsset,
+	uploadImageAsset
+} from './index-actions.js';
 import type { ForgeAdapter } from './types.js';
 import { clearActiveForge, setActiveForge } from './upload-context.js';
 
@@ -80,6 +87,43 @@ describe('deletePage', () => {
 			message: 'uncial-cms: delete about',
 			sha: 'sha-live'
 		});
+	});
+});
+
+describe('saveGlobal', () => {
+	const banner = createSchema(blocks, {
+		metaFields: { text: { default: '' }, enabled: { default: false } }
+	});
+	const deps = (adapter: ForgeAdapter) => ({ adapter, config: localSite().config, author });
+
+	it('commits the Global to <contentDir>/_globals/<name>.json at the sha it was read at', async () => {
+		const adapter = fakeAdapter();
+		await saveGlobal(deps(adapter), {
+			name: 'banner',
+			schema: banner,
+			value: { text: 'Hello' },
+			sha: 'sha-read'
+		});
+
+		const [path, content, writeOpts] = vi.mocked(adapter.writeFile).mock.calls[0]!;
+		expect(path).toBe('content/_globals/banner.json');
+		expect(writeOpts).toEqual({
+			message: 'uncial-cms: save global banner',
+			sha: 'sha-read',
+			author
+		});
+		expect(JSON.parse(content as string)).toMatchObject({
+			type: 'doc',
+			content: [],
+			meta: { text: 'Hello', enabled: false }
+		});
+	});
+
+	it('raises ConflictError when the sha is stale', async () => {
+		const adapter = fakeAdapter({ writeFile: vi.fn().mockRejectedValue(new ConflictError()) });
+		await expect(
+			saveGlobal(deps(adapter), { name: 'banner', schema: banner, value: {}, sha: 'sha-stale' })
+		).rejects.toBeInstanceOf(ConflictError);
 	});
 });
 
@@ -283,5 +327,21 @@ describe('listPages', () => {
 			{ pagePath: 'about', sourcePath: 'content/about.json' },
 			{ pagePath: 'team/new-page', sourcePath: 'content/team/new-page.json' }
 		]);
+	});
+
+	it('never lists the Globals in content/_globals', async () => {
+		const listDir = vi.fn(async (path: string) => {
+			if (path === 'content') {
+				return [
+					{ path: 'content/about.json', type: 'file' as const },
+					{ path: 'content/_globals', type: 'dir' as const }
+				];
+			}
+			return [{ path: 'content/_globals/menus.json', type: 'file' as const }];
+		});
+
+		const pages = await listPages(fakeAdapter({ listDir }), 'content');
+
+		expect(pages).toEqual([{ pagePath: 'about', sourcePath: 'content/about.json' }]);
 	});
 });

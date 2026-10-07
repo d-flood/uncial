@@ -12,9 +12,12 @@ import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core'
 import type { Site } from '../define-site.js';
 import type { GitHubSiteConfig, LocalSiteConfig, UncialCmsSiteConfig } from '../types.js';
 import { listContentSources } from '../content-sources.js';
+import { isGlobalsPath } from '../globals.js';
 import { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
 
 export { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
+export { loadGlobal, type GlobalStore } from '../content-sources.js';
+export type { GlobalValue } from '../globals.js';
 
 /** A content file as the factories see it: site-relative path, repo-root-relative source. */
 export interface ContentEntry {
@@ -28,7 +31,6 @@ interface HandlerOptionsBase {
 	schema: ContentSchema | ((path: string) => ContentSchema);
 	/** Site-relative URL path → repo-root-relative JSON path. */
 	mapPathToSource?: (path: string) => string;
-	/** Keep a non-page file — site settings, a manifest — out of the routes. */
 	exclude?: (entry: ContentEntry) => boolean;
 }
 
@@ -79,6 +81,10 @@ function resolveSite(opts: ContentHandlerOptions): ResolvedSite {
 	return { config, localContentDir: opts.localContentDir, localOnly: false };
 }
 
+function excluded(opts: ContentHandlerOptions, entry: ContentEntry): boolean {
+	return isGlobalsPath(entry.path) || (opts.exclude?.(entry) ?? false);
+}
+
 function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => RouteEntry[] {
 	return () =>
 		listContentSources(site.localContentDir)
@@ -86,7 +92,7 @@ function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => R
 				const source = `${site.config.contentDir}/${rel}`;
 				return { path: defaultMapSourceToPath(source, site.config.contentDir), source };
 			})
-			.filter((entry) => !opts.exclude?.(entry))
+			.filter((entry) => !excluded(opts, entry))
 			.map(({ path }) => ({ path }));
 }
 
@@ -99,7 +105,7 @@ function resolveSource(
 	const map =
 		opts.mapPathToSource ?? ((path: string) => defaultMapPathToSource(path, site.config.contentDir));
 	const source = map(sitePath);
-	if (opts.exclude?.({ path: sitePath, source })) {
+	if (excluded(opts, { path: sitePath, source })) {
 		throw new Error(`Content path "${sitePath}" is excluded from this site's routes.`);
 	}
 	return source;

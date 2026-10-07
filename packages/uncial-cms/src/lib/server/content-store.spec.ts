@@ -271,4 +271,46 @@ describe.skipIf(!url)('Postgres ContentStore contract', () => {
 		expect(paths(await store.list({ status: 'draft' }))).toEqual(['/draft/']);
 		expect(paths(await store.list({ kind: 'page', status: 'published' }))).toEqual(['/live/']);
 	});
+
+	it('publishes a Global on save, leaving no Draft, and keeps it out of page listings', async () => {
+		await published('/live/', 'Live');
+		const created = await store.publishGlobal('menus', doc('One'), { author });
+		expect(created).toMatchObject({
+			kind: 'global',
+			path: '/_globals/menus/',
+			draft: null,
+			published: doc('One')
+		});
+		expect(created.publishedAt).not.toBeNull();
+
+		const saved = await store.publishGlobal('menus', doc('Two'), { etag: created.etag, author });
+		expect(saved).toMatchObject({ draft: null, published: doc('Two') });
+		await expect(
+			store.publishGlobal('menus', doc('Stale'), { etag: created.etag, author })
+		).rejects.toThrow(ConflictError);
+		await expect(store.publishGlobal('menus', doc('Again'), { author })).rejects.toThrow(
+			ConflictError
+		);
+
+		const paths = (records: ContentRecord[]) => records.map((r) => r.path);
+		expect(paths(await store.list())).toEqual(['/live/']);
+		expect(paths(await store.list({ status: 'published' }))).toEqual(['/live/']);
+		expect(paths(await store.list({ kind: 'global' }))).toEqual(['/_globals/menus/']);
+	});
+
+	it('keeps the Global namespace and publish-on-save invariant through legacy mutations', async () => {
+		const global = await store.publishGlobal('menus', doc('Menus'), { author });
+		const page = await published('/about/', 'About');
+		const opts = { etag: global.etag, author };
+		await expect(store.create('/_globals/banner/', 'page', doc('Banner'), { author })).rejects.toThrow(/reserved/);
+		await expect(store.create('/banner/', 'global', doc('Banner'), { author })).rejects.toThrow(/publishGlobal/);
+		await expect(store.saveDraft(global.path, doc('Draft'), opts)).rejects.toThrow(/reserved/);
+		await expect(store.publish(global.path, opts)).rejects.toThrow(/reserved/);
+		await expect(store.unpublish(global.path, opts)).rejects.toThrow(/reserved/);
+		await expect(store.restore(global.path, '1', opts)).rejects.toThrow(/reserved/);
+		await expect(store.move(global.path, '/menus/', opts)).rejects.toThrow(/reserved/);
+		await expect(store.move(page.path, '/_globals/banner/', { etag: page.etag, author })).rejects.toThrow(/reserved/);
+		expect(await store.get(global.path)).toEqual(global);
+		expect(await store.get(page.path)).toEqual(page);
+	});
 });

@@ -57,6 +57,16 @@ describe('createContentRoutes', () => {
 		expect(routes.load('about').document.meta).toMatchObject({ title: 'About' });
 		expect(() => routes.load('settings')).toThrow(/"settings" is excluded/);
 	});
+
+	it('never routes a Global, with no exclude from the site', () => {
+		const bare = createContentRoutes({ siteOptions, blocks, schema });
+		expect(bare.list().map(({ path }) => path)).not.toContain('_globals/menus');
+		expect(() => bare.load('_globals/menus')).toThrow(/"_globals\/menus" is excluded/);
+		const editor = createEditorRoutes({ siteOptions, blocks, schema });
+		expect(editor.getStaticPaths().map(({ params }) => params.path)).not.toContain(
+			'_globals/menus'
+		);
+	});
 });
 
 describe('createEditorRoutes', () => {
@@ -96,7 +106,8 @@ describe('an Astro site built on uncial-cms/astro', () => {
 			'/about/edit/',
 			'/edit/',
 			'/guide/start/',
-			'/guide/start/edit/'
+			'/guide/start/edit/',
+			'/uncial/'
 		]);
 	});
 

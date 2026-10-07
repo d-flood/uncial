@@ -116,8 +116,8 @@ test('content page renders without any editor chrome', async ({ page }) => {
 	await expect(page.locator('uncial-editor')).toHaveCount(0);
 });
 
-test('site index shell shows the baked repo config', async ({ page }) => {
+test('the Dashboard frame shows the baked repo config', async ({ page }) => {
 	await page.goto('/uncial/');
-	await expect(page.locator('h1')).toContainText('Site index');
-	await expect(page.locator('main')).toContainText('d-flood/uncial');
+	await expect(page.getByRole('navigation', { name: 'Dashboard' })).toBeVisible();
+	await expect(page.getByText('d-flood/uncial@main')).toBeVisible();
 });

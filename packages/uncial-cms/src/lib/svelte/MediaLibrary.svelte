@@ -1,37 +1,60 @@
+<svelte:options css="injected" />
+
 <script lang="ts">
-	/**
-	 * The Media library for a host's Dashboard: browse, search, upload and
-	 * delete the items behind `createServerMediaHandlers`. Unstyled beyond its
-	 * grid, like `EditorPage`; the host styles the `uncial-cms-media-*` classes.
-	 */
-	import { onMount } from 'svelte';
-	import { deleteMedia, listMedia, uploadMedia } from '../server-forge/media.js';
-	import type { MediaListView } from '../server-forge/protocol.js';
+	import { onMount, tick } from 'svelte';
+	import { resolveImageSrc } from 'uncial/render';
+	import { serverMediaSource, type MediaItem, type MediaSource } from '../media-source.js';
+	import type { Action } from '../server-forge/protocol.js';
+
+	type MediaAction = 'media-upload' | 'media-delete';
 
 	interface Props {
-		/** The host's media endpoint, the `server` forge's `mediaApiBase`. */
-		apiBase: string;
+		source?: MediaSource;
+		/** @deprecated Pass `source`; this builds the `server` forge's source over its `mediaApiBase`. */
+		apiBase?: string;
+		can?: (action: MediaAction, item?: MediaItem) => boolean;
+		confirmDelete?: (item: MediaItem) => Promise<boolean>;
+		/** The site's base path, for previewing the base-less URLs a git forge's items carry. */
+		base?: string;
+		onerror?: (error: unknown) => void;
 	}
 
-	let { apiBase }: Props = $props();
+	let { source, apiBase, can, confirmDelete, base = '', onerror }: Props = $props();
 
-	type Item = MediaListView['items'][number];
+	let allowed = $state<Action[]>([]);
+	const media = $derived.by(() => {
+		if (source) return source;
+		if (!apiBase) throw new Error('MediaLibrary needs a `source`.');
+		return serverMediaSource(apiBase, (next) => (allowed = next));
+	});
+	const capabilities = $derived(media.capabilities);
 
 	let search = $state('');
-	let view = $state<MediaListView | undefined>(undefined);
+	let items = $state<MediaItem[] | undefined>(undefined);
 	let error = $state('');
 	let uploading = $state(0);
 	let fileInput = $state<HTMLInputElement>();
+	let section = $state<HTMLElement>();
 	let request = 0;
 
-	const can = (action: 'media-upload' | 'media-delete') => view?.allowed.includes(action) ?? false;
-	const message = (reason: unknown) => (reason instanceof Error ? reason.message : String(reason));
+	// Under the deprecated `apiBase`, the server's own answer of what the user may do.
+	const may = (action: MediaAction, item?: MediaItem) =>
+		can ? can(action, item) : source !== undefined || allowed.includes(action);
+	const message = (reason: unknown) => {
+		onerror?.(reason);
+		return reason instanceof Error ? reason.message : String(reason);
+	};
+	const nameOf = (item: MediaItem) => (capabilities.metadata && item.title) || item.filename;
+	const ask = (item: MediaItem) =>
+		confirmDelete
+			? confirmDelete(item)
+			: Promise.resolve(confirm(`Delete “${nameOf(item)}”? This cannot be undone.`));
 
 	async function load() {
 		const current = ++request;
 		try {
-			const next = await listMedia(apiBase, { search: search.trim() });
-			if (current === request) view = next;
+			const next = await media.list(capabilities.search ? { search: search.trim() } : {});
+			if (current === request) items = next;
 		} catch (reason) {
 			if (current === request) error = message(reason);
 		}
@@ -43,7 +66,7 @@
 		try {
 			for (const file of files) {
 				try {
-					await uploadMedia(apiBase, file);
+					await media.upload(file);
 				} catch (reason) {
 					error = `${file.name}: ${message(reason)}`;
 				} finally {
@@ -55,15 +78,20 @@
 		}
 	}
 
-	async function remove(item: Item) {
-		if (!confirm(`Delete “${item.title}”? This cannot be undone.`)) return;
+	async function remove(item: MediaItem) {
 		error = '';
 		try {
-			await deleteMedia(apiBase, item.id);
+			if (!(await ask(item))) return;
+			await media.delete(item);
 		} catch (reason) {
 			error = message(reason);
+			await load();
+			return;
 		}
 		await load();
+		// The deleted item's button went with it.
+		await tick();
+		section?.focus();
 	}
 
 	function size(bytes: number): string {
@@ -72,24 +100,36 @@
 		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
 
-	function inUse(count: number): string {
-		return `In use by ${count} Content document${count === 1 ? '' : 's'}`;
+	function details(item: MediaItem): string {
+		const dimensions = item.width && item.height ? `${item.width}×${item.height}` : '';
+		return [item.filename, dimensions, item.size === undefined ? '' : size(item.size)]
+			.filter(Boolean)
+			.join(' · ');
+	}
+
+	function usage(item: MediaItem): string {
+		const uses = item.usage ?? [];
+		if (uses.length === 0) return 'Not in use';
+		const paths = uses.map((use) => use.title || use.path).join(', ');
+		return `In use by ${uses.length} Content document${uses.length === 1 ? '' : 's'}: ${paths}`;
 	}
 
 	onMount(() => void load());
 </script>
 
-<section class="uncial-cms-media" aria-label="Media library">
+<section bind:this={section} class="uncial-cms-media" aria-label="Media library" tabindex="-1">
 	<div class="uncial-cms-media-toolbar">
-		<input
-			type="search"
-			class="uncial-cms-media-search"
-			placeholder="Search by title or filename"
-			aria-label="Search media"
-			bind:value={search}
-			oninput={() => void load()}
-		/>
-		{#if can('media-upload')}
+		{#if capabilities.search}
+			<input
+				type="search"
+				class="uncial-cms-media-search"
+				placeholder="Search by title or filename"
+				aria-label="Search media"
+				bind:value={search}
+				oninput={() => void load()}
+			/>
+		{/if}
+		{#if may('media-upload')}
 			<input
 				bind:this={fileInput}
 				type="file"
@@ -102,7 +142,12 @@
 					if (files.length) void upload(files);
 				}}
 			/>
-			<button type="button" disabled={uploading > 0} onclick={() => fileInput?.click()}>
+			<button
+				type="button"
+				class="uncial-cms-media-upload"
+				disabled={uploading > 0}
+				onclick={() => fileInput?.click()}
+			>
 				Upload
 			</button>
 		{/if}
@@ -115,35 +160,39 @@
 		<p class="uncial-cms-media-error" role="alert">{error}</p>
 	{/if}
 
-	{#if view === undefined}
+	{#if items === undefined}
 		{#if !error}<p role="status">Loading media…</p>{/if}
-	{:else if view.items.length === 0}
+	{:else if items.length === 0}
 		<p>{search.trim() ? 'No media matches that search.' : 'No media yet.'}</p>
 	{:else}
 		<ul class="uncial-cms-media-grid">
-			{#each view.items as item (item.id)}
+			{#each items as item (item.id)}
 				<li class="uncial-cms-media-item">
-					<a class="uncial-cms-media-preview" href={item.url} target="_blank" rel="noopener">
+					<a
+						class="uncial-cms-media-preview"
+						href={resolveImageSrc(item.url, base)}
+						target="_blank"
+						rel="noopener"
+						aria-label="Open {nameOf(item)}"
+					>
 						{#if item.contentType.startsWith('image/')}
-							<img src={item.url} alt="" loading="lazy" />
+							<img src={resolveImageSrc(item.url, base)} alt="" loading="lazy" />
 						{:else}
-							<span>{item.key.split('.').at(-1)?.toUpperCase()}</span>
+							<span>{item.filename.split('.').at(-1)?.toUpperCase()}</span>
 						{/if}
 					</a>
-					<p class="uncial-cms-media-title">{item.title}</p>
-					<p class="uncial-cms-media-meta">
-						{item.filename} · {#if item.width && item.height}{item.width}×{item.height} · {/if}{size(
-							item.size
-						)}
-					</p>
-					<p class="uncial-cms-media-usage">
-						{item.usage > 0 ? inUse(item.usage) : 'Not in use'}
-					</p>
-					{#if can('media-delete')}
+					{#if capabilities.metadata}
+						<p class="uncial-cms-media-title">{item.title}</p>
+					{/if}
+					<p class="uncial-cms-media-meta">{details(item)}</p>
+					{#if capabilities.usage}
+						<p class="uncial-cms-media-usage">{usage(item)}</p>
+					{/if}
+					{#if capabilities.delete && may('media-delete', item)}
 						<button
 							type="button"
-							disabled={item.usage > 0}
-							title={item.usage > 0 ? `${inUse(item.usage)}, so it cannot be deleted.` : undefined}
+							class="uncial-cms-media-delete"
+							aria-label="Delete {nameOf(item)}"
 							onclick={() => void remove(item)}
 						>
 							Delete
@@ -181,7 +230,14 @@
 		object-fit: cover;
 	}
 
-	.uncial-cms-media-meta {
+	.uncial-cms-media-meta,
+	.uncial-cms-media-usage {
 		overflow-wrap: anywhere;
+	}
+
+	@media (max-width: 40rem) {
+		.uncial-cms-media-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>

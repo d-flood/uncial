@@ -1,12 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import { CreateBucketCommand, DeleteBucketCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import postgres, { type Sql } from 'postgres';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mediaSourceContract } from '../../fixtures/media-source-contract.js';
+import { mediaSourceFor } from '../media-source.js';
 import {
 	contentStoreMigrations,
 	createMediaLibrary,
 	createPostgresContentStore,
 	createServerMediaHandlers,
+	MediaInUseError,
 	mediaLibraryMigrations,
 	type Action,
 	type ContentStore,
@@ -195,6 +198,38 @@ describe.skipIf(!databaseUrl || !endpoint)('media handlers', () => {
 		denied = 'media-delete';
 		const list = await (await handlers().GET(event('GET'))).json();
 		expect(list.allowed).toEqual(['media-upload']);
+	});
+
+	describe('as a Media source', () => {
+		async function source() {
+			vi.stubGlobal('location', { origin: 'http://site.test' });
+			vi.stubGlobal('fetch', async (input: URL, init?: RequestInit) => {
+				const request = new Request(input, init);
+				const method = request.method as 'GET' | 'POST' | 'DELETE';
+				return handlers()[method]({ request, url: new URL(request.url) });
+			});
+			return mediaSourceFor({
+				forge: 'server',
+				apiBase: '/dashboard/api/content',
+				mediaApiBase: '/dashboard/api/media'
+			});
+		}
+
+		afterEach(() => vi.unstubAllGlobals());
+
+		mediaSourceContract({ metadata: true, usage: true, delete: true, search: true }, source);
+
+		it('refuses to delete an item a Content document uses, with the in-use error', async () => {
+			const media = await source();
+			const item = await media.upload(
+				new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'used.svg', { type: 'image/svg+xml' })
+			);
+			await store.create('/about/', 'page', docWith(item.url), { author });
+
+			await expect(media.delete(item)).rejects.toBeInstanceOf(MediaInUseError);
+			const listed = (await media.list()).find(({ id }) => id === item.id);
+			expect(listed?.usage).toEqual([{ path: '/about/' }]);
+		});
 	});
 });
 

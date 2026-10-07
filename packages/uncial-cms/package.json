@@ -23,6 +23,7 @@
 		"test": "pnpm run test:unit -- --run && pnpm run test:browser -- --run && pnpm run test:e2e",
 		"test:e2e": "playwright test",
 		"test:cli": "node scripts/test-local-only-cli.mjs",
+		"test:astro": "playwright test --project astro",
 		"test:browser": "vitest --project client"
 	},
 	"bin": {
@@ -38,7 +39,9 @@
 		"!dist/**/*.spec.*"
 	],
 	"type": "module",
-	"sideEffects": false,
+	"sideEffects": [
+		"./dist/dashboard/element.js"
+	],
 	"types": "./dist/index.d.ts",
 	"exports": {
 		"./package.json": "./package.json",
@@ -49,6 +52,11 @@
 		"./session": {
 			"types": "./dist/editor-session.d.ts",
 			"default": "./dist/editor-session.js"
+		},
+		"./dashboard": {
+			"types": "./dist/dashboard/element.d.ts",
+			"svelte": "./dist/dashboard/element.js",
+			"default": "./dist/dashboard/element.js"
 		},
 		"./svelte": {
 			"types": "./dist/svelte/index.d.ts",
@@ -106,6 +114,7 @@
 	"devDependencies": {
 		"@astrojs/svelte": "^7.2.5",
 		"@aws-sdk/client-s3": "^3.1144.0",
+		"@axe-core/playwright": "^4.13.0",
 		"@playwright/test": "^1.58.2",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.2",

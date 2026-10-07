@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, MediaInUseError, NotFoundError, SignedOutError } from '../errors.js';
 import type {
 	ForgeAdapter,
 	ForgeSession,
@@ -17,6 +17,7 @@ export interface ServerForgeAdapter extends ForgeAdapter {
 	getVersion(path: string, versionId: string): Promise<unknown>;
 	restore(path: string, versionId: string, etag: string): Promise<ContentView>;
 	move(path: string, to: string, etag: string): Promise<ContentView>;
+	saveGlobal(name: string, document: unknown, etag?: string): Promise<ContentView>;
 }
 
 export async function serverRequest<T>(
@@ -38,11 +39,14 @@ export async function serverRequest<T>(
 	if (response.status === 204) return undefined as T;
 	if (response.ok) return (await response.json()) as T;
 
-	const { error } = (await response.json().catch(() => ({}))) as { error?: string };
-	if (response.status === 401) throw new Error('You are signed out. Sign in again to keep editing.');
+	const { error, usage } = (await response.json().catch(() => ({}))) as {
+		error?: string;
+		usage?: MediaInUseError['usage'];
+	};
+	if (response.status === 401) throw new SignedOutError();
 	if (response.status === 403) throw new Error(error ?? 'You do not have permission to do that.');
 	if (response.status === 404) throw new NotFoundError(error);
-	if (response.status === 409) throw new ConflictError(error);
+	if (response.status === 409) throw usage ? new MediaInUseError(usage) : new ConflictError(error);
 	throw new Error(error ?? `Request failed (${response.status}).`);
 }
 
@@ -88,6 +92,10 @@ class ServerAdapter implements ServerForgeAdapter {
 
 	move(path: string, to: string, etag: string): Promise<ContentView> {
 		return this.#request('POST', { body: { action: 'move', path, to, etag } });
+	}
+
+	saveGlobal(name: string, document: unknown, etag?: string): Promise<ContentView> {
+		return this.#request('POST', { body: { action: 'global-edit', name, document, etag } });
 	}
 
 	async readFile(path: string): Promise<{ content: string; sha: string }> {

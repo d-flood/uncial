@@ -90,7 +90,7 @@ export function defaultSessionProvider(config: UncialCmsSiteConfig): SessionProv
 	return popupSessionProvider;
 }
 
-function triggerDownload(payload: { filename: string; content: string; mimeType: string }): void {
+export function triggerDownload(payload: { filename: string; content: string; mimeType: string }): void {
 	const blob = new Blob([payload.content], { type: payload.mimeType });
 	const url = URL.createObjectURL(blob);
 	const anchor = document.createElement('a');

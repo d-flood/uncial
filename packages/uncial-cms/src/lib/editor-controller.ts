@@ -57,6 +57,7 @@ export interface EditorPageUi {
 	record?(state: RecordState): void;
 	/** The record moved to a new path; this controller no longer addresses it. */
 	moved?(path: string): void;
+	failed?(error: unknown): void;
 }
 
 export interface EditorControllerOptions {
@@ -162,6 +163,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	};
 
 	const showFailure = (error: unknown, fallback: string) => {
+		ui.failed?.(error);
 		if (error instanceof ConflictError) {
 			// Do NOT touch content or dirty state: the unsaved edit must survive.
 			ui.conflictVisible(true);

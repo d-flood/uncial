@@ -1,0 +1,23 @@
+---
+// '/uncial/': the Dashboard, configured by a client script because its options
+// are objects and functions that attributes cannot carry.
+---
+
+<html lang="en">
+	<head><title>Dashboard</title></head>
+	<body>
+		<uncial-dashboard></uncial-dashboard>
+		<script>
+			import 'uncial-cms/dashboard';
+			import { defineSite } from 'uncial-cms';
+			import { blocks, schema } from '../site.ts';
+			import { siteOptions } from '../site-options.ts';
+
+			Object.assign(document.querySelector('uncial-dashboard')!, {
+				config: defineSite(siteOptions),
+				blocks,
+				schema
+			});
+		</script>
+	</body>
+</html>
