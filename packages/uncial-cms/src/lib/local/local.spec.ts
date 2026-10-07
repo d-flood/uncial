@@ -66,6 +66,24 @@ describe('createLocalVitePlugin', () => {
 		expect((server.httpServer?.address() as AddressInfo).address).toBe('127.0.0.1');
 	});
 
+	it('binds to the host option when given', async () => {
+		const server = await createServer({
+			appType: 'custom',
+			plugins: [
+				createLocalVitePlugin({
+					root: repository(),
+					permittedRoots: [CONTENT_DIR],
+					host: '0.0.0.0'
+				})
+			],
+			server: { port: 0 },
+			logLevel: 'error'
+		});
+		servers.push(server);
+		await server.listen();
+		expect((server.httpServer?.address() as AddressInfo).address).toBe('0.0.0.0');
+	});
+
 	it('reads contained files through a JSON endpoint', async () => {
 		const root = repository();
 		writeFileSync(join(root, CONTENT_DIR, 'about.json'), '{"title":"About"}');

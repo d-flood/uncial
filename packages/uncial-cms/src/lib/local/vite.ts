@@ -11,6 +11,8 @@ export interface LocalVitePluginOptions {
 	root: string;
 	/** Repo-root-relative directories a request may address, as the site declares them. */
 	permittedRoots: string[];
+	/** Vite `server.host`; defaults to loopback because the endpoint has no auth. */
+	host?: string | boolean;
 }
 
 /**
@@ -237,7 +239,7 @@ export function createLocalVitePlugin(options: LocalVitePluginOptions): Plugin {
 			const watched = roots.permitted.map((permitted) => permitted.absolute);
 			return {
 				server: {
-					host: '127.0.0.1',
+					host: options.host ?? '127.0.0.1',
 					// Every write under a permitted root arrives through this plugin's
 					// own endpoint, so a watcher event for one is the author's own
 					// autosave landing. Watched, it makes Vite full-reload the page

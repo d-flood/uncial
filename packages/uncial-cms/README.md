@@ -149,7 +149,7 @@ leaving it unrouted.
 `createLocalVitePlugin` from `uncial-cms/local` is the same endpoint on its own,
 for a site that is not using `defineSite`; it takes the repository `root` and the
 repo-root-relative `permittedRoots` writes are confined to. It is serve-only and
-forces Vite to bind to `127.0.0.1`. Every path it takes is repo-root-relative,
+binds Vite to `127.0.0.1` unless given a `host`. Every path it takes is repo-root-relative,
 exactly as the GitHub adapter addresses one. The adapter calls it at the fixed,
 development-only JSON endpoint `/__uncial-cms/local`:
 
