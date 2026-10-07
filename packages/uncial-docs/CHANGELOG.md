@@ -1,5 +1,17 @@
 # uncial-docs
 
+## 0.1.0
+
+### Minor Changes
+
+- c863c8c: Add the `<uncial-dashboard>` Dashboard with Pages, Media and Globals sections, and deprecate `mountIndexPage`.
+
+### Patch Changes
+
+- Updated dependencies [c863c8c]
+  - uncial@5.1.0
+  - uncial-cms@5.2.0
+
 ## 0.0.5
 
 ### Patch Changes
