@@ -183,8 +183,14 @@ jobs:
         working-directory: packages/uncial-wagtail
 
       # A changesets release that touches only the JS packages still reaches this
-      # job, so --check-url makes a re-publish of an unchanged Python version a
-      # no-op instead of a 400.
+      # job. The sdist carries package.json and CHANGELOG.md, which can change
+      # without a version bump, so skip by version rather than by file hash.
       - name: Publish
-        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/
+        run: |
+          version=$(uv version --short)
+          if curl -sf -o /dev/null "https://pypi.org/pypi/uncial-wagtail/$version/json"; then
+            echo "::notice::uncial-wagtail $version is already on PyPI; skipping."
+            exit 0
+          fi
+          uv publish --trusted-publishing always
         working-directory: packages/uncial-wagtail
