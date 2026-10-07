@@ -29,6 +29,7 @@ export const workspaceAliases = [
 	{ find: /^uncial$/, replacement: uncialSrc('index.ts') },
 	{ find: 'uncial-cms/sveltekit', replacement: cmsSrc('sveltekit/index.ts') },
 	{ find: 'uncial-cms/svelte', replacement: cmsSrc('svelte/index.ts') },
+	{ find: 'uncial-cms/dashboard', replacement: cmsSrc('dashboard/element.ts') },
 	{ find: 'uncial-cms/session', replacement: cmsSrc('editor-session.ts') },
 	{ find: 'uncial-cms/paths', replacement: cmsSrc('paths/index.ts') },
 	{ find: 'uncial-cms/vite', replacement: cmsSrc('vite/index.ts') },

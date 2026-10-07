@@ -1,0 +1,945 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": {
+		"title": "Media sources",
+		"navGroup": "Dashboard",
+		"navOrder": 15
+	},
+	"content": [
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "One library, every forge"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Dashboard's Media section and the editor's image picker show the same media, because both read it through a "
+				},
+				{
+					"type": "text",
+					"text": "Media source",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": one interface, with an implementation for git forges and one for the server forge. An image uploaded in the Media section is waiting in the picker's Choose existing list, and the other way round."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "interface MediaSource {\n\tcapabilities: { metadata: boolean; usage: boolean; delete: boolean; search: boolean };\n\tlist(query?: { search?: string; contentType?: string }): Promise<MediaItem[]>;\n\tupload(file: File, opts?: { title?: string }): Promise<MediaItem>;\n\tdelete(item: MediaItem): Promise<void>;\n}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A "
+				},
+				{
+					"type": "text",
+					"text": "MediaItem",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " always has an "
+				},
+				{
+					"type": "text",
+					"text": "id",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", a "
+				},
+				{
+					"type": "text",
+					"text": "url",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", a "
+				},
+				{
+					"type": "text",
+					"text": "filename",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and a "
+				},
+				{
+					"type": "text",
+					"text": "contentType",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Depending on the source it may also carry a "
+				},
+				{
+					"type": "text",
+					"text": "size",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "width",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "height",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", a "
+				},
+				{
+					"type": "text",
+					"text": "title",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "uploadedAt",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "uploadedBy",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and "
+				},
+				{
+					"type": "text",
+					"text": "usage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": the pages that use it. The "
+				},
+				{
+					"type": "text",
+					"text": "url",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is what a Content document stores as an image's "
+				},
+				{
+					"type": "text",
+					"text": "src",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Capabilities"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A source's "
+				},
+				{
+					"type": "text",
+					"text": "capabilities",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " say what it can do, and the Media section shows only that:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "metadata",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": items carry a title, size and dimensions, which the grid shows."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "usage",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": items list the Content documents that use them."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "delete",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": items can be deleted."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "search",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": the list can be searched, so the Media section shows a search box."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The two sources differ in exactly these flags."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Git forges: the media dir"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "On the github and local forges, media is the files in the site's "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", committed like any other file. The source lists, uploads and deletes them through the same forge as pages, so a site that has "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " in its site options needs nothing more."
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Upload",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " shrinks a large photo to WebP until it fits the forge's 1 MB limit, then commits it under a name made from a hash of its bytes. Uploading the same image twice reuses the file already there."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Delete",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is a commit that removes the file."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "No metadata.",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " A git source keeps no titles and no sidecar files. Alt text belongs on the image block that uses the file, where it can say what the image means on that page."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "No usage index.",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " Before a delete, the Media section reads the site's Content documents once, looking for the file's served URL. If any page uses it, the confirmation lists those pages and its button reads Delete anyway."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Its capabilities are "
+				},
+				{
+					"type": "text",
+					"text": "{ metadata: false, usage: false, delete: true, search: false }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "callout",
+			"attrs": {
+				"variant": "note"
+			},
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "The Media section shows a git forge's files at the URLs the built site serves them from. When the build's static dir is not "
+						},
+						{
+							"type": "text",
+							"text": "static",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": ", pass the Dashboard the same "
+						},
+						{
+							"type": "text",
+							"text": "staticDir",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " you give "
+						},
+						{
+							"type": "text",
+							"text": "cmsImageSource",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": ", or its previews and its in-use check will miss."
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "The server forge: the Media library"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "On the server forge, media lives in the server's Media library, behind the "
+				},
+				{
+					"type": "text",
+					"text": "mediaApiBase",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " endpoint the site declares with "
+				},
+				{
+					"type": "text",
+					"text": "defineServerSite",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". The source wraps those endpoints and has every capability. Each item shows its title, filename, dimensions and size, and the pages that use it, and the list can be searched. The server decides what may be deleted. Deleting an item that Content documents still use is refused with "
+				},
+				{
+					"type": "text",
+					"text": "MediaInUseError",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and the Media section shows the server's message in an alert rather than deleting anything."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Permissions"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Media section asks the Dashboard's "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " before it offers Upload, with "
+				},
+				{
+					"type": "text",
+					"text": "can('media-upload')",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and before each Delete, with "
+				},
+				{
+					"type": "text",
+					"text": "can('media-delete', item)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Without "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", both are offered. See "
+				},
+				{
+					"type": "text",
+					"text": "Permissions",
+					"marks": [
+						{
+							"type": "link",
+							"attrs": {
+								"href": "../dashboard/#permissions"
+							}
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Outside the Dashboard"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "mediaSourceFor(config, session, { staticDir })",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", picks the source for a site config. The server forge needs only the config. A git forge reaches its media through a signed-in editing session, so it also needs that session's adapter and author. The "
+				},
+				{
+					"type": "text",
+					"text": "MediaLibrary",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " component from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/svelte",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is the Media section's grid on its own. Give it a source, "
+				},
+				{
+					"type": "text",
+					"text": "<MediaLibrary {source} />",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and it shows what that source's capabilities allow. It also takes "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "confirmDelete",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "base",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". The editor's image picker needs no wiring: "
+				},
+				{
+					"type": "text",
+					"text": "EditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "mountEditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the Astro "
+				},
+				{
+					"type": "text",
+					"text": "EditorSurface",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " back every "
+				},
+				{
+					"type": "text",
+					"text": "input: 'image'",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " field with "
+				},
+				{
+					"type": "text",
+					"text": "cmsImageSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", which reads through the same Media source on every forge."
+				}
+			]
+		}
+	]
+}

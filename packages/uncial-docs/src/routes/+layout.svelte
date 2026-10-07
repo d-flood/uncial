@@ -28,7 +28,7 @@
 					<GithubLogoIcon size={16} weight="bold" />
 					GitHub repo
 				</a>
-				<a href={resolve('/uncial')} class="btn btn-outline btn-secondary btn-sm">Site index</a>
+				<a href={resolve('/uncial')} class="btn btn-outline btn-secondary btn-sm">Dashboard</a>
 				<ThemeSwitcher />
 			</nav>
 		</div>
@@ -43,7 +43,7 @@
 					<GithubLogoIcon size={16} weight="bold" />
 					GitHub repo
 				</a>
-				<a href={resolve('/uncial')} class="btn btn-outline btn-secondary btn-sm">Site index</a>
+				<a href={resolve('/uncial')} class="btn btn-outline btn-secondary btn-sm">Dashboard</a>
 			</nav>
 		</div>
 	</footer>

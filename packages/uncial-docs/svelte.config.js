@@ -25,6 +25,7 @@ const config = {
 			uncial: '../uncial/src/lib/index.ts',
 			'uncial-cms/sveltekit': '../uncial-cms/src/lib/sveltekit/index.ts',
 			'uncial-cms/svelte': '../uncial-cms/src/lib/svelte/index.ts',
+			'uncial-cms/dashboard': '../uncial-cms/src/lib/dashboard/element.ts',
 			'uncial-cms/session': '../uncial-cms/src/lib/editor-session.ts',
 			'uncial-cms/paths': '../uncial-cms/src/lib/paths/index.ts',
 			'uncial-cms/vite': '../uncial-cms/src/lib/vite/index.ts',

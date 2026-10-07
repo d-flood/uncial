@@ -1,41 +1,21 @@
 <script lang="ts">
-	// '/uncial/' site index: list/create/delete pages and the hash-routed
-	// fallback editor, all provided by the framework-agnostic runtime.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { mountIndexPage } from 'uncial-cms';
+	import 'uncial-cms/dashboard';
+	import { STATIC_DIR } from '$lib/site.js';
 	import { blocks, schema, site } from '../site.js';
 
-	let { data } = $props();
-	let target: HTMLElement;
-
-	onMount(() => {
-		const handle = mountIndexPage(target, {
-			config: site.config,
-			blocks,
-			schema,
-			basePath: base
-			// Uses the provider the resolved forge implies; the GitHub half's
-			// authWorkerUrl comes from site.options.ts.
-		});
-		return () => handle.destroy();
-	});
+	let mounted = $state(false);
+	onMount(() => (mounted = true));
 </script>
 
 <svelte:head>
-	<title>Site index · Uncial Docs</title>
+	<title>Dashboard · Uncial Docs</title>
 </svelte:head>
 
-<main class="mx-auto max-w-3xl px-6 py-10 sm:px-10">
-	<h1 class="font-vellum-display mb-4 text-2xl font-bold">Site index</h1>
-	<p class="mb-6">
-		{#if data.config.forge === 'github'}
-			This site edits <code>{data.config.repo}</code> on branch
-			<code>{data.config.branch}</code> (content in <code>{data.config.contentDir}</code>).
-		{:else if data.config.forge === 'local'}
-			This site edits the local checkout (content in <code>{data.config.contentDir}</code>).
-		{/if}
-	</p>
-
-	<div bind:this={target}></div>
+<main class="mx-auto max-w-5xl px-4 py-10 sm:px-10">
+	{#if mounted}
+		<uncial-dashboard config={site} {blocks} {schema} staticDir={STATIC_DIR} basePath={base}
+		></uncial-dashboard>
+	{/if}
 </main>

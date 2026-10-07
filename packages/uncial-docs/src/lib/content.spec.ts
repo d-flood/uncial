@@ -27,9 +27,13 @@ describe('ported Docs content', () => {
 
 	it('ships the ported Docs pages (not just the ticket-01 seed)', () => {
 		expect(files).toEqual([
+			'app-sections.json',
 			'blocks.json',
+			'dashboard.json',
 			'getting-started.json',
+			'globals.json',
 			'integrations.json',
+			'media-sources.json',
 			'rendering.json',
 			'static-site.json'
 		]);
@@ -98,7 +102,7 @@ describe('ported Docs content', () => {
 			'uncialCms(siteOptions)',
 			'createContentHandlers',
 			'EditorPage',
-			'mountIndexPage',
+			'uncial-cms/dashboard',
 			"input: 'image'",
 			'.uncial/cms.json',
 			'uncial-cms doctor',

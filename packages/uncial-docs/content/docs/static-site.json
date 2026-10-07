@@ -118,7 +118,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "An Index page — "
+									"text": "The Dashboard — "
 								},
 								{
 									"type": "text",
@@ -131,7 +131,7 @@
 								},
 								{
 									"type": "text",
-									"text": " — lists the documents and creates or deletes them."
+									"text": " — lists, creates and deletes the documents, and manages the site's media and Globals."
 								}
 							],
 							"attrs": {
@@ -407,7 +407,7 @@
 				},
 				{
 					"type": "text",
-					"text": ". The route factories, the editor component and the index mount all take it, so nothing downstream reads the options again."
+					"text": ". The route factories, the editor component and the Dashboard all take it, so nothing downstream reads the options again."
 				}
 			],
 			"attrs": {
@@ -1038,7 +1038,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "3. The site index.",
+					"text": "3. The Dashboard.",
 					"marks": [
 						{
 							"type": "bold"
@@ -1047,7 +1047,7 @@
 				},
 				{
 					"type": "text",
-					"text": " A plain-DOM mount, in one route pair:"
+					"text": " One custom element, in one route pair:"
 				}
 			],
 			"attrs": {
@@ -1076,7 +1076,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "<!-- src/routes/uncial/+page.svelte -->\n<script lang=\"ts\">\n\timport { onMount } from 'svelte';\n\timport { base } from '$app/paths';\n\timport { mountIndexPage } from 'uncial-cms';\n\timport { blocks, schema, site } from '../site.js';\n\n\tlet target: HTMLElement;\n\n\tonMount(() => {\n\t\tconst handle = mountIndexPage(target, { config: site.config, blocks, schema, basePath: base });\n\t\treturn () => handle.destroy();\n\t});\n</script>\n\n<div bind:this={target}></div>"
+					"text": "<!-- src/routes/uncial/+page.svelte -->\n<script lang=\"ts\">\n\timport { onMount } from 'svelte';\n\timport { base } from '$app/paths';\n\timport 'uncial-cms/dashboard';\n\timport { blocks, schema, site } from '../site.js';\n\n\tlet mounted = $state(false);\n\tonMount(() => (mounted = true));\n</script>\n\n{#if mounted}\n\t<uncial-dashboard config={site} {blocks} {schema} basePath={base}></uncial-dashboard>\n{/if}"
 				}
 			]
 		},
@@ -1098,7 +1098,23 @@
 				},
 				{
 					"type": "text",
-					"text": " so the index's links to live pages resolve under a project site's base path. The path mapping itself always works in site-relative paths, with the base stripped."
+					"text": " so the Dashboard's links to live pages resolve under a project site's base path. The path mapping itself always works in site-relative paths, with the base stripped. "
+				},
+				{
+					"type": "text",
+					"text": "The Dashboard",
+					"marks": [
+						{
+							"type": "link",
+							"attrs": {
+								"href": "../dashboard/"
+							}
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " covers its other options, and its Media, Globals and App sections."
 				}
 			],
 			"attrs": {
@@ -1987,7 +2003,7 @@
 				},
 				{
 					"type": "text",
-					"text": " in the build, resolves the static import closure of its scripts, and checks for the CMS runtime sentinel: absent from every Content page, present on every Editor variant, ignored on the Index page."
+					"text": " in the build, resolves the static import closure of its scripts, and checks for the CMS runtime sentinel: absent from every Content page, present on every Editor variant, ignored on the Dashboard."
 				}
 			],
 			"attrs": {

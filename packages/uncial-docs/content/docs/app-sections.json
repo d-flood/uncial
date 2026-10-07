@@ -1,0 +1,370 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": {
+		"title": "App sections",
+		"navGroup": "Dashboard",
+		"navOrder": 16
+	},
+	"content": [
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "The host's own screens, in the same frame"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "An "
+				},
+				{
+					"type": "text",
+					"text": "App section",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is a Dashboard section the host supplies: a store, a redirects screen, a newsletter list, anything the site's admins need beside Pages, Media and Globals. It joins the Dashboard's nav, so all admin work starts in one place. An App section is one of two kinds:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Slotted:",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " the host's own markup, shown inside the Dashboard frame."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Linked:",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " a nav link out to a route the host already has."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Declare them with the "
+				},
+				{
+					"type": "text",
+					"text": "appSections",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " option, an array of "
+				},
+				{
+					"type": "text",
+					"text": "{ id, label, href? }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A section with an "
+				},
+				{
+					"type": "text",
+					"text": "href",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is linked; one without is slotted."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Slotted sections"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A slotted section shows the element's child with "
+				},
+				{
+					"type": "text",
+					"text": "slot",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " set to the section's "
+				},
+				{
+					"type": "text",
+					"text": "id",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", when the Dashboard's hash is "
+				},
+				{
+					"type": "text",
+					"text": "#/app/<id>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ":"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/routes/uncial/+page.svelte -->\n<script lang=\"ts\">\n\timport { onMount } from 'svelte';\n\timport { base } from '$app/paths';\n\timport 'uncial-cms/dashboard';\n\timport { blocks, schema, site } from '../site.js';\n\n\tconst appSections = [{ id: 'redirects', label: 'Redirects' }];\n\n\tlet mounted = $state(false);\n\tonMount(() => (mounted = true));\n</script>\n\n{#if mounted}\n\t<uncial-dashboard config={site} {blocks} {schema} {appSections} basePath={base}>\n\t\t<div slot=\"redirects\">\n\t\t\t<p>Redirects the site serves:</p>\n\t\t\t<ul>\n\t\t\t\t<li><code>/blog/</code> → <code>/news/</code></li>\n\t\t\t</ul>\n\t\t</div>\n\t</uncial-dashboard>\n{/if}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The slotted markup stays in your page's light DOM and is only projected into the frame, so your own styles and your own components work in it unchanged. The Dashboard shows it once the editor is signed in, as it does its own sections, and the section's label becomes the page heading."
+				}
+			]
+		},
+		{
+			"type": "callout",
+			"attrs": {
+				"variant": "note"
+			},
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "Slotting relies on the custom element's shadow root. The Svelte "
+						},
+						{
+							"type": "text",
+							"text": "Dashboard",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " component from "
+						},
+						{
+							"type": "text",
+							"text": "uncial-cms/svelte",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " renders no shadow root, so with it only linked sections work."
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Linked sections"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A linked section is a plain nav link to a host route, for a screen that is already a page of its own:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import { resolve } from '$app/paths';\n\nconst appSections = [\n\t{ id: 'redirects', label: 'Redirects' },\n\t{ id: 'orders', label: 'Orders', href: resolve('/admin/orders') }\n];"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Dashboard uses the "
+				},
+				{
+					"type": "text",
+					"text": "href",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " exactly as given, so resolve it against the site's base path yourself. Following the link leaves the Dashboard, and the browser's Back button returns to it."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Choosing between them"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Slot a screen that is small and belongs in the frame: it sits in the Dashboard's nav, behind its sign-in, with nothing else to build. Link a screen that is a full application already, or that needs its own route, its own data loading or a server round trip of its own. Either way, the host owns the screen's permissions. The Dashboard's "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " covers only the Dashboard's own actions, so a host that shows an App section only to some editors leaves it out of "
+				},
+				{
+					"type": "text",
+					"text": "appSections",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for the others."
+				}
+			]
+		}
+	]
+}

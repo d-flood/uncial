@@ -39,9 +39,9 @@ test('editor variant mounts the WYSIWYG editor with the live document', async ({
 	);
 });
 
-test('site index shell shows the baked repo config', async ({ page }) => {
+test('the Dashboard frame shows the baked repo config', async ({ page }) => {
 	await page.goto('/uncial/');
 
-	await expect(page.locator('main h1')).toContainText('Site index');
-	await expect(page.locator('main')).toContainText('d-flood/uncial');
+	await expect(page.getByRole('navigation', { name: 'Dashboard' })).toBeVisible();
+	await expect(page.getByText('d-flood/uncial@main')).toBeVisible();
 });

@@ -1,0 +1,666 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": {
+		"title": "Globals",
+		"navGroup": "Dashboard",
+		"navOrder": 14
+	},
+	"content": [
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Site-wide data, edited as forms"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A "
+				},
+				{
+					"type": "text",
+					"text": "Global",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is a named, schema-defined Content document with meta fields only, holding site-wide data such as menus, a banner or footer text. It has no body and is never a page. An editor changes it in the Dashboard's Globals section as a form, and the site reads it with one helper, "
+				},
+				{
+					"type": "text",
+					"text": "loadGlobal",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". One declaration drives all of it: the Globals section's forms, the type "
+				},
+				{
+					"type": "text",
+					"text": "loadGlobal",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " returns, and keeping Globals out of the page routes and the Pages list."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Declare Globals on the site object"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Each Global is a schema built with "
+				},
+				{
+					"type": "text",
+					"text": "createSchema",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", exactly as for pages, with "
+				},
+				{
+					"type": "text",
+					"text": "metaFields",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " describing its form. It has no blocks, so an empty registry will do. Pass the Globals by name to "
+				},
+				{
+					"type": "text",
+					"text": "defineSite",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ":"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/site.ts\nimport { createBlockRegistry, createSchema } from 'uncial/core';\nimport { defineSite } from 'uncial-cms';\nimport { siteOptions } from '../../site.options.js';\n\ninterface Link {\n\tlabel: string;\n\thref: string;\n}\n\nconst noBlocks = createBlockRegistry([]);\nconst isSitePath = (value: unknown) => typeof value === 'string' && value.startsWith('/');\nconst link = {\n\titemLabel: 'link',\n\tfields: {\n\t\tlabel: { default: '', required: true },\n\t\thref: { default: '/', required: true, validate: isSitePath }\n\t}\n};\n\nconst banner = createSchema(noBlocks, {\n\tmetaFields: {\n\t\tmessage: { default: '' },\n\t\tvisible: { default: false }\n\t}\n});\n\nconst menus = createSchema(noBlocks, {\n\tmetaFields: {\n\t\theader: { default: [] as Link[], list: link },\n\t\tfooter: {\n\t\t\tdefault: [] as Array<{ heading: string; links: Link[] }>,\n\t\t\tlist: {\n\t\t\t\titemLabel: 'column',\n\t\t\t\tfields: {\n\t\t\t\t\theading: { default: '', required: true },\n\t\t\t\t\tlinks: { default: [] as Link[], list: link }\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n});\n\nexport const site = defineSite({ ...siteOptions, globals: { banner, menus } });"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A field's control follows its default, as on a page's metadata panel: a string is a text field, a boolean a checkbox, and a "
+				},
+				{
+					"type": "text",
+					"text": "list",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " a stack of items with add, reorder and remove. Lists nest, so a footer can hold columns that each hold links. A "
+				},
+				{
+					"type": "text",
+					"text": "list",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " must declare its item "
+				},
+				{
+					"type": "text",
+					"text": "fields",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " or a single "
+				},
+				{
+					"type": "text",
+					"text": "value",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and "
+				},
+				{
+					"type": "text",
+					"text": "createSchema",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " throws on one that declares neither. The Globals section lists each Global by name. To show a friendlier label beside the name, set "
+				},
+				{
+					"type": "text",
+					"text": "title",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " on the schema object: "
+				},
+				{
+					"type": "text",
+					"text": "{ ...createSchema(noBlocks, { metaFields }), title: 'Site banner' }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Read a Global"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "loadGlobal(site, name)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " returns a Global's published value, normalized against its schema. Its type comes from the schema, so "
+				},
+				{
+					"type": "text",
+					"text": "banner",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " below is "
+				},
+				{
+					"type": "text",
+					"text": "{ message: string; visible: boolean }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A Global that has never been saved returns its schema's defaults, so a fresh site renders without seed files."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/routes/+layout.server.ts\nimport { loadGlobal } from 'uncial-cms/sveltekit';\nimport { site } from '$lib/site.js';\n\nexport const load = async () => ({\n\tbanner: await loadGlobal(site, 'banner'),\n\tmenus: await loadGlobal(site, 'menus')\n});"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "On a static site this runs at build time and reads the content dir. In Astro, the same "
+				},
+				{
+					"type": "text",
+					"text": "loadGlobal",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is exported from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/astro",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for frontmatter. A server-forge site reads at request time from its content store instead, and passes it in: "
+				},
+				{
+					"type": "text",
+					"text": "loadGlobal(site, 'banner', { store })",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Where Globals live"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Globals go through the same forge as pages, with no new storage:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "On the github and local forges, a Global is a JSON file at "
+								},
+								{
+									"type": "text",
+									"text": "<contentDir>/_globals/<name>.json",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "On the server forge, it is a record of kind "
+								},
+								{
+									"type": "text",
+									"text": "global",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " at the path "
+								},
+								{
+									"type": "text",
+									"text": "/_globals/<name>/",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The "
+				},
+				{
+					"type": "text",
+					"text": "_globals",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " namespace is reserved. The SvelteKit and Astro route factories never route it, "
+				},
+				{
+					"type": "text",
+					"text": "listPages",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the Pages section never list it, and a server store's page listings leave it out, all with no "
+				},
+				{
+					"type": "text",
+					"text": "exclude",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " from the host. A site that walks its content dir itself, as these docs do for their sidebar, should skip "
+				},
+				{
+					"type": "text",
+					"text": "_globals",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " too."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Saving publishes"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A Global has no Draft: saving it publishes it, on every forge."
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "On github, a save is a commit, as it is for a page. The Globals section then shows the same building… and live status as an Editor variant, because a static site's readers see the change only once the site rebuilds."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "On the local forge, the save writes the file in your checkout."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "On the server forge, the save writes and publishes in one action."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A Global's fields are validated before the save, down to each item of a nested list. An error names its field and shows beside the offending item, so an editor can fix a missing link label in the third footer column without hunting for it. If someone else saved the Global after the form was opened, the save is refused and the conflict banner appears, as it does for a page. It offers to download the editor's version, reload the latest, or dismiss, and nothing is overwritten silently."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Who may edit"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Without a "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " option, anyone signed in may edit every Global. A host that passes "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " decides per Global: "
+				},
+				{
+					"type": "text",
+					"text": "can('global-edit', name)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". When it refuses, the Global's form shows read-only, without a Save button. See "
+				},
+				{
+					"type": "text",
+					"text": "Permissions",
+					"marks": [
+						{
+							"type": "link",
+							"attrs": {
+								"href": "../dashboard/#permissions"
+							}
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		}
+	]
+}

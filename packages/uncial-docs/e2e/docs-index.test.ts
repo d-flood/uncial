@@ -15,12 +15,10 @@ const INITIAL_FILES = {
 };
 
 function autoAcceptDialogs(page: Page): void {
-	// Sign-in is seeded (popup default, no prompt); the only dialogs the index
-	// raises are confirms: delete and the unsaved-changes guard.
 	page.on('dialog', (dialog) => void dialog.accept());
 }
 
-test('create a Docs page → set nav meta → it appears in the index, then delete round-trips', async ({
+test('create a Docs page → set nav meta → it appears in Pages, then delete round-trips', async ({
 	page
 }) => {
 	const { puts, deletes } = await interceptDocsGitHubWithStore(page, { ...INITIAL_FILES });
@@ -28,21 +26,19 @@ test('create a Docs page → set nav meta → it appears in the index, then dele
 	await seedDocsSession(page);
 
 	await page.goto('/uncial/');
-	await expect(page.getByRole('status')).toContainText('as octocat');
+	await expect(page.getByRole('status')).toContainText('Signed in as Octo Cat');
 
 	// Create: a validated path seeds a normalized doc and opens the fallback editor.
 	await page.getByLabel('New page path').fill('guides/new-topic');
 	await page.getByRole('button', { name: 'Create page' }).click();
 
-	await expect(page).toHaveURL(/#\/guides\/new-topic\/$/);
+	await expect(page).toHaveURL(/#\/edit\/guides\/new-topic$/);
 	const editor = page.locator('uncial-editor');
 	await expect(editor.locator('.ProseMirror')).toBeVisible();
 
 	const newSource = `${DOCS_CONTENT_DIR}/guides/new-topic.json`;
 	expect(puts.filter((put) => put.path === newSource)).toHaveLength(1); // the create commit
 
-	// Set the sidebar meta the way a maintainer would: navGroup/navOrder render in
-	// the metadata panel because mountIndexPage forwards the schema's metaFields.
 	await editor.getByLabel('Edit document metadata').click();
 	const navGroup = editor.getByLabel('navGroup', { exact: true });
 	const navOrder = editor.getByLabel('navOrder', { exact: true });
@@ -65,17 +61,52 @@ test('create a Docs page → set nav meta → it appears in the index, then dele
 	};
 	expect(saved.meta).toMatchObject({ navGroup: 'Guides', navOrder: 5 });
 
-	// Back to the index: the new page shows in the live listing (the nav's source).
-	await page.getByRole('link', { name: '← Back to index' }).click();
+	await page.getByRole('link', { name: 'Back to pages' }).click();
 	const row = page.locator('li', { hasText: '/guides/new-topic/' });
 	await expect(row).toBeVisible();
 
 	// Delete round-trips: a confirmed delete commits a removal and drops the row.
 	await row.getByRole('button', { name: 'Delete' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
 	await expect.poll(() => deletes.length, { message: 'DELETE commit recorded' }).toBe(1);
 	expect(deletes[0]!.path).toBe(newSource);
 	expect(deletes[0]!.body.message).toBe('uncial-cms: delete guides/new-topic');
 	await expect(page.locator('li', { hasText: '/guides/new-topic/' })).toHaveCount(0);
+});
+
+test('the Dashboard Docs pages are reachable from the sidebar', async ({ page }) => {
+	await page.goto('/getting-started/');
+
+	const nav = page.getByRole('navigation', { name: 'Docs navigation' });
+	const pages = [
+		{ title: 'The Dashboard', path: 'dashboard' },
+		{ title: 'Globals', path: 'globals' },
+		{ title: 'Media sources', path: 'media-sources' },
+		{ title: 'App sections', path: 'app-sections' }
+	];
+	for (const { title, path } of pages) {
+		await nav.getByRole('link', { name: title, exact: true }).click();
+		await expect(page).toHaveURL(new RegExp(`/${path}/$`));
+		await expect(page.locator('main h1')).toHaveText(title);
+	}
+});
+
+test('the header Dashboard link loads the Dashboard with its sections and the Docs pages', async ({
+	page
+}) => {
+	await interceptDocsGitHubWithStore(page, { ...INITIAL_FILES });
+	await seedDocsSession(page);
+
+	await page.goto('/dashboard/');
+	await page.getByRole('link', { name: 'Dashboard', exact: true }).first().click();
+
+	await expect(page).toHaveURL(/\/uncial\/$/);
+	await expect(page.getByRole('status')).toContainText('Signed in as Octo Cat');
+	const nav = page.getByRole('navigation', { name: 'Dashboard' });
+	for (const section of ['Pages', 'Media', 'Globals']) {
+		await expect(nav.getByRole('link', { name: section })).toBeVisible();
+	}
+	await expect(page.locator('li', { hasText: '/getting-started/' })).toBeVisible();
 });
 
 test('a concurrent-edit 409 surfaces the conflict banner without losing the edit', async ({

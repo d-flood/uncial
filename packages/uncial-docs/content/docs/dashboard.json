@@ -1,0 +1,1717 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": {
+		"title": "The Dashboard",
+		"navGroup": "Dashboard",
+		"navOrder": 13
+	},
+	"content": [
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "One route, the whole Dashboard"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "/uncial/",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is the "
+				},
+				{
+					"type": "text",
+					"text": "Dashboard",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": the signed-in area where an editor runs the whole site. It is shipped by "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and works the same on the github, local and server forges. It has four kinds of section:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Pages",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " lists the site's Content documents with search, filters and paging, creates and deletes them, and opens each one for editing."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Media",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " browses, uploads and deletes the site's media. See "
+								},
+								{
+									"type": "text",
+									"text": "Media sources",
+									"marks": [
+										{
+											"type": "link",
+											"attrs": {
+												"href": "../media-sources/"
+											}
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Globals",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " edits site-wide data, such as menus or a banner, as forms. See "
+								},
+								{
+									"type": "text",
+									"text": "Globals",
+									"marks": [
+										{
+											"type": "link",
+											"attrs": {
+												"href": "../globals/"
+											}
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "App sections",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " are the host's own screens, slotted into the frame or linked from its nav. See "
+								},
+								{
+									"type": "text",
+									"text": "App sections",
+									"marks": [
+										{
+											"type": "link",
+											"attrs": {
+												"href": "../app-sections/"
+											}
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Dashboard is a custom element, "
+				},
+				{
+					"type": "text",
+					"text": "<uncial-dashboard>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", so any framework can host it. As with the rest of "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", the package registers no route: you write the one route that renders it."
+				}
+			]
+		},
+		{
+			"type": "callout",
+			"attrs": {
+				"variant": "tip"
+			},
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{
+							"type": "text",
+							"text": "The Uncial docs you are reading run the SvelteKit route below, plus a "
+						},
+						{
+							"type": "text",
+							"text": "staticDir",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": " because their static dir is not "
+						},
+						{
+							"type": "text",
+							"text": "static",
+							"marks": [
+								{
+									"type": "code"
+								}
+							]
+						},
+						{
+							"type": "text",
+							"text": ". The Dashboard link in the header opens it."
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "SvelteKit"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Importing "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/dashboard",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " registers the element. Its options are objects and functions, which a prerendered attribute cannot carry, so render the element after mount and let Svelte set them as properties:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/routes/uncial/+page.server.ts\nimport { createIndexHandlers } from 'uncial-cms/sveltekit';\nimport { blocks, schema, site } from '../site.js';\n\nconst handlers = createIndexHandlers({ site, blocks, schema });\n\nexport const load = handlers.load;"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/routes/uncial/+page.svelte -->\n<script lang=\"ts\">\n\timport { onMount } from 'svelte';\n\timport { base } from '$app/paths';\n\timport 'uncial-cms/dashboard';\n\timport { blocks, schema, site } from '../site.js';\n\n\tlet mounted = $state(false);\n\tonMount(() => (mounted = true));\n</script>\n\n{#if mounted}\n\t<uncial-dashboard config={site} {blocks} {schema} basePath={base}></uncial-dashboard>\n{/if}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "config",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " takes the whole site object from "
+				},
+				{
+					"type": "text",
+					"text": "defineSite",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", so the Dashboard also finds the site's Globals there. "
+				},
+				{
+					"type": "text",
+					"text": "blocks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "schema",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " are the ones the route factories take, and "
+				},
+				{
+					"type": "text",
+					"text": "schema",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " may be a per-path resolver here too. A Svelte host can instead import the "
+				},
+				{
+					"type": "text",
+					"text": "Dashboard",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " component from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/svelte",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and pass the same options as props. Slotted App sections are the exception: they need the custom element, whose shadow root they project into."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Astro"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "An Astro page renders the element and sets its options from a script. Astro bundles the script for this page alone, so no reader page gains CMS JavaScript:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "astro"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "---\n// src/pages/uncial.astro\n---\n\n<html lang=\"en\">\n\t<head><title>Dashboard</title></head>\n\t<body>\n\t\t<uncial-dashboard></uncial-dashboard>\n\t\t<script>\n\t\t\timport 'uncial-cms/dashboard';\n\t\t\timport { defineSite } from 'uncial-cms';\n\t\t\timport { blocks, schema } from '../site';\n\t\t\timport { siteOptions } from '../site-options';\n\n\t\t\tObject.assign(document.querySelector('uncial-dashboard')!, {\n\t\t\t\tconfig: defineSite(siteOptions),\n\t\t\t\tblocks,\n\t\t\t\tschema\n\t\t\t});\n\t\t</script>\n\t</body>\n</html>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The element waits for "
+				},
+				{
+					"type": "text",
+					"text": "config",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " before it signs in, so setting its options after it has upgraded is safe. The same pattern works on a plain HTML page with a "
+				},
+				{
+					"type": "text",
+					"text": "<script type=\"module\">",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Options"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Every option is a property of the element, or a prop of the Svelte component:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "config",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is required: the site object from "
+								},
+								{
+									"type": "text",
+									"text": "defineSite",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " or "
+								},
+								{
+									"type": "text",
+									"text": "defineServerSite",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", or a bare site config."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "blocks",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " and "
+								},
+								{
+									"type": "text",
+									"text": "schema",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " are required, as the route factories take them."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "globals",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " names the site's Globals and their schemas. It defaults to the site object's "
+								},
+								{
+									"type": "text",
+									"text": "globals",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "editorHref(pagePath)",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " opens a page in the host's own Editor variant. Without it, a page opens in the Fallback editor at "
+								},
+								{
+									"type": "text",
+									"text": "#/edit/<path>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ". A static site usually leaves it out, because a page created in the Dashboard has no Editor variant until the next deploy."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "can(action, subject?)",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " decides which controls an editor is offered. See Permissions below."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "appSections",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " adds the host's own screens. See "
+								},
+								{
+									"type": "text",
+									"text": "App sections",
+									"marks": [
+										{
+											"type": "link",
+											"attrs": {
+												"href": "../app-sections/"
+											}
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "signOutHref",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is where Sign out goes on the server forge."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "basePath",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is the framework's base path, so links to live pages resolve on a site served under one."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "staticDir",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is the repo-root-relative directory the build serves at the site root, as "
+								},
+								{
+									"type": "text",
+									"text": "cmsImageSource",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " takes it. It defaults to "
+								},
+								{
+									"type": "text",
+									"text": "'static'",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", and the Media section needs it to show a git forge's files at their served URLs."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "theme",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is "
+								},
+								{
+									"type": "text",
+									"text": "'system'",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " (the default), "
+								},
+								{
+									"type": "text",
+									"text": "'light'",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " or "
+								},
+								{
+									"type": "text",
+									"text": "'dark'",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "sessionProvider",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "mapPathToSource",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "mapSourceToPath",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " and "
+								},
+								{
+									"type": "text",
+									"text": "editorStylesheets",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " are for unusual hosts: a custom sign-in, a path mapping other than the default (it must match the one baked into the Editor variants), and stylesheets for the Fallback editor."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Routes"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Dashboard routes itself with hash URLs, so it needs no rewrites on a prerendered static host or in Astro:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "#/pages",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is the Pages section. Its search, filter and page number ride in the query, as in "
+								},
+								{
+									"type": "text",
+									"text": "#/pages?q=intro&page=2",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", so a filtered list can be bookmarked."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "#/edit/<path>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is the Fallback editor."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "#/media",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " is the Media section."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "#/globals",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " lists the Globals, and "
+								},
+								{
+									"type": "text",
+									"text": "#/globals/<name>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " edits one."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "#/app/<id>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " shows a slotted App section."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Signing in and out"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Sign-in adapts to the forge, and the frame always shows who is signed in:"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "github",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " uses the same popup session as an Editor variant. Sign out clears the token held for the repository."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "local",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " needs no sign-in, so there is no Sign out."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "server",
+									"marks": [
+										{
+											"type": "bold"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " uses the host's own cookie session. Sign out is a link to "
+								},
+								{
+									"type": "text",
+									"text": "signOutHref",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "When sign-in fails or a session expires, the Dashboard shows a signed-out screen with a Sign in button. On github that button matters on a first visit too: a browser blocks a sign-in popup that no click opened."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Permissions"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Before the Dashboard offers a control, it asks the host's "
+				},
+				{
+					"type": "text",
+					"text": "can(action, subject?)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Without "
+				},
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", everything is allowed. That is right for a static site, where repository access is the real check. The actions are those of the server forge: "
+				},
+				{
+					"type": "text",
+					"text": "read-draft",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "save-draft",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "create",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "publish",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "unpublish",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "delete",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "move",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "restore",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "media-upload",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "media-delete",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", plus "
+				},
+				{
+					"type": "text",
+					"text": "global-edit",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". The subject is the page path when an editor creates or deletes a page, the media item for "
+				},
+				{
+					"type": "text",
+					"text": "media-delete",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and the Global's name for "
+				},
+				{
+					"type": "text",
+					"text": "global-edit",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A check made before there is a subject, such as whether to show the create form at all, passes none. A host whose editors may change pages and media, but whose Globals only admins may change, passes:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import type { DashboardAction } from 'uncial-cms';\n\nconst can = (action: DashboardAction) => action !== 'global-edit' || isAdmin;"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "can",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " only hides controls, or shows a Global read-only. Enforcement stays with the forge: repository access on github, and the handlers' "
+				},
+				{
+					"type": "text",
+					"text": "authorize",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " on the server. Roles stay in the host, so Uncial never learns them."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Theming"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Dashboard draws with Uncial's design tokens, the same "
+				},
+				{
+					"type": "text",
+					"text": "--uncial-*",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " custom properties the editor uses. Custom properties inherit into a shadow root, so set them on the element:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "css"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "uncial-dashboard {\n\t--uncial-color-primary: light-dark(#7c2d12, #fdba74);\n\t--uncial-font-body: 'Inter', system-ui, sans-serif;\n\t--uncial-radius-lg: 0;\n}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Dark mode follows the reader's "
+				},
+				{
+					"type": "text",
+					"text": "prefers-color-scheme",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and the "
+				},
+				{
+					"type": "text",
+					"text": "theme",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " option fixes it to "
+				},
+				{
+					"type": "text",
+					"text": "'light'",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " or "
+				},
+				{
+					"type": "text",
+					"text": "'dark'",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A token set with "
+				},
+				{
+					"type": "text",
+					"text": "light-dark()",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " follows whichever scheme is in force. Below about 640px the nav folds into a Menu button and the page list becomes cards."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "From "
+				},
+				{
+					"type": "text",
+					"text": "mountIndexPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "mountIndexPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " still works. It is now a deprecated wrapper that renders the Dashboard showing only Pages, with its old options. To gain Media, Globals and App sections, replace the mount with the element. Note that the element's "
+				},
+				{
+					"type": "text",
+					"text": "config",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " takes the whole site object, where "
+				},
+				{
+					"type": "text",
+					"text": "mountIndexPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " took "
+				},
+				{
+					"type": "text",
+					"text": "site.config",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		}
+	]
+}
