@@ -1,5 +1,11 @@
 # uncial-wagtail
 
+## 5.1.0
+
+### Patch Changes
+
+- 84734f7: Rebuild the bundled editor to include uncial's nested meta-list validation.
+
 ## 5.0.0
 
 ### Patch Changes
