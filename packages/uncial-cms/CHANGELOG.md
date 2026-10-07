@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 5.1.0
+
+### Minor Changes
+
+- 5698a79: `createLocalVitePlugin` accepts a `host` option to bind the dev server beyond loopback.
+
 ## 5.0.0
 
 ### Minor Changes
