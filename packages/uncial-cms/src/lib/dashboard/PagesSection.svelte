@@ -135,7 +135,7 @@
 				{ adapter, blocks, schema: schemaFor(result.path), author: session.user },
 				{ pagePath: result.path, sourcePath: sourceFor(result.path) }
 			);
-			location.hash = hashForRoute({ section: 'edit', pagePath: result.path });
+			location.href = editUrl(result.path);
 		} catch (error) {
 			createError = message(error, 'Create failed.');
 		} finally {

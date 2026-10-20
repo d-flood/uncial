@@ -57,8 +57,7 @@ it('the deprecated mountIndexPage still lists, creates and deletes pages', async
 	const handle = mountIndexPage(target, {
 		config: { forge: 'local', contentDir: 'content' },
 		blocks,
-		schema,
-		editorHref: (path) => `/${path}/edit/`
+		schema
 	});
 
 	const rows = page.getByRole('listitem');
@@ -80,4 +79,29 @@ it('the deprecated mountIndexPage still lists, creates and deletes pages', async
 	handle.destroy();
 	expect(target.childElementCount).toBe(0);
 	target.remove();
+});
+
+it('opens a created page with the host editor URL', async () => {
+	const files: Record<string, string> = {};
+	serveLocalForge(files);
+	const target = document.createElement('div');
+	document.body.append(target);
+	const editorHref = vi.fn((path: string) => `#/pages?q=${encodeURIComponent(path)}`);
+	const handle = mountIndexPage(target, {
+		config: { forge: 'local', contentDir: 'content' },
+		blocks,
+		schema,
+		editorHref
+	});
+
+	try {
+		await page.getByLabelText('New page path').fill('team/new-page');
+		await page.getByRole('button', { name: 'Create page' }).click();
+		await expect.poll(() => location.hash).toBe('#/pages?q=team%2Fnew-page');
+		expect(editorHref).toHaveBeenCalledWith('team/new-page');
+		expect(files['content/team/new-page.json']).toBeDefined();
+	} finally {
+		handle.destroy();
+		target.remove();
+	}
 });

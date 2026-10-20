@@ -11,7 +11,7 @@
 	 * face and ground a reader will see: no rule the site sets on `body` crosses
 	 * that boundary, so the site has to restate every one of them.
 	 */
-	import { onMount } from 'svelte';
+	import { onMount, type ComponentProps } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import type { ImageSource } from 'uncial/editor';
@@ -37,6 +37,8 @@
 		/** Site-relative page path, from the editor route's payload. */
 		pagePath: string;
 		blocks: BlockRegistry;
+		extensions?: ComponentProps<EditorComponent>['extensions'];
+		marks?: ComponentProps<RendererComponent>['marks'];
 		/** One schema for the site, or the schema this page path is written against. */
 		schema: ContentSchema | ((path: string) => ContentSchema);
 		/** Defaults to the provider the resolved forge implies. */
@@ -60,6 +62,8 @@
 		sourcePath,
 		pagePath,
 		blocks,
+		extensions,
+		marks,
 		schema,
 		sessionProvider,
 		attributesPanel = 'overlay',
@@ -375,7 +379,7 @@
 					{#if can('restore')}
 						<button type="button" onclick={() => void restore(versionId)}>Restore</button>
 					{/if}
-					<Renderer content={selected.doc} {blocks} schema={resolvedSchema} />
+					<Renderer {marks} content={selected.doc} {blocks} schema={resolvedSchema} />
 				</div>
 			{/if}
 		</section>
@@ -383,6 +387,7 @@
 
 	{#if Editor && doc && libraryChecked && !deleted}
 		<Editor
+			{extensions}
 			{blocks}
 			schema={resolvedSchema}
 			metaFields={resolvedSchema.metaFields}
