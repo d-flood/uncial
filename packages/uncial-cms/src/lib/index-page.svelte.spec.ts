@@ -69,7 +69,7 @@ it('the deprecated mountIndexPage still lists, creates and deletes pages', async
 	await expect.poll(() => files['content/team/new-page.json']).toBeDefined();
 	await expect.poll(() => location.hash).toBe('#/edit/team/new-page');
 
-	location.hash = '#/pages';
+	location.hash = '#/pages?folder=team';
 	const created = rows.filter({ hasText: '/team/new-page/' });
 	await created.getByRole('button', { name: 'Delete' }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();

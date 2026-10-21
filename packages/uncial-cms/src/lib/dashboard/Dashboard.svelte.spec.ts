@@ -218,19 +218,37 @@ const RECORDS: ContentSummary[] = Array.from({ length: 120 }, (_, n) => ({
 	status: (['draft', 'published', 'changed'] as const)[n % 3]!
 }));
 
-it('searches, filters and pages 120 server records, keeping the query in the hash', async () => {
+it('browses 120 server records by folder, paging within a folder kept in the hash', async () => {
 	serveList(() => Response.json({ records: RECORDS }));
 	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
 
 	const summary = page.getByText(/^Showing/);
-	await expect.element(summary).toHaveTextContent('Showing 1–50 of 120 pages');
+	await expect.element(summary).toHaveTextContent('Showing 1–2 of 2 items');
+	await expect.element(page.getByRole('listitem').filter({ hasText: '/docs/' })).toHaveTextContent('60 pages inside');
+	await page.getByRole('link', { name: '/posts/' }).click();
+	await expect.element(summary).toHaveTextContent('Showing 1–50 of 60 items');
+	expect(location.hash).toBe('#/pages?folder=posts');
+
 	await page.getByRole('button', { name: 'Next page' }).click();
-	await expect.element(summary).toHaveTextContent('Showing 51–100 of 120 pages');
+	await expect.element(summary).toHaveTextContent('Showing 51–60 of 60 items');
 	const row = (path: string) => page.getByRole('listitem').filter({ hasText: path });
 	await expect.element(row('/posts/p050/')).toBeInTheDocument();
 	await expect.element(row('/posts/p049/')).not.toBeInTheDocument();
-	expect(location.hash).toBe('#/pages?page=2');
+	expect(location.hash).toBe('#/pages?folder=posts&page=2');
 
+	const crumbs = page.getByRole('navigation', { name: 'Folder' });
+	await expect.element(crumbs.getByText('posts')).toHaveAttribute('aria-current', 'location');
+	await crumbs.getByRole('link', { name: 'All pages' }).click();
+	await expect.element(summary).toHaveTextContent('Showing 1–2 of 2 items');
+	expect(location.hash).toBe('#/pages');
+});
+
+it('searches and filters 120 server records as a flat list, keeping the query in the hash', async () => {
+	serveList(() => Response.json({ records: RECORDS }));
+	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+
+	const summary = page.getByText(/^Showing/);
+	await expect.element(summary).toHaveTextContent('Showing 1–2 of 2 items');
 	await page.getByLabelText('Type').selectOptions('post');
 	await page.getByLabelText('Status').selectOptions('draft');
 	await expect.element(summary).toHaveTextContent('Showing 1–40 of 40 pages');

@@ -11,10 +11,12 @@
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import {
 		filterPages,
-		folderOptions,
+		folderRows,
+		isFolder,
 		kindOptions,
 		pageWindow,
-		type ListedPage
+		type ListedPage,
+		type PageRow
 	} from './pages-list.js';
 	import { hashForRoute, type PagesQuery } from './routes.js';
 	import type { DashboardAction } from './types.js';
@@ -66,17 +68,28 @@
 
 	const server = $derived(config.forge === 'server');
 	const kinds = $derived(server ? kindOptions(pages ?? []) : []);
-	const folders = $derived(server ? [] : folderOptions(pages ?? []));
-	const known = (value: string | undefined, options: string[]) =>
-		value && options.includes(value) ? value : undefined;
+	const folder = $derived(
+		query.folder && isFolder(pages ?? [], query.folder) ? query.folder : undefined
+	);
 	const filters = $derived<PagesQuery>({
 		q: query.q,
-		kind: known(query.kind, kinds),
-		folder: known(query.folder, folders),
+		kind: query.kind && kinds.includes(query.kind) ? query.kind : undefined,
+		folder,
 		status: server ? query.status : undefined
 	});
-	const matches = $derived(filterPages(pages ?? [], filters));
-	const view = $derived(pageWindow(matches.length, query.page));
+	const searching = $derived(Boolean(filters.q?.trim() || filters.kind || filters.status));
+	const rows = $derived<PageRow[]>(
+		searching
+			? filterPages(pages ?? [], filters).map((page) => ({ pagePath: page.pagePath, page }))
+			: folderRows(pages ?? [], folder)
+	);
+	const view = $derived(pageWindow(rows.length, query.page));
+	const crumbs = $derived(
+		(folder?.split('/') ?? []).map((name, n, names) => ({
+			name,
+			folder: names.slice(0, n + 1).join('/')
+		}))
+	);
 
 	const filter = (next: PagesQuery) => onquery({ ...filters, ...next, page: undefined });
 	const turnTo = (page: number) => {
@@ -87,11 +100,12 @@
 		if (error instanceof SignedOutError) onsignedout(error.message);
 		return error instanceof Error ? error.message : fallback;
 	}
-	const labelFor = (page: ListedPage) =>
-		page.pagePath === '' ? '(site root)' : `/${page.pagePath}/`;
+	const labelFor = (pagePath: string) => (pagePath === '' ? '(site root)' : `/${pagePath}/`);
 	const liveUrl = (pagePath: string) => `${basePath}/${pagePath === '' ? '' : `${pagePath}/`}`;
 	const editUrl = (pagePath: string) =>
 		editorHref?.(pagePath) || hashForRoute({ section: 'edit', pagePath });
+	const folderUrl = (pagePath?: string) =>
+		hashForRoute({ section: 'pages', query: { ...filters, folder: pagePath } });
 
 	async function refresh() {
 		try {
@@ -218,19 +232,6 @@
 				</select>
 			</div>
 		{/if}
-		{#if folders.length > 0}
-			<div class="field">
-				<label for="{uid}-folder">Folder</label>
-				<select
-					id="{uid}-folder"
-					value={filters.folder ?? ''}
-					onchange={(event) => filter({ folder: event.currentTarget.value || undefined })}
-				>
-					<option value="">All folders</option>
-					{#each folders as folder (folder)}<option value={folder}>/{folder}/</option>{/each}
-				</select>
-			</div>
-		{/if}
 		{#if server}
 			<div class="field">
 				<label for="{uid}-status">Status</label>
@@ -248,39 +249,64 @@
 		{/if}
 	</div>
 
+	{#if folder}
+		<nav class="crumbs" aria-label="Folder">
+			<ol>
+				<li><a href={folderUrl()}>All pages</a></li>
+				{#each crumbs as crumb (crumb.folder)}
+					<li>
+						{#if crumb.folder === folder}
+							<span aria-current="location">{crumb.name}</span>
+						{:else}
+							<a href={folderUrl(crumb.folder)}>{crumb.name}</a>
+						{/if}
+					</li>
+				{/each}
+			</ol>
+		</nav>
+	{/if}
+
 	<p class="note" aria-live="polite">
-		{#if matches.length === 0}
+		{#if rows.length === 0}
 			No pages match.
 		{:else}
-			Showing {view.start + 1}–{view.end} of {matches.length}
-			{matches.length === 1 ? 'page' : 'pages'}
+			Showing {view.start + 1}–{view.end} of {rows.length}
+			{searching ? 'page' : 'item'}{rows.length === 1 ? '' : 's'}
 		{/if}
 	</p>
 
-	{#if matches.length > 0}
+	{#if rows.length > 0}
 		<ul class="pages">
-			{#each matches.slice(view.start, view.end) as page (page.sourcePath)}
-				{@const label = labelFor(page)}
+			{#each rows.slice(view.start, view.end) as row (row.pagePath)}
+				{@const label = labelFor(row.pagePath)}
+				{@const page = row.page}
 				<li class="page">
 					<div class="page-main">
-						<span class="page-path">{label}</span>
-						{#if page.status}<span class="badge">{describeContentStatus(page.status)}</span>{/if}
-						{#if page.title}<span class="page-title">{page.title}</span>{/if}
-						<span class="page-source">{page.sourcePath}</span>
-					</div>
-					<div class="page-actions">
-						<a class="btn btn-primary" href={editUrl(page.pagePath)}>
-							Edit<span class="visually-hidden"> {label}</span>
-						</a>
-						<a class="btn" href={liveUrl(page.pagePath)}>
-							View<span class="visually-hidden"> {label}</span>
-						</a>
-						{#if can('delete', page.pagePath)}
-							<button type="button" class="btn btn-danger" onclick={() => (pendingDelete = page)}>
-								Delete<span class="visually-hidden"> {label}</span>
-							</button>
+						{#if row.inside}
+							<a class="page-path" href={folderUrl(row.pagePath)}>{label}</a>
+							<span class="page-count">{row.inside} {row.inside === 1 ? 'page' : 'pages'} inside</span>
+						{:else}
+							<span class="page-path">{label}</span>
 						{/if}
+						{#if page?.status}<span class="badge">{describeContentStatus(page.status)}</span>{/if}
+						{#if page?.title}<span class="page-title">{page.title}</span>{/if}
+						{#if page}<span class="page-source">{page.sourcePath}</span>{/if}
 					</div>
+					{#if page}
+						<div class="page-actions">
+							<a class="btn btn-primary" href={editUrl(page.pagePath)}>
+								Edit<span class="visually-hidden"> {label}</span>
+							</a>
+							<a class="btn" href={liveUrl(page.pagePath)}>
+								View<span class="visually-hidden"> {label}</span>
+							</a>
+							{#if can('delete', page.pagePath)}
+								<button type="button" class="btn btn-danger" onclick={() => (pendingDelete = page)}>
+									Delete<span class="visually-hidden"> {label}</span>
+								</button>
+							{/if}
+						</div>
+					{/if}
 				</li>
 			{/each}
 		</ul>
@@ -378,6 +404,30 @@
 		flex: 3 1 16rem;
 	}
 
+	.crumbs ol {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--uncial-space-1);
+		margin: var(--uncial-space-4) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.crumbs li + li::before {
+		content: '/' / '';
+		margin-right: var(--uncial-space-1);
+		color: var(--uncial-dashboard-muted);
+	}
+
+	.crumbs a,
+	a.page-path {
+		color: var(--uncial-color-primary);
+	}
+
+	.crumbs [aria-current] {
+		font-weight: 600;
+	}
+
 	.pager {
 		display: flex;
 		flex-wrap: wrap;
@@ -423,6 +473,11 @@
 	.page-path {
 		font-weight: 600;
 		overflow-wrap: anywhere;
+	}
+
+	.page-count {
+		color: var(--uncial-dashboard-muted);
+		font-size: 0.875rem;
 	}
 
 	.page-title {

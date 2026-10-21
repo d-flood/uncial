@@ -95,6 +95,7 @@ test('create → fallback edit → delete round-trip through the Dashboard', asy
 	// Back to the list; the new page shows up and can be deleted.
 	await page.getByRole('link', { name: 'Back to pages' }).click();
 	await expect(page.getByRole('heading', { name: 'Pages' })).toBeFocused();
+	await page.getByRole('link', { name: '/team/' }).click();
 	const row = page.locator('li', { hasText: '/team/new-page/' });
 	await expect(row).toBeVisible();
 	await row.getByRole('button', { name: 'Delete' }).click();
@@ -131,7 +132,7 @@ test('create on an existing path is rejected before any commit', async ({ page }
 	expect(puts).toHaveLength(0);
 });
 
-test('search narrows the Pages list and a folder filter applies, both kept in the hash', async ({
+test('search narrows the Pages list and folders browse, both kept in the hash', async ({
 	page
 }) => {
 	await interceptDemoGitHubWithStore(page, {
@@ -143,7 +144,7 @@ test('search narrows the Pages list and a folder filter applies, both kept in th
 	await page.goto('/uncial/');
 	const summary = page.getByText(/^Showing/);
 	const row = (label: string) => page.locator('li', { hasText: label });
-	await expect(summary).toHaveText('Showing 1–5 of 5 pages');
+	await expect(summary).toHaveText('Showing 1–4 of 4 items');
 
 	const search = page.getByLabel('Search');
 	await search.fill('ALI');
@@ -154,17 +155,16 @@ test('search narrows the Pages list and a folder filter applies, both kept in th
 	await expect(page).toHaveURL(/#\/pages\?q=ALI$/);
 
 	await search.fill('');
-	const folder = page.getByLabel('Folder');
-	await expect(folder.getByRole('option')).toHaveText(['All folders', '/blog/', '/team/']);
-	await folder.selectOption('team');
-	await expect(summary).toHaveText('Showing 1–2 of 2 pages');
+	await expect(page.getByText('1 page inside')).toBeVisible();
+	await page.getByRole('link', { name: '/team/' }).click();
+	await expect(summary).toHaveText('Showing 1–2 of 2 items');
 	await expect(row('/team/bob/')).toBeVisible();
 	await expect(row('/blog/hello/')).toHaveCount(0);
 	await expect(page).toHaveURL(/#\/pages\?folder=team$/);
 
 	await page.reload();
-	await expect(summary).toHaveText('Showing 1–2 of 2 pages');
-	await expect(page.getByLabel('Folder')).toHaveValue('team');
+	await expect(summary).toHaveText('Showing 1–2 of 2 items');
+	await expect(page.getByRole('navigation', { name: 'Folder' })).toContainText('team');
 });
 
 test('the old fallback link #/about/ opens #/edit/about and commits to the same source as /about/edit/', async ({
@@ -297,8 +297,8 @@ for (const width of [390, 1280]) {
 		await seedDemoSession(page);
 		await page.setViewportSize({ width, height: 900 });
 
-		await page.goto('/uncial/#/pages');
-		await expect(page.locator('li', { hasText: '/about/' })).toBeVisible();
+		await page.goto('/uncial/#/pages?folder=team');
+		await expect(page.getByRole('navigation', { name: 'Folder' })).toBeVisible();
 		await expect(page.getByRole('navigation', { name: 'Pagination' })).toBeVisible();
 
 		const scan = () =>

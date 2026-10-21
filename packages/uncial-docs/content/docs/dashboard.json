@@ -83,7 +83,7 @@
 								},
 								{
 									"type": "text",
-									"text": " lists the site's Content documents with search, filters and paging, creates and deletes them, and opens each one for editing."
+									"text": " browses the site's Content documents folder by folder, with search, filters and paging, creates and deletes them, and opens each one for editing."
 								}
 							]
 						}
@@ -1013,11 +1013,11 @@
 								},
 								{
 									"type": "text",
-									"text": " is the Pages section. Its search, filter and page number ride in the query, as in "
+									"text": " is the Pages section. Its folder, search, filter and page number ride in the query, as in "
 								},
 								{
 									"type": "text",
-									"text": "#/pages?q=intro&page=2",
+									"text": "#/pages?folder=guide&page=2",
 									"marks": [
 										{
 											"type": "code"

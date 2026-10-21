@@ -47,7 +47,7 @@ test('<uncial-dashboard> mounts in an Astro page and lists the fixture’s pages
 	await page.goto('/uncial/');
 	await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible();
 	await expect(page.getByRole('status')).toContainText('Signed in as Octo Cat');
-	for (const label of ['(site root)', '/about/', '/guide/start/']) {
+	for (const label of ['(site root)', '/about/', '/guide/']) {
 		await expect(page.locator('li', { hasText: label })).toBeVisible();
 	}
 });

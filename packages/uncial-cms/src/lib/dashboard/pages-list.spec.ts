@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { ContentStatus } from '../server-forge/protocol.js';
 import {
 	filterPages,
-	folderOptions,
+	folderRows,
+	isFolder,
 	kindOptions,
 	pageWindow,
 	type ListedPage
@@ -62,10 +63,9 @@ describe('Pages list over 120 entries', () => {
 		expect(filterPages(GIT_PAGES, { q: '  ' })).toHaveLength(120);
 	});
 
-	it('filters by kind on the server forge and top-level folder on git forges', () => {
+	it('filters by kind and to a folder', () => {
 		expect(kindOptions(SERVER_PAGES)).toEqual(['doc', 'page', 'post']);
 		expect(kindOptions(GIT_PAGES)).toEqual([]);
-		expect(folderOptions(GIT_PAGES)).toEqual(['docs', 'posts']);
 
 		expect(filterPages(SERVER_PAGES, { kind: 'post' })).toHaveLength(60);
 		expect(filterPages(GIT_PAGES, { folder: 'docs' })).toHaveLength(40);
@@ -83,6 +83,46 @@ describe('Pages list over 120 entries', () => {
 	});
 });
 
+describe('Pages browsed by folder', () => {
+	const tree = (...pagePaths: string[]): ListedPage[] =>
+		pagePaths.map((pagePath) => ({ pagePath, sourcePath: `/${pagePath}/` }));
+	const PAGES = tree('', 'about', 'about/team', '2020/05/01/a', '2020/05/02/b', '2021/01/01/c', 'event/x');
+	const rows = (folder?: string) =>
+		folderRows(PAGES, folder).map(({ pagePath, page, inside }) => [pagePath, !!page, inside]);
+
+	it('lists the folder’s own page, then its children with the pages inside them', () => {
+		expect(rows()).toEqual([
+			['', true, undefined],
+			['2020', false, 2],
+			['2021', false, 1],
+			['about', true, 1],
+			['event', false, 1]
+		]);
+		expect(rows('about')).toEqual([
+			['about', true, undefined],
+			['about/team', true, undefined]
+		]);
+		expect(rows('2020')).toEqual([['2020/05', false, 2]]);
+		expect(rows('2020/05')).toEqual([
+			['2020/05/01', false, 1],
+			['2020/05/02', false, 1]
+		]);
+	});
+
+	it('knows a folder only by the pages inside it', () => {
+		expect(isFolder(PAGES, 'about')).toBe(true);
+		expect(isFolder(PAGES, '2020/05')).toBe(true);
+		expect(isFolder(PAGES, 'about/team')).toBe(false);
+		expect(isFolder(PAGES, '202')).toBe(false);
+	});
+
+	it('scopes a search to the folder and everything beneath it', () => {
+		expect(paths(filterPages(PAGES, { folder: 'about' }))).toEqual(['about', 'about/team']);
+		expect(paths(filterPages(PAGES, { folder: '2020', q: '/b/' }))).toEqual(['2020/05/02/b']);
+		expect(filterPages(PAGES, { folder: '202' })).toEqual([]);
+	});
+});
+
 describe('Pages query in the hash', () => {
 	it('round-trips', () => {
 		const hash = '#/pages?q=annual+report&kind=post&status=draft&page=2';
@@ -93,7 +133,7 @@ describe('Pages query in the hash', () => {
 		});
 		expect(hashForRoute(route)).toBe(hash);
 
-		const query: PagesQuery = { q: 'a&b=c #d', folder: 'docs', page: 3 };
+		const query: PagesQuery = { q: 'a&b=c #d', folder: '2020/05', page: 3 };
 		expect(routeFromHash(hashForRoute({ section: 'pages', query }))).toEqual({
 			section: 'pages',
 			query

@@ -95,7 +95,7 @@ const link = (page: Page, inColumn: number, n: number) =>
 const scan = (page: Page) =>
 	new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 
-test('signed in as the local editor, Pages searches, filters by folder and pages through results', async ({
+test('signed in as the local editor, Pages browses a folder, pages through it and searches it', async ({
 	page,
 	request
 }) => {
@@ -107,15 +107,15 @@ test('signed in as the local editor, Pages searches, filters by folder and pages
 	await expect(row(page, '/about/')).toBeVisible();
 
 	const summary = page.getByText(/^Showing/);
-	await page.getByLabel('Folder').selectOption('team');
-	await expect(summary).toHaveText('Showing 1–50 of 55 pages');
+	await page.getByRole('link', { name: '/team/' }).click();
+	await expect(summary).toHaveText('Showing 1–50 of 55 items');
 	await expect(row(page, '/about/')).toHaveCount(0);
 	await expect(page).toHaveURL(/#\/pages\?folder=team$/);
 
 	const pager = page.getByRole('navigation', { name: 'Pagination' });
 	await expect(pager).toContainText('Page 1 of 2');
 	await pager.getByRole('button', { name: 'Next page' }).click();
-	await expect(summary).toHaveText('Showing 51–55 of 55 pages');
+	await expect(summary).toHaveText('Showing 51–55 of 55 items');
 	await expect(pager).toContainText('Page 2 of 2');
 	await expect(page).toHaveURL(/#\/pages\?folder=team&page=2$/);
 
@@ -128,7 +128,7 @@ test('signed in as the local editor, Pages searches, filters by folder and pages
 
 	await page.reload();
 	await expect(summary).toHaveText('Showing 1–1 of 1 page');
-	await expect(page.getByLabel('Folder')).toHaveValue('team');
+	await expect(page.getByRole('navigation', { name: 'Folder' })).toContainText('team');
 });
 
 test('create → fallback edit → delete writes and removes the file in the checkout', async ({
@@ -158,6 +158,7 @@ test('create → fallback edit → delete writes and removes the file in the che
 	expect(await readCheckout(request, source)).toContain('Fresh page body');
 
 	await page.getByRole('link', { name: 'Back to pages' }).click();
+	await page.getByRole('link', { name: '/scratch/' }).click();
 	await expect(page.getByRole('heading', { name: 'Pages' })).toBeFocused();
 	await row(page, '/scratch/new-page/').getByRole('button', { name: 'Delete' }).click();
 	const confirm = page.getByRole('dialog', { name: 'Delete this page?' });
@@ -296,8 +297,8 @@ for (const width of [390, 1280]) {
 		await seed(request, { ...TEAM, ...MEDIA, [FOOTER_SOURCE]: JSON.stringify(FOOTER) });
 		await page.setViewportSize({ width, height: 900 });
 
-		await page.goto('/uncial/#/pages');
-		await expect(row(page, '/about/')).toBeVisible();
+		await page.goto('/uncial/#/pages?folder=team');
+		await expect(page.getByRole('navigation', { name: 'Folder' })).toBeVisible();
 		await expect(page.getByRole('navigation', { name: 'Pagination' })).toBeVisible();
 		expect((await scan(page)).violations).toEqual([]);
 
