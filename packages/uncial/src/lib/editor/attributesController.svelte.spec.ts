@@ -281,7 +281,7 @@ describe('attributesController — syncFromSelection selection taxonomy', () => 
 
 		const state = get(harness.controller);
 		expect(state.activeBlock?.id).toBe('section');
-		expect(state.containerChildren).toHaveLength(1);
+		expect(state.containerChildren.map((child) => child.label)).toEqual(['Paragraph']);
 		expect(state.open).toBe(false);
 
 		harness.cleanup();

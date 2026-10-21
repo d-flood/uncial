@@ -18,6 +18,17 @@ import type {
  */
 export const DEFAULT_MARKS = ['bold', 'italic', 'strike', 'code', 'link'] as const;
 
+/** The prose nodes a container's `allowedBlocks` may name beside block ids, with their labels in the editor. */
+export const PROSE_NODES: Readonly<Record<string, string>> = {
+	paragraph: 'Paragraph',
+	heading: 'Heading',
+	bulletList: 'Bullet list',
+	orderedList: 'Numbered list',
+	blockquote: 'Quote',
+	codeBlock: 'Code block',
+	horizontalRule: 'Divider'
+};
+
 export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	const byId = new Map<string, BlockDefinition>();
 	const metadata: BlockMetadata[] = [];
@@ -38,7 +49,9 @@ export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 			id: block.id,
 			label: block.label,
 			description: block.description,
-			icon: block.icon
+			icon: block.icon,
+			group: block.group,
+			insertable: block.insertable
 		});
 	}
 
@@ -47,7 +60,7 @@ export function createBlockRegistry(blocks: BlockDefinition[]): BlockRegistry {
 	for (const block of blocks) {
 		const declared = block.content?.allowedBlocks;
 		if (!declared) continue;
-		const unknown = declared.filter((id) => !byId.has(id));
+		const unknown = declared.filter((id) => !byId.has(id) && !Object.hasOwn(PROSE_NODES, id));
 		if (unknown.length > 0) {
 			throw new Error(
 				`Block "${block.id}" admits unregistered child block id(s): ${unknown

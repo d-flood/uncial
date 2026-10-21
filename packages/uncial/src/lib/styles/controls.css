@@ -306,6 +306,29 @@
 	outline: none;
 }
 
+.uncial-dropdown__menu--blocks {
+	width: 22rem;
+}
+
+.uncial-block-picker {
+	max-height: min(28rem, 70vh);
+	overflow: auto;
+}
+
+.uncial-block-picker__group + .uncial-block-picker__group {
+	margin-top: var(--uncial-space-2);
+}
+
+.uncial-block-picker__group-label {
+	padding: var(--uncial-space-1) var(--uncial-space-3);
+}
+
+.uncial-menu__description {
+	display: block;
+	font-size: 0.75rem;
+	color: var(--uncial-color-text-muted);
+}
+
 .uncial-menu__empty {
 	padding: var(--uncial-space-2) var(--uncial-space-3);
 	font-size: 0.75rem;

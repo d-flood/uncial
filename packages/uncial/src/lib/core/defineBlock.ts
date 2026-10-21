@@ -135,6 +135,8 @@ export function defineRuntimeBlock<Attrs extends BlockAttributes, Component>(
 		label: config.label,
 		description: config.description,
 		icon: config.icon,
+		group: config.group,
+		insertable: config.insertable ?? true,
 		readOnly: config.readOnly ?? false,
 		attributes: normalizeAttributes(config.attributes),
 		components: normalizeComponents(runtime, config),

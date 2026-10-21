@@ -63,7 +63,14 @@ export interface AttributeSpec<T> {
 	parse?: AttrParser<T>;
 	serialize?: AttrSerializer;
 	input?: AttributeInputKind;
+	/** The field's name in the editor; the attribute's own name when left out. */
+	label?: string;
 	placeholder?: string;
+	/**
+	 * Whether the editor shows the field, given the block's current attributes, or the document's
+	 * metadata for a metadata field. Shown when left out; a hidden field keeps its value.
+	 */
+	when?: (attrs: Record<string, unknown>) => boolean;
 	/** Advice shown under the field for a value that is valid but unwise; it never blocks a save. */
 	warn?: (value: unknown) => string | null | undefined;
 	/** IANA zone in which a `datetime` input shows and writes its wall clock; the browser's own by default. */
@@ -99,9 +106,11 @@ export type BlockContentKind = 'flow';
 export interface BlockContentDefinition {
 	kind: BlockContentKind;
 	/**
-	 * Block ids this container admits as children. Omitted means unconstrained:
-	 * every registered block is admissible. Every id must name a block in the
-	 * same registry; `createBlockRegistry` throws otherwise.
+	 * Block ids this container admits as children, optionally beside prose
+	 * nodes named in `PROSE_NODES` such as `paragraph` and `heading`. Omitted
+	 * means unconstrained: every registered block is admissible. Every other id
+	 * must name a block in the same registry; `createBlockRegistry` throws
+	 * otherwise.
 	 */
 	allowedBlocks?: readonly string[];
 }
@@ -131,6 +140,18 @@ export interface BaseBlockConfig<Attrs extends BlockAttributes> {
 	label: string;
 	description?: string;
 	icon?: BlockIcon;
+	/**
+	 * The heading insert menus file the block under. Blocks of one group are listed together, and
+	 * groups in the order their first block was registered.
+	 */
+	group?: string;
+	/**
+	 * Whether insert menus offer the block; `true` when left out. `false` keeps it valid and
+	 * editable where it already is, and still offered by a container that names it in
+	 * `content.allowedBlocks`: for blocks only another block holds, or that only an import or a
+	 * developer places.
+	 */
+	insertable?: boolean;
 	readOnly?: boolean;
 	attributes: {
 		[K in keyof Attrs]: AttributeConfig<Attrs[K]>;
@@ -162,6 +183,8 @@ export interface BlockDefinition<Attrs extends BlockAttributes = BlockAttributes
 	label: string;
 	description?: string;
 	icon?: BlockIcon;
+	group?: string;
+	insertable: boolean;
 	readOnly: boolean;
 	attributes: NormalizedAttributes<Attrs>;
 	components: BlockComponents;
@@ -178,6 +201,8 @@ export interface BlockMetadata {
 	label: string;
 	description?: string;
 	icon?: BlockIcon;
+	group?: string;
+	insertable: boolean;
 }
 
 export interface BlockRegistry {

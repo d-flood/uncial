@@ -183,7 +183,7 @@
 			</p>
 		{/if}
 		<fieldset disabled={!editable} aria-describedby={editable ? undefined : `${uid}-readonly`}>
-			{#each fields as [field, spec] (field)}
+			{#each fields.filter(([, spec]) => !spec.when || spec.when($form.draft)) as [field, spec] (field)}
 				<AttributeFieldControl
 					name={field}
 					{spec}
@@ -191,6 +191,7 @@
 					error={$form.errors[field]}
 					errors={$form.errors}
 					onChange={(value) => form.setDraft(field, value)}
+					attrs={$form.draft}
 				/>
 			{:else}
 				<p class="note">This Global declares no fields.</p>

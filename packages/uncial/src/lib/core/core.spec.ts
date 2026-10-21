@@ -59,6 +59,42 @@ describe('core', () => {
 		expect(image.content).toBeUndefined();
 	});
 
+	it('offers a block in insert menus unless it opts out, filed under its group', () => {
+		const note = defineSvelteBlock({
+			id: 'note',
+			label: 'Note',
+			group: 'Text',
+			attributes: {},
+			component: Dummy
+		});
+		const column = defineSvelteBlock({
+			id: 'column',
+			label: 'Column',
+			insertable: false,
+			attributes: {},
+			component: Dummy
+		});
+
+		expect(createBlockRegistry([note, column]).metadata).toEqual([
+			{
+				id: 'note',
+				label: 'Note',
+				description: undefined,
+				icon: undefined,
+				group: 'Text',
+				insertable: true
+			},
+			{
+				id: 'column',
+				label: 'Column',
+				description: undefined,
+				icon: undefined,
+				group: undefined,
+				insertable: false
+			}
+		]);
+	});
+
 	it('defines container blocks with flow content', () => {
 		const collapsible = defineSvelteBlock({
 			id: 'collapsible',
@@ -115,6 +151,23 @@ describe('core', () => {
 		});
 
 		expect(() => createBlockRegistry([tabs])).toThrow(/unregistered child block id\(s\): "tab"/);
+	});
+
+	it('registers a container that names prose nodes beside a block', () => {
+		const tab = defineSvelteBlock({ id: 'tab', label: 'Tab', attributes: {}, component: Dummy });
+		const note = defineSvelteBlock({
+			id: 'note',
+			label: 'Note',
+			attributes: {},
+			component: Dummy,
+			content: { kind: 'flow', allowedBlocks: ['paragraph', 'heading', 'tab'] }
+		});
+
+		expect(createBlockRegistry([note, tab]).get('note')?.content?.allowedBlocks).toEqual([
+			'paragraph',
+			'heading',
+			'tab'
+		]);
 	});
 
 	it('normalizes partial component configs', () => {

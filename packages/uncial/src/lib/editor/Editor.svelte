@@ -26,6 +26,7 @@
 		type DocumentMetaState
 	} from './metaController.js';
 	import BlockAttributesPanel from './BlockAttributesPanel.svelte';
+	import BlockPicker from './BlockPicker.svelte';
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import { dropdownFloat } from './dropdownFloat.js';
 	import Toolbar from './Toolbar.svelte';
@@ -183,10 +184,12 @@
 		}
 	});
 	const activeBlocks = $derived.by(() =>
-		registry.blocks.filter((block) =>
-			controllerState.allowedBlockIds.length
-				? controllerState.allowedBlockIds.includes(block.id)
-				: !schema || schema.allowedBlocks.has(block.id)
+		registry.blocks.filter(
+			(block) =>
+				block.insertable &&
+				(controllerState.allowedBlockIds.length
+					? controllerState.allowedBlockIds.includes(block.id)
+					: !schema || schema.allowedBlocks.has(block.id))
 		)
 	);
 	/**
@@ -387,7 +390,11 @@
 		{#if hasMetaFields || activeBlocks.length > 0}
 			<div class="uncial-toolbar__actions">
 				{#if hasMetaFields}
-					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss use:dropdownFloat>
+					<details
+						class="uncial-dropdown uncial-dropdown--end"
+						use:dropdownDismiss
+						use:dropdownFloat
+					>
 						<summary
 							bind:this={metaTriggerEl}
 							aria-label="Edit document metadata"
@@ -418,15 +425,9 @@
 							<span>Insert block</span>
 							<CaretDownIcon size={12} weight="bold" />
 						</summary>
-						<ul class="uncial-dropdown__menu uncial-menu">
-							{#each activeBlocks as block (block.id)}
-								<li>
-									<button type="button" onclick={() => insertBlock(block.id)}>
-										{block.label}
-									</button>
-								</li>
-							{/each}
-						</ul>
+						<div class="uncial-dropdown__menu uncial-dropdown__menu--blocks">
+							<BlockPicker blocks={activeBlocks} onChoose={insertBlock} />
+						</div>
 					</details>
 				{/if}
 			</div>

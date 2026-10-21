@@ -85,6 +85,29 @@
 							"content": [
 								{
 									"type": "text",
+									"text": "label",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — The field's name in the editor; the attribute's own name when left out."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
 									"text": "required",
 									"marks": [
 										{
@@ -164,6 +187,29 @@
 								{
 									"type": "text",
 									"text": " — Allowed values for select-style attributes."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "when",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " — Shows the field only while it returns true for the block's current attributes, for a field that only one style of the block uses. A hidden field keeps its value."
 								}
 							]
 						}
@@ -491,6 +537,113 @@
 				{
 					"type": "text",
 					"text": "<!-- src/lib/blocks/Collapsible.svelte -->\n<script lang=\"ts\">\n\timport type { Snippet } from 'svelte';\n\n\tinterface Props {\n\t\ttitle?: string;\n\t\tchildren?: Snippet;\n\t}\n\n\tlet { title = '', children }: Props = $props();\n</script>\n\n<details class=\"collapse collapse-arrow border border-base-300 bg-base-100\">\n\t<summary class=\"collapse-title font-semibold\">{title}</summary>\n\t<div class=\"collapse-content\">\n\t\t{#if children}\n\t\t\t{@render children()}\n\t\t{/if}\n\t</div>\n</details>"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Organise the insert menu"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Insert menus list each block by its "
+				},
+				{
+					"type": "text",
+					"text": "label",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " with its "
+				},
+				{
+					"type": "text",
+					"text": "description",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " beneath, and filter as the author types. Give blocks a "
+				},
+				{
+					"type": "text",
+					"text": "group",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to file them under a heading; groups appear in the order their first block was registered."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Set "
+				},
+				{
+					"type": "text",
+					"text": "insertable: false",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " on a block authors should not add on their own, such as one only another block holds, or one only an import places. It stays valid and editable where it already is, and a container that names it in "
+				},
+				{
+					"type": "text",
+					"text": "content.allowedBlocks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " still offers it."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/blocks/columns.ts\nimport { defineSvelteBlock } from 'uncial';\nimport Column from './Column.svelte';\nimport Columns from './Columns.svelte';\n\nexport const columns = defineSvelteBlock({\n\tid: 'columns',\n\tlabel: 'Columns',\n\tdescription: 'Side-by-side columns that stack on narrow screens.',\n\tgroup: 'Layout',\n\tattributes: {},\n\tcomponent: Columns,\n\tcontent: { kind: 'flow', allowedBlocks: ['column'] }\n});\n\nexport const column = defineSvelteBlock({\n\tid: 'column',\n\tlabel: 'Column',\n\tinsertable: false,\n\tattributes: {},\n\tcomponent: Column,\n\tcontent: { kind: 'flow' }\n});"
 				}
 			]
 		},

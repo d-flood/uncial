@@ -155,6 +155,7 @@ function createBlockNodeView(
 	dom.className = 'uncial-nodeview';
 	dom.dataset.uncialBlockId = block.id;
 	dom.draggable = block.behaviors.draggable ?? true;
+	dom.addEventListener('click', keepLinksInert);
 	const contentDOM = block.content
 		? document.createElement(block.behaviors.inline ? 'span' : 'div')
 		: null;
@@ -251,6 +252,11 @@ function createBlockNodeView(
 			mounted?.destroy();
 		}
 	};
+}
+
+// A block's links are for readers; in the editor a click on one selects the block rather than leaving the page.
+function keepLinksInert(event: Event): void {
+	if ((event.target as Element | null)?.closest?.('a[href]')) event.preventDefault();
 }
 
 function containerContentExpression(content: BlockContentDefinition): string {

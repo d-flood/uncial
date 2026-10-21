@@ -129,23 +129,25 @@ describe('BlockAttributesPanel choose-attribute channel', () => {
 
 // A container block whose one attribute is a plain text field, mirroring the
 // site's Tabs block `group` attribute that reproduced the write-through defect.
-const tabsBlock = defineSvelteBlock({
+const tabsConfig = {
 	id: 'tabs',
 	label: 'Tabs',
 	attributes: { group: '' },
 	component: EditorBlockFixture,
-	content: { kind: 'flow' }
-});
+	content: { kind: 'flow' as const }
+};
+const tabsBlock = defineSvelteBlock(tabsConfig);
 
 // One panel inside a tabs group: the nested block whose own attributes the panel
 // has to be able to reach.
-const tabBlock = defineSvelteBlock({
+const tabConfig = {
 	id: 'tab',
 	label: 'Tab',
 	attributes: { label: '' },
 	component: EditorBlockFixture,
-	content: { kind: 'flow' }
-});
+	content: { kind: 'flow' as const }
+};
+const tabBlock = defineSvelteBlock(tabConfig);
 
 interface PanelHarness {
 	editor: TiptapEditor;
@@ -425,5 +427,91 @@ describe('BlockAttributesPanel nested block menu', () => {
 		await expect.poll(() => menuLabels()).toEqual(['Tabs', 'Tab', 'Note']);
 
 		harness.cleanup();
+	});
+
+	it('offers a block that is not insertable only in a container that names it', async () => {
+		const childOnlyTab = defineSvelteBlock({ ...tabConfig, insertable: false });
+
+		const open = mountEditorWithPanel(oneTabDoc, [tabsBlock, childOnlyTab, noteBlock]);
+		await expect.poll(() => menuLabels()).toEqual(['Tabs', 'Note']);
+		open.cleanup();
+
+		const naming = mountEditorWithPanel(oneTabDoc, [constrainedTabsBlock, childOnlyTab, noteBlock]);
+		await expect.poll(() => menuLabels()).toEqual(['Tab']);
+		naming.cleanup();
+	});
+
+	it('files blocks under their groups, says what each is for, and filters them', async () => {
+		const harness = mountEditorWithPanel(oneTabDoc, [
+			defineSvelteBlock({ ...tabsConfig, group: 'Layout' }),
+			defineSvelteBlock({ ...tabConfig, group: 'Layout' }),
+			defineSvelteBlock({
+				id: 'note',
+				label: 'Note',
+				group: 'Text',
+				description: 'A boxed aside.',
+				attributes: { title: '' },
+				component: EditorBlockFixture
+			})
+		]);
+		const groups = () =>
+			Array.from(document.querySelectorAll('.uncial-attrs-panel .uncial-block-picker__group')).map(
+				(group) => [
+					group.querySelector('.uncial-block-picker__group-label')?.textContent,
+					Array.from(group.querySelectorAll('button')).map((button) =>
+						button.getAttribute('aria-label')
+					)
+				]
+			);
+
+		await expect.poll(groups).toEqual([
+			['Layout', ['Tabs', 'Tab']],
+			['Text', ['Note']]
+		]);
+		const note = document.querySelector<HTMLButtonElement>(
+			'.uncial-attrs-panel button[aria-label="Note"]'
+		)!;
+		expect(document.getElementById(note.getAttribute('aria-describedby')!)?.textContent).toBe(
+			'A boxed aside.'
+		);
+
+		document.querySelector<HTMLElement>('.uncial-attrs-panel .uncial-dropdown > summary')!.click();
+		await userEvent.fill(page.getByLabelText('Filter blocks'), 'aside');
+		await expect.poll(groups).toEqual([['Text', ['Note']]]);
+
+		harness.cleanup();
+	});
+});
+
+describe('BlockAttributesPanel fields by style', () => {
+	const cardsBlock = defineSvelteBlock({
+		id: 'cards',
+		label: 'Cards',
+		attributes: {
+			style: { default: 'plain', options: ['plain', 'boxed'], label: 'Style' },
+			border: { default: '', label: 'Border', when: (attrs) => attrs.style === 'boxed' }
+		},
+		component: EditorBlockFixture
+	});
+
+	function fieldLabels(style: string): (string | null)[] {
+		const panel = render(BlockAttributesPanel, {
+			controller: stubController({
+				...createInitialState(),
+				open: true,
+				mode: 'edit',
+				selectedBlockId: 'cards',
+				draftAttrs: { style, border: 'thin' }
+			}),
+			blocks: [cardsBlock]
+		});
+		return Array.from(panel.container.querySelectorAll('.uncial-field__label')).map(
+			(label) => label.textContent
+		);
+	}
+
+	it('shows a field only for the style it applies to', () => {
+		expect(fieldLabels('plain')).toEqual(['Style']);
+		expect(fieldLabels('boxed')).toEqual(['Style', 'Border']);
 	});
 });

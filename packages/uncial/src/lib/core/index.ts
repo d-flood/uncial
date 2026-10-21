@@ -19,6 +19,7 @@ export {
 	createBlockRegistry,
 	createMarkRegistry,
 	createSchema,
+	PROSE_NODES,
 	resolveMarkRegistry,
 	resolveRegistry
 } from './registry.js';

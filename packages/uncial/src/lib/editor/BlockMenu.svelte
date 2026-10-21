@@ -17,7 +17,10 @@
 	const registry = $derived(resolveRegistry(blocks));
 	const availableBlocks = $derived(
 		registry.blocks
-			.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
+			.filter(
+				(block: BlockDefinition) =>
+					block.insertable && (!schema || schema.allowedBlocks.has(block.id))
+			)
 			.filter((block: BlockDefinition) => block.label.toLowerCase().includes(query.toLowerCase()))
 	);
 

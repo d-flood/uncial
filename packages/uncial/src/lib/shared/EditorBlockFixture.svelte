@@ -32,6 +32,7 @@
 		oninput={(event) => updateAttributes?.({ title: event.currentTarget.value })}
 	/>
 	<p data-testid="fixture-title">{title}</p>
+	<a data-testid="fixture-link" href="#fixture-elsewhere">Elsewhere</a>
 	{#if children}
 		<div data-testid="fixture-children">{@render children()}</div>
 	{/if}

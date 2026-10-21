@@ -223,12 +223,20 @@ describe('container child constraints', () => {
 		content: { kind: 'flow', allowedBlocks: ['tab'] }
 	});
 
+	const noteBlock = defineSvelteBlock({
+		id: 'note',
+		label: 'Note',
+		attributes: {},
+		component: EditorBlockFixture,
+		content: { kind: 'flow', allowedBlocks: ['paragraph', 'heading', 'tab'] }
+	});
+
 	function constrainedSchema(): TiptapEditor['schema'] {
 		const host = document.createElement('div');
 		document.body.append(host);
 		const editor = new TiptapEditor({
 			element: host,
-			extensions: createEditorExtensions([tabsBlock, tabBlock, atomBlock]),
+			extensions: createEditorExtensions([tabsBlock, tabBlock, noteBlock, atomBlock]),
 			content: { type: 'doc', content: [{ type: 'paragraph' }] }
 		});
 		const { schema } = editor;
@@ -247,6 +255,24 @@ describe('container child constraints', () => {
 		).toBe(false);
 		expect(
 			schema.nodes.tabs.validContent(Fragment.from(schema.nodes.callout.createAndFill()))
+		).toBe(false);
+	});
+
+	it('admits named prose nodes beside the declared block', () => {
+		const schema = constrainedSchema();
+		const prose = [
+			schema.nodes.heading.createAndFill({ level: 2 })!,
+			schema.nodes.paragraph.createAndFill()!
+		];
+
+		expect(
+			schema.nodes.note.validContent(Fragment.from([...prose, schema.nodes.tab.createAndFill()!]))
+		).toBe(true);
+		expect(
+			schema.nodes.note.validContent(Fragment.from(schema.nodes.bulletList.createAndFill()))
+		).toBe(false);
+		expect(
+			schema.nodes.note.validContent(Fragment.from(schema.nodes.callout.createAndFill()))
 		).toBe(false);
 	});
 
@@ -407,6 +433,23 @@ describe('block node view attribute updates', () => {
 		await expect
 			.poll(() => host.querySelector('[data-testid="fixture-title"]')?.textContent)
 			.toBe('Hi');
+
+		cleanup();
+	});
+});
+
+describe('block node view links', () => {
+	it('keeps a link inside a block from navigating when clicked in the editor', () => {
+		const { host, cleanup } = createEditor({
+			type: 'doc',
+			content: [{ type: 'callout', attrs: { title: 'Linked' } }]
+		});
+
+		const link = host.querySelector('[data-testid="fixture-link"]')!;
+		expect(link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(
+			false
+		);
+		expect(location.hash).not.toBe('#fixture-elsewhere');
 
 		cleanup();
 	});

@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/core';
 import { get, writable, type Readable } from 'svelte/store';
 import { NodeSelection, type Transaction } from '@tiptap/pm/state';
+import { PROSE_NODES } from '../core/registry.js';
 import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
 import {
 	parseBlockDraftAttributes,
@@ -254,7 +255,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		const children: ContainerChildInfo[] = [];
 		node.forEach((child, offset, index) => {
 			const childBlock = registry!.get(child.type.name);
-			const label = childBlock?.label ?? child.type.name;
+			const label = childBlock?.label ?? PROSE_NODES[child.type.name] ?? child.type.name;
 			let summary = '';
 			const attrs = child.attrs as Record<string, unknown> | null;
 			if (attrs) {

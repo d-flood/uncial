@@ -16,6 +16,7 @@
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import LinkAttributesPanel from './LinkAttributesPanel.svelte';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
+	import BlockPicker from './BlockPicker.svelte';
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import { dropdownFloat } from './dropdownFloat.js';
 	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
@@ -53,10 +54,12 @@
 			? (Object.entries(selectedBlock.attributes) as Array<[string, AttributeSpec<unknown>]>)
 			: []
 	);
+	const shownAttributeSpecs = $derived(
+		selectedAttributeSpecs.filter(([, spec]) => !spec.when || spec.when(controllerState.draftAttrs))
+	);
 	const selectedBlockReadOnly = $derived(
 		Boolean(selectedBlock && 'readOnly' in selectedBlock && selectedBlock.readOnly)
 	);
-	let childBlockQuery = $state('');
 	const hasChildren = $derived(controllerState.containerChildren.length > 0);
 	const canRemoveChild = $derived(controllerState.containerChildren.length > 1);
 	const activeBlocks = $derived.by(() =>
@@ -71,20 +74,17 @@
 			Boolean(controllerState.activeBlock) &&
 			Boolean(selectedBlock && 'content' in selectedBlock && selectedBlock.content)
 	);
-	// The open container's own declaration narrows what "Add block" may offer;
-	// a container declaring nothing offers everything the schema allows.
+	// The open container's own declaration narrows what "Add block" may offer,
+	// and names blocks no menu offers otherwise; a container declaring nothing
+	// offers every insertable block the schema allows.
 	const admissibleChildBlocks = $derived.by(() => {
 		const declared =
 			selectedBlock && 'content' in selectedBlock
 				? selectedBlock.content?.allowedBlocks
 				: undefined;
-		return declared ? activeBlocks.filter((block) => declared.includes(block.id)) : activeBlocks;
-	});
-	const filteredChildBlocks = $derived.by(() => {
-		const query = childBlockQuery.trim().toLowerCase();
-		return admissibleChildBlocks.filter(
-			(block) => !query || block.label.toLowerCase().includes(query)
-		);
+		return declared
+			? activeBlocks.filter((block) => declared.includes(block.id))
+			: activeBlocks.filter((block) => block.insertable);
 	});
 	let draggingChildIndex = $state<number | null>(null);
 	let draggingPointerId = $state<number | null>(null);
@@ -101,9 +101,7 @@
 	}
 
 	function addNestedBlock(blockId: string): void {
-		if (controller.insertContainerChild(blockId)) {
-			childBlockQuery = '';
-		}
+		controller.insertContainerChild(blockId);
 	}
 
 	function chooseCustomAttribute(name: string, inputKind: string): void {
@@ -189,7 +187,7 @@
 			{selectedBlock.label || controllerState.selectedBlockId || 'block'}
 		</p>
 		{#if !selectedBlockReadOnly}
-			{#each selectedAttributeSpecs as [name, spec] (`${controllerState.activeBlock?.pos}:${name}`)}
+			{#each shownAttributeSpecs as [name, spec] (`${controllerState.activeBlock?.pos}:${name}`)}
 				<AttributeFieldControl
 					{name}
 					{spec}
@@ -199,6 +197,7 @@
 					onCustom={chooseCustomAttribute}
 					{imageSource}
 					{imagePreviews}
+					attrs={controllerState.draftAttrs}
 				/>
 			{/each}
 		{/if}
@@ -241,24 +240,8 @@
 							<span>Add block</span>
 							<CaretDownIcon size={10} weight="bold" />
 						</summary>
-						<div class="uncial-dropdown__menu uncial-dropdown__menu--wide">
-							<input
-								class="uncial-input uncial-input--xs uncial-input--block uncial-dropdown__search"
-								type="search"
-								placeholder="Filter blocks..."
-								bind:value={childBlockQuery}
-							/>
-							<ul class="uncial-menu uncial-menu--scroll">
-								{#each filteredChildBlocks as block (block.id)}
-									<li>
-										<button type="button" onclick={() => addNestedBlock(block.id)}>
-											{block.label}
-										</button>
-									</li>
-								{:else}
-									<li class="uncial-menu__empty">No matching blocks</li>
-								{/each}
-							</ul>
+						<div class="uncial-dropdown__menu uncial-dropdown__menu--blocks">
+							<BlockPicker blocks={admissibleChildBlocks} onChoose={addNestedBlock} />
 						</div>
 					</details>
 				{/if}

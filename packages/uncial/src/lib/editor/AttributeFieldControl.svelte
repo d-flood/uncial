@@ -38,6 +38,8 @@
 		onCustom?: (name: string, inputKind: string) => void;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
+		/** The block's attributes, or the document's metadata, that a list item field's `when` is given. */
+		attrs?: Record<string, unknown>;
 	}
 
 	let {
@@ -50,7 +52,8 @@
 		onChange,
 		onCustom,
 		imageSource,
-		imagePreviews
+		imagePreviews,
+		attrs = {}
 	}: Props = $props();
 
 	const fieldId = `uncial-field-${nextFieldId++}`;
@@ -71,7 +74,9 @@
 		if (value === undefined || value === null) return '';
 		return String(value);
 	});
-	const customLabel = $derived(value ? `Change ${name}: ${value}` : `Choose ${name}`);
+	const customLabel = $derived(
+		value ? `Change ${spec.label ?? name}: ${value}` : `Choose ${spec.label ?? name}`
+	);
 	// A stored value outside the declared options (e.g. a legacy value from before the
 	// options list changed) must stay visible and re-selectable instead of being silently
 	// remapped to the first option on the next commit.
@@ -82,7 +87,9 @@
 	});
 
 	const list = $derived(spec.list ?? {});
-	const listFields = $derived(attributeListFields(list));
+	const listFields = $derived(
+		attributeListFields(list).filter(([, field]) => !field.when || field.when(attrs))
+	);
 	const listValueSpec = $derived(attributeListValueSpec(list));
 	const itemLabel = $derived(list.itemLabel ?? 'item');
 	const items = $derived(Array.isArray(value) ? (value as unknown[]) : []);
@@ -168,9 +175,9 @@
 {#if inputKind !== 'hidden'}
 	<div class="uncial-field">
 		{#if hasLabelableControl}
-			<label class="uncial-field__label" for={fieldId}>{name}</label>
+			<label class="uncial-field__label" for={fieldId}>{spec.label ?? name}</label>
 		{:else}
-			<span class="uncial-field__label">{name}</span>
+			<span class="uncial-field__label">{spec.label ?? name}</span>
 		{/if}
 		{#if !isBuiltInInputKind(inputKind)}
 			<button
@@ -196,7 +203,7 @@
 				id={fieldId}
 				class="uncial-input uncial-input--sm"
 				type="number"
-				placeholder={spec.placeholder ?? name}
+				placeholder={spec.placeholder}
 				value={value ?? ''}
 				oninput={(event) => {
 					const target = event.currentTarget as HTMLInputElement;
@@ -229,7 +236,7 @@
 			<RichTextAttributeEditor
 				{value}
 				features={spec.richText?.features}
-				placeholder={spec.richText?.placeholder ?? spec.placeholder ?? name}
+				placeholder={spec.richText?.placeholder ?? spec.placeholder}
 				{onChange}
 			/>
 		{:else if inputKind === 'select'}
@@ -294,6 +301,7 @@
 								{onCustom}
 								{imageSource}
 								{imagePreviews}
+								{attrs}
 							/>
 						{:else}
 							{#each listFields as [fieldName, fieldSpec] (fieldName)}
@@ -309,6 +317,7 @@
 									{onCustom}
 									{imageSource}
 									{imagePreviews}
+									{attrs}
 								/>
 							{/each}
 						{/if}
@@ -396,7 +405,7 @@
 			<textarea
 				id={fieldId}
 				class="uncial-textarea uncial-textarea--tall"
-				placeholder={spec.placeholder ?? name}
+				placeholder={spec.placeholder}
 				spellcheck={inputKind !== 'json'}
 				value={stringValue}
 				oninput={(event) => {
@@ -409,7 +418,7 @@
 				id={fieldId}
 				class="uncial-input uncial-input--sm"
 				type="text"
-				placeholder={spec.placeholder ?? name}
+				placeholder={spec.placeholder}
 				value={stringValue}
 				oninput={(event) => {
 					const target = event.currentTarget as HTMLInputElement;

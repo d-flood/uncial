@@ -21,6 +21,9 @@
 		dirty: false
 	});
 	const fieldEntries = $derived(Array.from(fields.entries()));
+	const shownFieldEntries = $derived(
+		fieldEntries.filter(([, spec]) => !spec.when || spec.when(controllerState.draft))
+	);
 
 	function commitMeta(): void {
 		const result = controller.commit();
@@ -44,7 +47,7 @@
 
 <div class="uncial-attrs-panel uncial-meta-panel">
 	<p class="uncial-attrs-title">Document metadata</p>
-	{#each fieldEntries as [name, spec] (name)}
+	{#each shownFieldEntries as [name, spec] (name)}
 		<AttributeFieldControl
 			{name}
 			{spec}
@@ -54,6 +57,7 @@
 			onChange={(value) => controller.setDraft(name, value)}
 			{imageSource}
 			{imagePreviews}
+			attrs={controllerState.draft}
 		/>
 	{:else}
 		<p class="uncial-help-text">No metadata fields configured.</p>

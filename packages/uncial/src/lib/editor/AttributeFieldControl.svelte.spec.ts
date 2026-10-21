@@ -64,6 +64,17 @@ describe('AttributeFieldControl select', () => {
 		expect(select?.getAttribute('aria-label')).toBeNull();
 	});
 
+	it('names the field by its label when the spec gives one', async () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'href',
+			spec: { default: '', label: 'Link' },
+			value: '',
+			onChange: () => {}
+		});
+
+		expect(rendered.container.querySelector('label.uncial-field__label')?.textContent).toBe('Link');
+	});
+
 	it('gives each field instance a unique control id', async () => {
 		const first = render(AttributeFieldControl, {
 			name: 'rendition',
@@ -217,7 +228,7 @@ describe('AttributeFieldControl list', () => {
 				onChange: () => {}
 			});
 
-			const href = rendered.container.querySelectorAll('input[placeholder="href"]')[1];
+			const href = rendered.getByLabelText('href', { exact: true }).nth(1).element();
 			expect(
 				href.closest('.uncial-field')?.querySelector('.uncial-field__error')?.textContent
 			).toBe(message);
@@ -335,7 +346,9 @@ describe('AttributeFieldControl datetime', () => {
 			onChange: (value: unknown) => changes.push(value)
 		});
 
-		const input = rendered.container.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+		const input = rendered.container.querySelector<HTMLInputElement>(
+			'input[type="datetime-local"]'
+		);
 		expect(input?.value).toBe('2026-03-04T19:00');
 		input!.value = '2026-05-06T09:30';
 		input!.dispatchEvent(new Event('change', { bubbles: true }));
@@ -350,11 +363,67 @@ describe('AttributeFieldControl warn', () => {
 			input: 'textarea',
 			warn: (value) => (String(value).length > 5 ? 'Keep it short.' : null)
 		};
-		const short = render(AttributeFieldControl, { name: 'summary', spec, value: 'brief', onChange: () => {} });
+		const short = render(AttributeFieldControl, {
+			name: 'summary',
+			spec,
+			value: 'brief',
+			onChange: () => {}
+		});
 		expect(short.container.querySelector('.uncial-field__warning')).toBeNull();
 
-		const long = render(AttributeFieldControl, { name: 'summary', spec, value: 'too long', onChange: () => {} });
-		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe('Keep it short.');
+		const long = render(AttributeFieldControl, {
+			name: 'summary',
+			spec,
+			value: 'too long',
+			onChange: () => {}
+		});
+		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe(
+			'Keep it short.'
+		);
 		expect(long.container.querySelector('.uncial-field__error')).toBeNull();
+	});
+});
+
+describe('AttributeFieldControl fields by style', () => {
+	const cards: AttributeSpec<unknown[]> = {
+		default: [],
+		list: {
+			itemLabel: 'card',
+			fields: {
+				title: { default: '', label: 'Title' },
+				button: {
+					default: '',
+					label: 'Button text',
+					when: (attrs: Record<string, unknown>) => attrs.style === 'boxed'
+				}
+			}
+		}
+	};
+
+	function itemLabels(attrs: Record<string, unknown>): (string | null)[] {
+		const rendered = render(AttributeFieldControl, {
+			name: 'cards',
+			spec: cards,
+			value: [{ title: 'One', button: 'Go' }],
+			attrs,
+			onChange: () => {}
+		});
+		return Array.from(
+			rendered.container.querySelectorAll('.uncial-list-item .uncial-field__label')
+		).map((label) => label.textContent);
+	}
+
+	it("shows a list item field only where the block's attributes call for it", () => {
+		expect(itemLabels({ style: 'plain' })).toEqual(['Title']);
+		expect(itemLabels({ style: 'boxed' })).toEqual(['Title', 'Button text']);
+	});
+
+	it('leaves a text field blank unless it declares a placeholder', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'href',
+			spec: { default: '' },
+			onChange: () => {}
+		});
+		expect(rendered.container.querySelector('input')?.getAttribute('placeholder')).toBeNull();
 	});
 });

@@ -449,8 +449,8 @@ it('shows a Global read-only, with its schema defaults, when can() refuses globa
 		.toBeInTheDocument();
 	await expect.element(page.getByLabelText('note')).toHaveValue('Made in Dallas');
 	await expect.element(page.getByLabelText('note')).toBeDisabled();
-	await expect.element(page.getByPlaceholder('href')).toHaveValue('/map');
-	await expect.element(page.getByPlaceholder('href')).toBeDisabled();
+	await expect.element(page.getByLabelText('href')).toHaveValue('/map');
+	await expect.element(page.getByLabelText('href')).toBeDisabled();
 	await expect.element(page.getByRole('button', { name: 'Add link' })).toBeDisabled();
 	await expect.element(page.getByRole('button', { name: 'Save' })).not.toBeInTheDocument();
 	expect(can).toHaveBeenCalledWith('global-edit', 'footer');
