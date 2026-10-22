@@ -253,7 +253,12 @@
 <div class="uncial-cms-editor-page" bind:this={root}>
 	<div class="uncial-cms-chrome">
 		{#if manualSave && !deleted}
-			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
+			<button
+				class="uncial-btn uncial-btn--primary"
+				type="button"
+				disabled={!saveEnabled}
+				onclick={() => void controller?.save()}
+			>
 				Save
 			</button>
 		{/if}
@@ -262,16 +267,27 @@
 				{describeContentStatus(contentStatus(record.draft, record.published))}
 			</p>
 			{#if can('publish')}
-				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.publish()}>
+				<button
+					class="uncial-btn uncial-btn--primary"
+					type="button"
+					disabled={!saveEnabled}
+					onclick={() => void controller?.publish()}
+				>
 					Publish
 				</button>
 			{/if}
 			{#if can('unpublish') && record.published}
-				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.unpublish()}>
+				<button
+					class="uncial-btn"
+					type="button"
+					disabled={!saveEnabled}
+					onclick={() => void controller?.unpublish()}
+				>
 					Unpublish
 				</button>
 			{/if}
 			<button
+				class="uncial-btn"
 				type="button"
 				aria-expanded={historyOpen}
 				onclick={() => (historyOpen ? closeHistory() : void openHistory())}
@@ -280,6 +296,7 @@
 			</button>
 			{#if movable && can('move')}
 				<button
+					class="uncial-btn"
 					type="button"
 					aria-expanded={moveTo !== undefined}
 					onclick={() => (moveTo = moveTo === undefined ? sourcePath : undefined)}
@@ -289,6 +306,7 @@
 			{/if}
 			{#if can('delete')}
 				<button
+					class="uncial-btn uncial-btn--danger"
 					type="button"
 					disabled={!saveEnabled}
 					onclick={async () => (deleted = (await controller?.remove()) ?? false)}
@@ -298,7 +316,7 @@
 			{/if}
 		{/if}
 		{#if previewUrl && !deleted}
-			<a class="uncial-cms-preview" href={previewUrl(sourcePath)} target="_blank" rel="noopener">
+			<a class="uncial-cms-preview uncial-btn" href={previewUrl(sourcePath)} target="_blank" rel="noopener">
 				Preview
 			</a>
 		{/if}
@@ -319,8 +337,8 @@
 				void controller?.move(moveTo!);
 			}}
 		>
-			<label>New path <input type="text" bind:value={moveTo} required /></label>
-			<button type="submit" disabled={!saveEnabled || moveTo === sourcePath}>Move here</button>
+			<label>New path <input class="uncial-input" type="text" bind:value={moveTo} required /></label>
+			<button class="uncial-btn" type="submit" disabled={!saveEnabled || moveTo === sourcePath}>Move here</button>
 		</form>
 	{/if}
 
@@ -331,11 +349,11 @@
 				to proceed.
 			</p>
 			<div class="uncial-cms-banner-actions">
-				<button type="button" onclick={() => controller?.downloadMyVersion()}>
+				<button class="uncial-btn" type="button" onclick={() => controller?.downloadMyVersion()}>
 					Download my version
 				</button>
-				<button type="button" onclick={() => void controller?.reloadLatest()}>Reload latest</button>
-				<button type="button" onclick={() => controller?.dismissConflict()}>Dismiss</button>
+				<button class="uncial-btn" type="button" onclick={() => void controller?.reloadLatest()}>Reload latest</button>
+				<button class="uncial-btn" type="button" onclick={() => controller?.dismissConflict()}>Dismiss</button>
 			</div>
 		</div>
 	{/if}
@@ -363,6 +381,7 @@
 					{#each versions as version (version.id)}
 						<li>
 							<button
+								class="uncial-btn"
 								type="button"
 								aria-pressed={selected?.id === version.id}
 								onclick={() => void select(version.id)}
@@ -377,7 +396,7 @@
 				{@const versionId = selected.id}
 				<div class="uncial-cms-version" aria-label="Selected Version">
 					{#if can('restore')}
-						<button type="button" onclick={() => void restore(versionId)}>Restore</button>
+						<button class="uncial-btn" type="button" onclick={() => void restore(versionId)}>Restore</button>
 					{/if}
 					<Renderer {marks} content={selected.doc} {blocks} schema={resolvedSchema} />
 				</div>
@@ -400,3 +419,27 @@
 		/>
 	{/if}
 </div>
+
+<style>
+	.uncial-cms-chrome,
+	.uncial-cms-banner-actions,
+	.uncial-cms-move {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--uncial-space-2) var(--uncial-space-3);
+		margin-bottom: var(--uncial-space-4);
+	}
+
+	.uncial-cms-record-status,
+	.uncial-cms-status {
+		margin: 0;
+		color: var(--uncial-color-text-muted);
+		font-size: 0.875rem;
+		overflow-wrap: anywhere;
+	}
+
+	.uncial-cms-status[data-tone='error'] {
+		color: var(--uncial-color-danger);
+	}
+</style>

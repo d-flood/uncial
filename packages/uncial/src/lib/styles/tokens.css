@@ -3,6 +3,7 @@
  * imports the chrome stylesheet at runtime, which lands after the host's CSS;
  * unlayered these defaults would take the host's overrides back. */
 @layer uncial-tokens {
+	.uncial-cms-editor-page,
 	.uncial-editor-shell,
 	.uncial-renderer,
 	.uncial-attrs-panel,
