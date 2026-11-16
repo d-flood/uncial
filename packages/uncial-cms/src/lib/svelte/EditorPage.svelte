@@ -13,7 +13,7 @@
 	 */
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import type { ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
@@ -47,6 +47,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
+		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
+		attributeInputs?: AttributeInputs;
 		/** Where the host previews a Draft; the editing view links there when given. */
 		previewUrl?: (sourcePath: string) => string;
 		/** The record moved, by a save that derived a new path or by Move; reopen it at `sourcePath`. */
@@ -65,6 +67,7 @@
 		attributesPanel = 'overlay',
 		presentation = 'bare',
 		imageSource,
+		attributeInputs,
 		previewUrl,
 		onMoved,
 		movable = false
@@ -391,6 +394,7 @@
 			{attributesPanel}
 			{presentation}
 			imageSource={resolvedImageSource}
+			{attributeInputs}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}

@@ -36,3 +36,7 @@ export function getActiveForge(): ActiveForge | null {
 export function configMediaDir(config: UncialCmsSiteConfig): string | undefined {
 	return config.forge === 'server' ? undefined : config.mediaDir;
 }
+
+export function configMediaUrlPrefix(config: UncialCmsSiteConfig): string | undefined {
+	return config.forge === 'server' ? undefined : config.mediaUrlPrefix;
+}

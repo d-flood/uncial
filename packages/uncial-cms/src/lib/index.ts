@@ -75,7 +75,12 @@ export {
 	validatePagePath
 } from './paths/index.js';
 export { parseDocument, serializeDocument, type Blocks } from './document.js';
-export { patSessionProvider, popupSessionProvider } from './github/index.js';
+export {
+	brokerSessionProvider,
+	patSessionProvider,
+	popupSessionProvider,
+	type BrokerSessionOptions
+} from './github/index.js';
 export type {
 	Action,
 	MediaItemView,

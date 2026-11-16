@@ -10,7 +10,7 @@
 	 */
 	import 'uncial/styles/chrome.css';
 	import { onMount, type ComponentProps } from 'svelte';
-	import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import {
 		Editor,
 		type ImageSource,
@@ -49,6 +49,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
+		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
+		attributeInputs?: AttributeInputs;
 	}
 
 	let {
@@ -63,7 +65,8 @@
 		toolbarExtensions,
 		attributesPanel = 'overlay',
 		presentation = 'bare',
-		imageSource
+		imageSource,
+		attributeInputs
 	}: Props = $props();
 
 	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
@@ -176,6 +179,7 @@
 			{attributesPanel}
 			{presentation}
 			imageSource={resolvedImageSource}
+			{attributeInputs}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}

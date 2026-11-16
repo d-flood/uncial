@@ -7,6 +7,8 @@ export type ToolbarFeatureId =
 	| 'strike'
 	| 'code'
 	| 'link'
+	| 'superscript'
+	| 'subscript'
 	| 'heading2'
 	| 'heading3'
 	| 'heading4'
@@ -42,6 +44,8 @@ export const defaultToolbarFeatures: readonly ToolbarFeatureId[] = [
 	'strike',
 	'code',
 	'link',
+	'superscript',
+	'subscript',
 	'heading2',
 	'heading3',
 	'heading4',
@@ -68,6 +72,20 @@ function toggleMark(command: 'toggleBold' | 'toggleItalic' | 'toggleStrike' | 't
 
 function canToggleMark(command: 'toggleBold' | 'toggleItalic' | 'toggleStrike' | 'toggleCode') {
 	return ({ editor }: ToolbarFeatureContext) => editor.can().chain().focus()[command]().run();
+}
+
+// Opt-in marks: only a schema that names them has them.
+function scriptFeature(mark: 'superscript' | 'subscript', label: string): ToolbarFeature {
+	const toggle = mark === 'superscript' ? 'toggleSuperscript' : 'toggleSubscript';
+	return {
+		id: mark,
+		label,
+		group: 'mark',
+		isAllowed: ({ schema }) => schema?.allowedMarks.has(mark) ?? false,
+		isActive: activeMark(mark),
+		canRun: ({ editor }) => editor.can().chain().focus()[toggle]().run(),
+		run: ({ editor }) => editor.chain().focus()[toggle]().run()
+	};
 }
 
 function headingFeature(level: 2 | 3 | 4 | 5 | 6): ToolbarFeature {
@@ -128,6 +146,8 @@ export const builtinToolbarFeatures: readonly ToolbarFeature[] = [
 		canRun: ({ editor }) => editor.can().chain().focus().toggleLink({ href: '#' }).run(),
 		run: ({ editor }) => editor.chain().focus().toggleLink({ href: '#' }).run()
 	},
+	scriptFeature('superscript', 'Superscript'),
+	scriptFeature('subscript', 'Subscript'),
 	headingFeature(2),
 	headingFeature(3),
 	headingFeature(4),
@@ -225,7 +245,11 @@ export function resolveToolbarFeatures({
 }): ToolbarFeature[] {
 	if (!editor) return [];
 
-	const descriptors = [...builtinToolbarFeatures, ...toolbarExtensions];
+	const overridden = new Set(toolbarExtensions.map((feature) => feature.id));
+	const descriptors = [
+		...builtinToolbarFeatures.filter((feature) => !overridden.has(feature.id)),
+		...toolbarExtensions
+	];
 	const selection = toolbarFeatures ?? defaultToolbarFeatures;
 	const selectedIds = selection === '*' || selection === '__all__' ? null : new Set(selection);
 	const context = { editor, schema };

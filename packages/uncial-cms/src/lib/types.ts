@@ -6,12 +6,14 @@ export interface GitHubSiteConfig {
 	authWorkerUrl: string; // unused by the PAT provider; required in the config shape
 	appSlug: string;
 	mediaDir?: string; // repo-root-relative dir uploaded images commit into; consumer-defined
+	mediaUrlPrefix?: string; // site-root URL path `mediaDir` is served under
 }
 
 export interface LocalSiteConfig {
 	forge: 'local';
 	contentDir: string;
 	mediaDir?: string;
+	mediaUrlPrefix?: string;
 }
 
 export interface ServerSiteConfig {

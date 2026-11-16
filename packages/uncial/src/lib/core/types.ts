@@ -78,6 +78,19 @@ export interface AttributeSpec<T> {
 }
 
 export type AttributeConfig<T> = AttributeSpec<T> | T;
+
+/** Props a host-defined attribute input receives in the attributes and metadata panels. */
+export interface AttributeInputProps<T = unknown> {
+	name: string;
+	spec: AttributeSpec<T>;
+	value: T;
+	/** Store a new value, which must be plain JSON. */
+	update: (value: T) => void;
+}
+
+/** Host components for host-defined `input` kinds, keyed by kind. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- each kind's component types its own value
+export type AttributeInputs = Record<string, Component<AttributeInputProps<any>>>;
 export type MetaFieldSpec<T> = AttributeSpec<T>;
 export type DocumentMetaSchema = Record<string, MetaFieldSpec<unknown>>;
 export type MetaValues<Fields extends DocumentMetaSchema> = {

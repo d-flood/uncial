@@ -50,7 +50,8 @@ The package also ships a `uncial-cms` command; see
   (`mountEditorPage`, `mountIndexPage`), `createPage`/`deletePage`/`listPages`,
   `uploadAsset`/`uploadImageAsset`/`fitImage`/`servedUrl` (see
   [Media](#media)), `parseDocument`/`serializeDocument`, the session providers
-  (`popupSessionProvider`, `patSessionProvider`), `MAX_CONTENT_BYTES`,
+  (`popupSessionProvider`, `brokerSessionProvider`, `patSessionProvider`),
+  `MAX_CONTENT_BYTES`,
   `ConflictError`, `NotFoundError`, and the shared types (`Site`,
   `SiteOptions`, `UncialCmsSiteConfig`, `ForgeSession`, `SessionProvider`,
   `ForgeAdapter`).
@@ -71,11 +72,14 @@ The package also ships a `uncial-cms` command; see
   site's editor routes.
 - `uncial-cms/vite` — `uncialCms(siteOptions)`, the Vite plugins a site
   installs: the development editing endpoint, and the build's forge literal.
+- `uncial-cms/nav` — `buildNav`, grouped and ordered site navigation from
+  Content documents' meta. Pure, so a reader layout can import it. See
+  [Navigation](#navigation).
 - `uncial-cms/paths` — the pure path↔source mapping and the page-path
   validators, with no `node:` module and no `@sveltejs/kit` in the import
   graph, so a plain Node script or a browser bundle can import it.
 - `uncial-cms/github` — the GitHub `ForgeAdapter` (`createGitHubAdapter`) over
-  the Contents API, plus the two session providers.
+  the Contents API, plus the three GitHub session providers.
 - `uncial-cms/local` — the local filesystem `ForgeAdapter`
   (`createLocalAdapter`), its unauthenticated `localSessionProvider`, and
   `createLocalVitePlugin` for the development endpoint.
@@ -128,6 +132,35 @@ Set them to self-host the worker or run your own App.
 `autosaveMs` applies only when the resolved forge is local — on a forge every
 keystroke would be a commit — so the same declaration is right in both builds.
 
+### Content on another branch
+
+`contentDir` and `mediaDir` are forge paths, relative to the root of
+`github.branch`, which need not be the branch the code lives on. Check that
+branch out somewhere the build can read it (a git worktree, say) and name the
+local copies separately:
+
+```ts
+export const siteOptions: SiteOptions = {
+	contentDir: 'pages',               // on the `content` branch
+	mediaDir: 'media',                 // on the `content` branch
+	localContentDir: 'content/pages',  // the worktree, from the build's cwd
+	localMediaDir: 'content/media',
+	mediaUrlPrefix: '/media',          // where the site serves mediaDir
+	github: { repo: 'owner/name', branch: 'content' }
+};
+```
+
+- **`localMediaDir`** is where `mediaDir` sits on disk. The development endpoint
+  writes media there and content to `localContentDir`, each wherever it is.
+  Without it, `mediaDir` must sit beside `contentDir` in one checkout.
+- **`mediaUrlPrefix`** is the site-root URL path the site serves `mediaDir`
+  under, and what [`servedUrl`](#media) maps uploads to. With it, `mediaDir` no
+  longer has to sit under the static dir. Serving the files there is the site's
+  job: copy or link `localMediaDir` into the build output, and into the static
+  dir in development.
+
+Leave both out and `mediaDir` must sit under the static dir, as before.
+
 ## Vite plugins
 
 ```ts
@@ -144,13 +177,16 @@ export default defineConfig({
 
 `uncialCms` installs two things: the development-only local editing endpoint,
 rooted at the repository and permitting writes under the content directory and
-`mediaDir`; and a `define` of the forge the build targets, which is how a
+`mediaDir` (or at `localContentDir` and `localMediaDir`, when a site declares
+[content on another branch](#content-on-another-branch)); and a `define` of the forge the build targets, which is how a
 local-only production build drops the editor stack statically rather than merely
 leaving it unrouted.
 
 `createLocalVitePlugin` from `uncial-cms/local` is the same endpoint on its own,
 for a site that is not using `defineSite`; it takes the repository `root` and the
-repo-root-relative `permittedRoots` writes are confined to. It is serve-only and
+repo-root-relative `permittedRoots` writes are confined to. A permitted root
+given as `{ path, local }` is the forge path `path` kept at the FS path `local`
+instead of under `root`. It is serve-only and
 binds Vite to `127.0.0.1` unless given a `host`. Every path it takes is repo-root-relative,
 exactly as the GitHub adapter addresses one. The adapter calls it at the fixed,
 development-only JSON endpoint `/__uncial-cms/local`:
@@ -208,6 +244,10 @@ export const entries = handlers.entries; // derived from the content dir
 export const load = handlers.load;       // { document, meta, path }
 ```
 
+`handlers.list()` returns every page as `{ path, sourcePath, document }`, the
+same shape as the Astro helpers' `list()`, for a layout that builds
+[navigation](#navigation) from the pages.
+
 **2. Editor variant** — `src/routes/[...path]/edit/+page.server.ts` bakes the
 mapping only; the document is always fetched live from the forge, never read
 out of the build:
@@ -260,6 +300,7 @@ Its props:
 | `sessionProvider` | `SessionProvider` | Defaults to the provider the resolved forge implies. |
 | `attributesPanel` | `'docked' \| 'overlay' \| 'off'` | Default `'overlay'`: the panel costs the document no width. |
 | `presentation` | `'card' \| 'bare'` | Default `'bare'`: no surface of the editor's own. |
+| `attributeInputs` | `AttributeInputs` | Components for host-defined attribute inputs; see [Custom attribute inputs](#custom-attribute-inputs). |
 
 Pass `devOnly: true` to `createEditorHandlers` for a **GitHub** site that still
 wants editing in development only; a local-only site gets that behaviour without
@@ -325,6 +366,28 @@ const handlers = createContentHandlers({
 
 Pass the same resolver to `EditorPage` and to the Content page's renderer, and
 one page path means one schema everywhere.
+
+## Navigation
+
+`buildNav` from `uncial-cms/nav` turns the pages' meta into grouped, ordered
+navigation. Each page's `navGroup` names its submenu (blank for top level),
+`navOrder` its position (lowest first, absent last) and `navLabel` its link text
+(falling back to `title`, then the path). A group sits where its first member
+sorts. Declare the fields in the schema's `metaFields`, and pass only the pages
+the nav should show:
+
+```ts
+import { buildNav } from 'uncial-cms/nav';
+
+const nav = buildNav(
+	handlers.list().filter(({ document }) => document.meta?.navOrder !== undefined),
+	{
+		base,                                                  // prepended to site-root hrefs
+		links: [{ href: '/search/', label: 'Search', order: 50 }] // fixed links, placed like pages
+	}
+);
+// [{ kind: 'link', href, label } | { kind: 'group', id, label, links: [{ href, label }] }]
+```
 
 ## Quick start: Astro
 
@@ -547,8 +610,8 @@ Leave `autosaveMs` unset on a forge, where every keystroke would become a commit
 
 Authentication is owned entirely by the session provider — the `sessionProvider`
 option on `EditorPage`, `createEditorSession`, `mountEditorPage` and
-`mountIndexPage`. It defaults to the provider the resolved forge implies. Two
-ship in the box, plus the unauthenticated `localSessionProvider` the local forge
+`mountIndexPage`, and the Dashboard. It defaults to the provider the resolved
+forge implies. Three ship in the box, plus the unauthenticated `localSessionProvider` the local forge
 uses:
 
 - **`popupSessionProvider` (default under GitHub).** Opens the auth worker in a
@@ -559,6 +622,18 @@ uses:
   hosted instance exists; self-hosting is first-class). Tokens live in
   `sessionStorage` per repo; on expiry the popup re-runs, and GitHub skips
   re-consent so renewal is a flash.
+- **`brokerSessionProvider({ brokerOrigin, clientId, appSlug, basePath? })`.**
+  Signs in with your own GitHub App through a code-exchange broker that holds
+  its client secret and serves `POST /github/token` and `POST /github/refresh`.
+  It opens GitHub's authorize page in a popup with a `state` kept in
+  `sessionStorage`; GitHub returns to the Dashboard at `<basePath>/uncial/`,
+  which relays the code to the opener, so register that page as the App's
+  callback URL. The broker's answer is read for `error` before its status,
+  because GitHub refuses with a 200. The user-to-server token it returns is the
+  forge's bearer, so GitHub itself decides who may push; `appSlug` names the App
+  when it cannot reach the repository. A refresh token, if the App issues one,
+  is kept in `localStorage` and renews the session without the popup; the
+  Dashboard's Sign out forgets it.
 - **`patSessionProvider`.** Zero-backend mode: prompts for a fine-grained
   personal access token (contents read/write on the target repo) and validates
   it via `GET /user`. The permanent dev / self-service mode — no worker needed.
@@ -570,6 +645,20 @@ uses:
 </script>
 
 <EditorPage {site} {blocks} {schema} {sourcePath} {pagePath} sessionProvider={patSessionProvider} />
+```
+
+A broker-backed site passes the same provider to both doors:
+
+```ts
+import { brokerSessionProvider } from 'uncial-cms';
+
+export const sessionProvider = brokerSessionProvider({
+	brokerOrigin: 'https://github-broker.example.org',
+	clientId: 'Iv23li…',
+	appSlug: 'my-site-editor',
+	basePath: base
+});
+// <EditorPage {sessionProvider} … /> and <uncial-dashboard {sessionProvider} …>
 ```
 
 ## The `uncial-cms` command
@@ -666,6 +755,63 @@ Residual risks accepted for v1 (see the spec's §6.5 for the full treatment):
   to repos the victim can push to *and* whose allowlist names the attacker
   origin — i.e. near zero.
 
+## Rich text: superscript, subscript and embeds
+
+Uncial ships `superscript` and `subscript` marks, off by default. Name them in
+the schema's `allowedMarks` and the editor gains them, with toolbar buttons,
+and the renderer draws them as `<sup>` and `<sub>`:
+
+```ts
+export const schema = createSchema(blocks, {
+	allowedMarks: ['bold', 'italic', 'strike', 'code', 'link', 'superscript', 'subscript']
+});
+```
+
+A host that already registers its own `superscript` or `subscript` extension,
+toolbar feature or mark component keeps it.
+
+`embedBlock` from `uncial` is an `embed` Block for oEmbed-style URL embeds:
+YouTube and Vimeo URLs render as a player iframe, and any other URL as a link.
+Register it like any Block:
+
+```ts
+import { embedBlock } from 'uncial';
+
+export const blocks = createBlockRegistry([embedBlock, …]);
+```
+
+## Custom attribute inputs
+
+A Block attribute or meta field whose `input` names a kind of the host's own
+gets that host's Svelte component as its field in the attributes and metadata
+panels. Map kinds to components with `attributeInputs` on `EditorPage`,
+`EditorSurface`, `mountEditorPage` and `<uncial-dashboard>` (for the Fallback
+editor), or on Uncial's `Editor`:
+
+```ts
+// a Block attribute
+page: { default: { item: '', page: 1 }, input: 'item-page' }
+```
+
+```svelte
+<!-- ItemPagePicker.svelte -->
+<script lang="ts">
+	import type { AttributeInputProps } from 'uncial/core';
+
+	let { value, update }: AttributeInputProps<{ item: string; page: number }> = $props();
+</script>
+
+<button type="button" onclick={() => update({ item: 'abc', page: 3 })}>{value.item || 'Choose'}</button>
+```
+
+```svelte
+<EditorPage {site} {blocks} {schema} {sourcePath} {pagePath} attributeInputs={{ 'item-page': ItemPagePicker }} />
+```
+
+The component receives `name`, `spec`, the current `value` and `update`, and
+the value it passes to `update` is stored as is, so it must be plain JSON. A
+kind with no component keeps the chooser button and `onChooseAttribute`.
+
 ## Media
 
 A Block gets image upload by declaring an attribute with `input: 'image'`:
@@ -719,7 +865,9 @@ updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
   passes through untouched. `fitImage` is exported for use on its own.
 - **`servedUrl(site, repoPath, staticDir?)`** maps a committed repo-root path
   under the static directory to the site-root-relative URL the built site serves
-  it from. It carries **no base path**: a stored `src` must stay correct at
+  it from. A site with a `mediaUrlPrefix` maps a path under `mediaDir` to that
+  prefix instead, wherever `mediaDir` lives (see
+  [Content on another branch](#content-on-another-branch)). It carries **no base path**: a stored `src` must stay correct at
   every `paths.base` the same content is built at, so the site prepends its base
   at render time.
 - **Content-addressed.** The committed name is a hash of the bytes plus the

@@ -11,10 +11,11 @@
 		attributeListValueSpec,
 		createAttributeListItem,
 		inferAttributeInputKind,
+		isBuiltInInputKind,
 		normalizeAttributeOptions
 	} from '../core/attributes.js';
 	import { onDestroy } from 'svelte';
-	import type { AttributeSpec } from '../core/types.js';
+	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import type { ImageSource } from './imageSource.js';
 	import ArrowUpIcon from 'phosphor-svelte/lib/ArrowUpIcon';
@@ -36,6 +37,8 @@
 		errors?: Record<string, string>;
 		onChange: (value: unknown) => void;
 		onCustom?: (name: string, inputKind: string) => void;
+		/** Components that edit host-defined input kinds in place of the `onCustom` chooser. */
+		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
 	}
@@ -49,6 +52,7 @@
 		errors = {},
 		onChange,
 		onCustom,
+		attributeInputs,
 		imageSource,
 		imagePreviews
 	}: Props = $props();
@@ -122,23 +126,6 @@
 		}
 	}
 
-	function isBuiltInInputKind(kind: string): boolean {
-		return [
-			'checkbox',
-			'number',
-			'date',
-			'datetime',
-			'richtext',
-			'select',
-			'textarea',
-			'json',
-			'list',
-			'text',
-			'hidden',
-			'image'
-		].includes(kind);
-	}
-
 	function replaceItem(index: number, next: unknown): void {
 		onChange(items.map((item, position) => (position === index ? next : item)));
 	}
@@ -173,13 +160,18 @@
 			<span class="uncial-field__label">{name}</span>
 		{/if}
 		{#if !isBuiltInInputKind(inputKind)}
-			<button
-				type="button"
-				class="uncial-btn uncial-btn--outline uncial-btn--sm uncial-btn--start"
-				onclick={() => onCustom?.(name, inputKind)}
-			>
-				{customLabel}
-			</button>
+			{@const CustomInput = attributeInputs?.[inputKind]}
+			{#if CustomInput}
+				<CustomInput {name} {spec} {value} update={onChange} />
+			{:else}
+				<button
+					type="button"
+					class="uncial-btn uncial-btn--outline uncial-btn--sm uncial-btn--start"
+					onclick={() => onCustom?.(name, inputKind)}
+				>
+					{customLabel}
+				</button>
+			{/if}
 		{:else if inputKind === 'checkbox'}
 			<input
 				id={fieldId}
@@ -292,6 +284,7 @@
 								{errors}
 								onChange={(next) => replaceItem(index, next)}
 								{onCustom}
+								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
 							/>
@@ -307,6 +300,7 @@
 									{errors}
 									onChange={(next) => setItemField(index, fieldName, next)}
 									{onCustom}
+									{attributeInputs}
 									{imageSource}
 									{imagePreviews}
 								/>

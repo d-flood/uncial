@@ -1,4 +1,4 @@
-import type { ContentSchema } from 'uncial/core';
+import type { AttributeInputs, ContentSchema } from 'uncial/core';
 import type { Site } from '../define-site.js';
 import type { Action } from '../server-forge/protocol.js';
 import type { SessionProvider, UncialCmsSiteConfig } from '../types.js';
@@ -24,6 +24,8 @@ export interface DashboardOptions {
 	editorStylesheets?: string[];
 	/** Repo-root-relative dir the build serves at the site root, as `cmsImageSource` takes it. Default 'static'. */
 	staticDir?: string;
+	/** Svelte components for host-defined attribute `input` kinds, in the Fallback editor. */
+	attributeInputs?: AttributeInputs;
 }
 
 export type DashboardProps = DashboardOptions & {

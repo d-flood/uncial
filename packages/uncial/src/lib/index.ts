@@ -2,4 +2,5 @@ export * from './core/index.js';
 export * from './runtime/svelte.js';
 export * from './editor/index.js';
 export * from './render/index.js';
+export { embedBlock } from './embed.js';
 export { tabBlock, tabsBlock } from './tabs.js';

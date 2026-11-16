@@ -5,7 +5,7 @@ import SuperscriptMarkFixture from './SuperscriptMarkFixture.svelte';
 import { DEFAULT_MARKS, createBlockRegistry, createSchema } from '../core/registry.js';
 
 const blocks = createBlockRegistry([]);
-const schema = createSchema(blocks, { allowedMarks: [...DEFAULT_MARKS, 'superscript'] });
+const schema = createSchema(blocks, { allowedMarks: [...DEFAULT_MARKS, 'superscript', 'highlight'] });
 
 // Svelte's SSR output is threaded with hydration comments; the invariant is the
 // element nesting, not the markers between them.
@@ -37,13 +37,12 @@ describe('mark renderer registry', () => {
 	it('degrades an unregistered mark to bare text', () => {
 		const { body } = render(Renderer, {
 			props: {
-				content: documentWithMarks([{ type: 'superscript' }]),
+				content: documentWithMarks([{ type: 'highlight' }]),
 				blocks,
 				schema
 			}
 		});
 
-		expect(html(body)).not.toContain('<sup>');
 		expect(html(body)).toContain('<p>14</p>');
 	});
 });

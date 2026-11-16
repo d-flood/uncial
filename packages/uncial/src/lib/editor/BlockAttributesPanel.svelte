@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { resolveRegistry } from '../core/registry.js';
-	import type { AttributeSpec, BlockDefinition, BlockRegistry } from '../core/types.js';
+	import type {
+		AttributeInputs,
+		AttributeSpec,
+		BlockDefinition,
+		BlockRegistry
+	} from '../core/types.js';
 	import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
 	import {
 		createInitialState,
@@ -32,12 +37,21 @@
 		 * the panel falls back to dispatching that window event for back-compat.
 		 */
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
+		/** Components that edit host-defined input kinds in place; see `AttributeFieldControl`. */
+		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		/** Where a successful upload registers its preview; see `Editor`. */
 		imagePreviews?: ImagePreviews;
 	}
 
-	let { controller, blocks = [], onChooseAttribute, imageSource, imagePreviews }: Props = $props();
+	let {
+		controller,
+		blocks = [],
+		onChooseAttribute,
+		attributeInputs,
+		imageSource,
+		imagePreviews
+	}: Props = $props();
 
 	let controllerState = $state<BlockAttributesState>(createInitialState());
 
@@ -197,6 +211,7 @@
 					error={controllerState.validationErrors[name]}
 					onChange={(value) => controller.setDraftAttr(name, value)}
 					onCustom={chooseCustomAttribute}
+					{attributeInputs}
 					{imageSource}
 					{imagePreviews}
 				/>

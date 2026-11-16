@@ -4,6 +4,7 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { defaultSessionProvider, forgeAdapter } from '../editor-session.js';
 	import { SignedOutError } from '../errors.js';
+	import { forgetBrokerGrant, relayBrokerCallback } from '../github/broker.js';
 	import { globalTitle } from '../globals.js';
 	import { defaultMapPathToSource } from '../paths/index.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
@@ -44,10 +45,12 @@
 		mapSourceToPath,
 		editorStylesheets,
 		staticDir,
+		attributeInputs,
 		sections = ['pages', 'media', 'globals']
 	}: DashboardProps = $props();
 
 	const uid = $props.id();
+	const relaying = relayBrokerCallback();
 
 	const LABELS: Record<DashboardSection, string> = {
 		pages: 'Pages',
@@ -108,20 +111,22 @@
 			href: app.href ?? hashForRoute({ section: 'app', id: app.id })
 		}))
 	]);
-	const showNav = $derived(navItems.length > 1 && signedOut === undefined);
+	const showNav = $derived(navItems.length > 1 && signedOut === undefined && !relaying);
 	const activeId = $derived(
 		route.section === 'edit' ? 'pages' : route.section === 'app' ? `app/${route.id}` : route.section
 	);
 	const title = $derived(
-		signedOut !== undefined
-			? 'Signed out'
-			: route.section === 'edit'
-				? route.pagePath === ''
-					? 'Editing site root'
-					: `Editing /${route.pagePath}/`
-				: openGlobal
-					? (globalTitle(openGlobal.schema) ?? openGlobal.name)
-					: (navItems.find((item) => item.id === activeId)?.label ?? LABELS.pages)
+		relaying
+			? 'Signing in'
+			: signedOut !== undefined
+				? 'Signed out'
+				: route.section === 'edit'
+					? route.pagePath === ''
+						? 'Editing site root'
+						: `Editing /${route.pagePath}/`
+					: openGlobal
+						? (globalTitle(openGlobal.schema) ?? openGlobal.name)
+						: (navItems.find((item) => item.id === activeId)?.label ?? LABELS.pages)
 	);
 
 	const reason = (error: unknown) =>
@@ -165,13 +170,16 @@
 	}
 
 	function signOut() {
-		if (site?.forge === 'github') clearCachedSession(site.repo);
+		if (site?.forge === 'github') {
+			clearCachedSession(site.repo);
+			forgetBrokerGrant(site.repo);
+		}
 		void endSession('You signed out.');
 	}
 
 	$effect(() => {
 		const current = site;
-		if (current) untrack(() => void signIn(current));
+		if (current && !relaying) untrack(() => void signIn(current));
 	});
 
 	function resolve(next: string): DashboardRoute {
@@ -298,7 +306,9 @@
 			{/if}
 			<h1 bind:this={heading} tabindex="-1">{title}</h1>
 
-			{#if signedOut !== undefined}
+			{#if relaying}
+				<p class="reason" role="status">Finishing sign-in. You can close this window.</p>
+			{:else if signedOut !== undefined}
 				<p class="reason" role="status">{signedOut}</p>
 				<!-- The first attempt runs outside a click, where browsers block the sign-in popup. -->
 				<button type="button" class="btn btn-primary" onclick={retrySignIn}>Sign in</button>
@@ -315,7 +325,8 @@
 									blocks,
 									schema: schemaFor(route.pagePath),
 									sessionProvider: provideSession,
-									editorStylesheets
+									editorStylesheets,
+									attributeInputs
 								}}
 								{basePath}
 								{staticDir}

@@ -106,6 +106,26 @@ export function normalizeAttributeOptions<T>(
 	});
 }
 
+const BUILT_IN_INPUT_KINDS: ReadonlySet<string> = new Set([
+	'checkbox',
+	'number',
+	'date',
+	'datetime',
+	'richtext',
+	'select',
+	'textarea',
+	'json',
+	'list',
+	'text',
+	'hidden',
+	'image'
+]);
+
+/** False for a host-defined kind, which a host input component or chooser edits. */
+export function isBuiltInInputKind(kind: string): boolean {
+	return BUILT_IN_INPUT_KINDS.has(kind);
+}
+
 export function inferAttributeInputKind(spec: AttributeSpec<unknown>): AttributeInputKind {
 	if (spec.input) return spec.input;
 
@@ -237,6 +257,10 @@ export function toAttributeDraftValue(spec: AttributeSpec<unknown>, value: unkno
 	if (input === 'json') return JSON.stringify(normalized, null, 2);
 	// A list is edited as the array itself, one control per item.
 	if (input === 'list') return Array.isArray(normalized) ? normalized : [];
+	// A host input edits the stored JSON itself.
+	if (!isBuiltInInputKind(input) && typeof normalized === 'object' && normalized !== null) {
+		return normalized;
+	}
 
 	return String(normalized ?? '');
 }

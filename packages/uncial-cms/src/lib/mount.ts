@@ -51,6 +51,8 @@ export interface MountEditorPageOptions {
 	editorStylesheets?: string[];
 	/** Where `input: 'image'` fields get images; defaults to `cmsImageSource(config)`. */
 	imageSource?: UncialEditorElement['imageSource'];
+	/** Svelte components for host-defined attribute `input` kinds. */
+	attributeInputs?: UncialEditorElement['attributeInputs'];
 	onerror?: (error: unknown) => void;
 }
 
@@ -132,6 +134,7 @@ export function mountEditorPage(
 	if (opts.attributesPanel !== undefined) editor.attributesPanel = opts.attributesPanel;
 	if (opts.presentation !== undefined) editor.presentation = opts.presentation;
 	editor.imageSource = opts.imageSource ?? cmsImageSource(config);
+	editor.attributeInputs = opts.attributeInputs;
 	editor.blocks = blocks;
 	editor.schema = schema;
 	// Forward the schema's declared meta fields so the editor renders (and edits)

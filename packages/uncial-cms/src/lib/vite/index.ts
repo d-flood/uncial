@@ -37,15 +37,30 @@ function trimSlashes(path: string): string {
 	return path.replace(/^\/+|\/+$/g, '');
 }
 
-export function uncialCms(options: SiteOptions): Plugin[] {
-	return [
-		createLocalVitePlugin({
+function localPlugin(options: SiteOptions): Plugin {
+	if (options.localMediaDir === undefined) {
+		return createLocalVitePlugin({
 			root: repositoryRoot(options),
 			permittedRoots: [
 				trimSlashes(options.contentDir),
 				...(options.mediaDir ? [trimSlashes(options.mediaDir)] : [])
 			]
-		}),
+		});
+	}
+	if (!options.mediaDir)
+		throw new Error('localMediaDir needs the mediaDir it is the local copy of.');
+	return createLocalVitePlugin({
+		root: resolve(options.localContentDir ?? options.contentDir),
+		permittedRoots: [
+			{ path: options.contentDir, local: options.localContentDir ?? options.contentDir },
+			{ path: options.mediaDir, local: options.localMediaDir }
+		]
+	});
+}
+
+export function uncialCms(options: SiteOptions): Plugin[] {
+	return [
+		localPlugin(options),
 		{
 			name: 'uncial-cms:forge',
 			config(_config, env) {
