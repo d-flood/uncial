@@ -1,5 +1,11 @@
 # uncial
 
+## 5.2.0
+
+### Minor Changes
+
+- cb6523a: Add content and media on another branch (`localMediaDir`, `mediaUrlPrefix`), `brokerSessionProvider`, `uncial-cms/nav`'s `buildNav`, superscript/subscript marks, an `embed` Block, and host-defined attribute inputs (`attributeInputs`).
+
 ## 5.1.0
 
 ### Minor Changes
