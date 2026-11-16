@@ -11,6 +11,7 @@ import type {
 	ToolbarFeatureSelection
 } from '../editor/index.js';
 import type {
+	AttributeInputs,
 	AttributeSpec,
 	BlockDefinition,
 	BlockRegistry,
@@ -32,6 +33,7 @@ type EditorProps = {
 	attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 	presentation?: 'card' | 'bare';
 	imageSource?: ImageSource;
+	attributeInputs?: AttributeInputs;
 };
 
 type EditorHostProps = EditorProps & {
@@ -227,6 +229,13 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 	}
 	set imageSource(value: EditorProps['imageSource']) {
 		this.setProp('imageSource', value);
+	}
+
+	get attributeInputs(): EditorProps['attributeInputs'] {
+		return this.props.attributeInputs;
+	}
+	set attributeInputs(value: EditorProps['attributeInputs']) {
+		this.setProp('attributeInputs', value);
 	}
 
 	protected mountComponent(target: ShadowRoot): Record<string, unknown> {

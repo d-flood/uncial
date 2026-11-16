@@ -99,6 +99,10 @@
 			<s>{@render renderMarkedText(text, rest)}</s>
 		{:else if mark.type === 'code'}
 			<code>{@render renderMarkedText(text, rest)}</code>
+		{:else if mark.type === 'superscript'}
+			<sup>{@render renderMarkedText(text, rest)}</sup>
+		{:else if mark.type === 'subscript'}
+			<sub>{@render renderMarkedText(text, rest)}</sub>
 		{:else if mark.type === 'link'}
 			{@const href = sanitizeHref(mark.attrs?.href)}
 			{#if href}

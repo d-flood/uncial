@@ -1,6 +1,8 @@
 import StarterKit from '@tiptap/starter-kit';
 import Code from '@tiptap/extension-code';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import {
 	Extension,
@@ -454,6 +456,9 @@ function createBaseExtensions(
 	const includeStrike = marks.has('strike');
 	const includeCode = marks.has('code');
 	const includeLink = marks.has('link');
+	// A host that already registers its own copy keeps it; Tiptap rejects duplicate names.
+	const includeMark = (name: string) =>
+		marks.has(name) && !extensions.some((extension) => extension.name === name);
 
 	return [
 		StarterKit.configure({
@@ -477,7 +482,8 @@ function createBaseExtensions(
 		TableCell,
 		...(includeCode ? [CombinableCode] : []),
 		...(includeLink ? [LinkMark] : []),
-		...extensions
+		...(includeMark('superscript') ? [Superscript] : []),
+		...(includeMark('subscript') ? [Subscript] : [])
 	];
 }
 
@@ -517,7 +523,7 @@ export function createEditorExtensions(
 		);
 
 	return [
-		...createBaseExtensions(schema),
+		...createBaseExtensions(schema, extensions),
 		createDocumentIdentityExtension(registry),
 		...blockExtensions,
 		...extensions

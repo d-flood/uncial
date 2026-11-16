@@ -2,6 +2,7 @@ export { defineRuntimeBlock } from './defineBlock.js';
 export {
 	coerceAttributeValue,
 	inferAttributeInputKind,
+	isBuiltInInputKind,
 	normalizeAttributeOptions,
 	normalizeBlockAttributes,
 	parseBlockDraftAttributes,
@@ -47,6 +48,8 @@ export {
 export type {
 	AttributeConfig,
 	AttributeInputKind,
+	AttributeInputProps,
+	AttributeInputs,
 	AttributeOption,
 	AttrParser,
 	AttrSerializer,

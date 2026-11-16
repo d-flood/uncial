@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, unlink, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { MAX_CONTENT_BYTES } from '../constants.js';
@@ -9,8 +9,11 @@ import { LOCAL_API_PATH } from './constants.js';
 export interface LocalVitePluginOptions {
 	/** Repository root: every path the endpoint receives resolves against it. */
 	root: string;
-	/** Repo-root-relative directories a request may address, as the site declares them. */
-	permittedRoots: string[];
+	/**
+	 * Repo-root-relative directories a request may address, as the site declares
+	 * them. An entry with `local` sits at that FS path instead of under `root`.
+	 */
+	permittedRoots: Array<string | { path: string; local: string }>;
 	/** Vite `server.host`; defaults to loopback because the endpoint has no auth. */
 	host?: string | boolean;
 }
@@ -66,14 +69,22 @@ interface Roots {
 	permitted: Array<{ declared: string; absolute: string }>;
 }
 
+function normalizePath(path: string): string {
+	const normalized = posix.normalize(path).replace(/\/+$/, '');
+	return normalized === '.' ? '' : normalized;
+}
+
 function resolveRoots({ root, permittedRoots }: LocalVitePluginOptions): Roots {
 	const repositoryRoot = resolve(root);
 	return {
 		root: repositoryRoot,
-		permitted: permittedRoots.map((declared) => ({
-			declared,
-			absolute: resolve(repositoryRoot, declared)
-		}))
+		permitted: permittedRoots.map((entry) => {
+			const declared = typeof entry === 'string' ? entry : entry.path;
+			return {
+				declared: normalizePath(declared).replace(/^\/+/, ''),
+				absolute: typeof entry === 'string' ? resolve(repositoryRoot, entry) : resolve(entry.local)
+			};
+		})
 	};
 }
 
@@ -82,7 +93,12 @@ function contains(directory: string, target: string): boolean {
 	return from === '' || (!from.startsWith(`..${sep}`) && from !== '..' && !isAbsolute(from));
 }
 
-function repositoryPath(roots: Roots, encodedPath: string): string {
+type Permitted = Roots['permitted'][number];
+
+function repositoryPath(
+	roots: Roots,
+	encodedPath: string
+): { target: string; permitted: Permitted } {
 	let path: string;
 	try {
 		path = decodeURIComponent(encodedPath);
@@ -90,12 +106,21 @@ function repositoryPath(roots: Roots, encodedPath: string): string {
 		throw new HttpError(400, 'Path is not valid URL encoding.');
 	}
 
-	const target = resolve(roots.root, path);
-	if (!roots.permitted.some((permitted) => contains(permitted.absolute, target))) {
-		const names = roots.permitted.map((permitted) => permitted.declared).join(', ');
-		throw new HttpError(403, `Path must stay within ${names}.`);
+	const normalized = normalizePath(path);
+	for (const permitted of roots.permitted) {
+		const { declared } = permitted;
+		const rest =
+			declared === '' || normalized === declared
+				? normalized.slice(declared.length)
+				: normalized.startsWith(`${declared}/`)
+					? normalized.slice(declared.length + 1)
+					: undefined;
+		if (rest === undefined) continue;
+		const target = resolve(permitted.absolute, rest);
+		if (contains(permitted.absolute, target)) return { target, permitted };
 	}
-	return target;
+	const names = roots.permitted.map((permitted) => permitted.declared).join(', ');
+	throw new HttpError(403, `Path must stay within ${names}.`);
 }
 
 async function handleRead(
@@ -105,7 +130,7 @@ async function handleRead(
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = repositoryPath(roots, encodedPath);
+	const { target } = repositoryPath(roots, encodedPath);
 	let content: Buffer;
 	try {
 		content = await readFile(target);
@@ -142,7 +167,7 @@ async function handleWrite(
 	if (body.sha !== undefined && typeof body.sha !== 'string') {
 		throw new HttpError(400, 'Write sha must be a string when provided.');
 	}
-	const target = repositoryPath(roots, encodedPath);
+	const { target } = repositoryPath(roots, encodedPath);
 	const content = Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8');
 	if (content.byteLength > MAX_CONTENT_BYTES) {
 		throw new HttpError(413, `Content exceeds ${MAX_CONTENT_BYTES} bytes.`);
@@ -186,7 +211,7 @@ async function handleDelete(
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = repositoryPath(roots, encodedPath);
+	const { target } = repositoryPath(roots, encodedPath);
 	try {
 		await unlink(target);
 	} catch (error) {
@@ -205,7 +230,7 @@ async function handleList(
 	encodedPath: string
 ): Promise<void> {
 	await readJson(request);
-	const target = repositoryPath(roots, encodedPath);
+	const { target, permitted } = repositoryPath(roots, encodedPath);
 	let entries: Array<{ name: string; isFile(): boolean; isDirectory(): boolean }>;
 	try {
 		entries = await readdir(target, { encoding: 'utf8', withFileTypes: true });
@@ -219,7 +244,10 @@ async function handleList(
 		entries: entries
 			.filter((entry) => entry.isFile() || entry.isDirectory())
 			.map((entry) => ({
-				path: relative(roots.root, resolve(target, entry.name)).split(sep).join('/'),
+				path: posix.join(
+					permitted.declared,
+					relative(permitted.absolute, resolve(target, entry.name)).split(sep).join('/')
+				),
 				type: entry.isDirectory() ? 'dir' : 'file'
 			}))
 	});

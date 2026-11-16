@@ -5,6 +5,7 @@
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import { resolveRegistry } from '../core/registry.js';
 	import type {
+		AttributeInputs,
 		AttributeSpec,
 		BlockDefinition,
 		BlockRegistry,
@@ -73,6 +74,8 @@
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		/** Uploads, existing images and thumbnails for `input: 'image'` attributes. */
 		imageSource?: ImageSource;
+		/** Components that edit host-defined `input` kinds in the attributes and metadata panels. */
+		attributeInputs?: AttributeInputs;
 		onIssue?: (issue: ValidationIssue) => void;
 		/**
 		 * The document after an edit, and the metadata after one.
@@ -102,6 +105,7 @@
 		presentation = 'card',
 		onChooseAttribute,
 		imageSource,
+		attributeInputs,
 		onIssue,
 		onChange,
 		onMetaChange
@@ -387,7 +391,11 @@
 		{#if hasMetaFields || activeBlocks.length > 0}
 			<div class="uncial-toolbar__actions">
 				{#if hasMetaFields}
-					<details class="uncial-dropdown uncial-dropdown--end" use:dropdownDismiss use:dropdownFloat>
+					<details
+						class="uncial-dropdown uncial-dropdown--end"
+						use:dropdownDismiss
+						use:dropdownFloat
+					>
 						<summary
 							bind:this={metaTriggerEl}
 							aria-label="Edit document metadata"
@@ -401,6 +409,7 @@
 								controller={documentMetaController}
 								fields={resolvedMetaFields}
 								onCommit={commitMeta}
+								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
 							/>
@@ -463,6 +472,7 @@
 				{controller}
 				{blocks}
 				{onChooseAttribute}
+				{attributeInputs}
 				{imageSource}
 				{imagePreviews}
 			/>

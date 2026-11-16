@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AttributeSpec } from '../core/types.js';
+	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
 	import type { ImageSource } from './imageSource.js';
@@ -9,11 +9,19 @@
 		controller: DocumentMetaController;
 		fields?: ReadonlyMap<string, AttributeSpec<unknown>>;
 		onCommit?: (meta: Record<string, unknown>) => void;
+		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
 	}
 
-	let { controller, fields = new Map(), onCommit, imageSource, imagePreviews }: Props = $props();
+	let {
+		controller,
+		fields = new Map(),
+		onCommit,
+		attributeInputs,
+		imageSource,
+		imagePreviews
+	}: Props = $props();
 
 	let controllerState = $state<DocumentMetaState>({
 		draft: {},
@@ -52,6 +60,7 @@
 			error={controllerState.errors[name]}
 			errors={controllerState.errors}
 			onChange={(value) => controller.setDraft(name, value)}
+			{attributeInputs}
 			{imageSource}
 			{imagePreviews}
 		/>

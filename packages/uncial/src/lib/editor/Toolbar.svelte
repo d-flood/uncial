@@ -17,6 +17,8 @@
 	import TextHTwoIcon from 'phosphor-svelte/lib/TextHTwoIcon';
 	import TextItalicIcon from 'phosphor-svelte/lib/TextItalicIcon';
 	import TextStrikethroughIcon from 'phosphor-svelte/lib/TextStrikethroughIcon';
+	import TextSubscriptIcon from 'phosphor-svelte/lib/TextSubscriptIcon';
+	import TextSuperscriptIcon from 'phosphor-svelte/lib/TextSuperscriptIcon';
 	import type { ContentSchema } from '../core/types.js';
 	import {
 		resolveToolbarFeatures,
@@ -107,6 +109,8 @@
 				strike: TextStrikethroughIcon,
 				code: CodeIcon,
 				link: LinkIcon,
+				superscript: TextSuperscriptIcon,
+				subscript: TextSubscriptIcon,
 				heading2: TextHTwoIcon,
 				heading3: TextHThreeIcon,
 				heading4: TextHFourIcon,

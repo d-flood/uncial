@@ -128,6 +128,8 @@
 		"@tiptap/core": "^3.20.0",
 		"@tiptap/extension-code": "^3.20.0",
 		"@tiptap/extension-code-block-lowlight": "3.20.0",
+		"@tiptap/extension-subscript": "^3.30.3",
+		"@tiptap/extension-superscript": "^3.30.3",
 		"@tiptap/extension-table": "^3.20.0",
 		"@tiptap/html": "^3.20.0",
 		"@tiptap/pm": "^3.20.0",

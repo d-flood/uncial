@@ -111,6 +111,13 @@ export class UncialDashboardElement extends UncialElement<Props> {
 		this.setProp('staticDir', value);
 	}
 
+	get attributeInputs(): DashboardOptions['attributeInputs'] {
+		return this.props.attributeInputs;
+	}
+	set attributeInputs(value: DashboardOptions['attributeInputs']) {
+		this.setProp('attributeInputs', value);
+	}
+
 	get sections(): DashboardProps['sections'] {
 		return this.props.sections;
 	}

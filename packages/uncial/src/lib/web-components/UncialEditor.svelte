@@ -8,6 +8,7 @@
 		ToolbarFeatureSelection
 	} from '../editor/index.js';
 	import type {
+		AttributeInputs,
 		AttributeSpec,
 		BlockDefinition,
 		BlockRegistry,
@@ -30,6 +31,7 @@
 		attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 		presentation?: 'card' | 'bare';
 		imageSource?: ImageSource;
+		attributeInputs?: AttributeInputs;
 		onIssue?: (issue: ValidationIssue) => void;
 		onChange?: (document: JSONContent) => void;
 		onMetaChange?: (meta: Record<string, unknown>) => void;
@@ -48,6 +50,7 @@
 		attributesPanel = true,
 		presentation = 'card',
 		imageSource,
+		attributeInputs,
 		onIssue,
 		onChange,
 		onMetaChange
@@ -74,6 +77,7 @@
 	{attributesPanel}
 	{presentation}
 	{imageSource}
+	{attributeInputs}
 	onIssue={dispatchIssue}
 	{onChange}
 	{onMetaChange}

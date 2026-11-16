@@ -29,6 +29,10 @@ export interface SiteOptions<G extends Globals = Globals> {
 	localContentDir?: string;
 	/** Repo-root-relative directory uploaded media commits into. */
 	mediaDir?: string;
+	/** FS path of `mediaDir` in development; defaults to where it sits beside `localContentDir`. */
+	localMediaDir?: string;
+	/** Site-root URL path `mediaDir` is served under, for media outside the static dir. */
+	mediaUrlPrefix?: string;
 	/** Omit for a local-only site: one with no forge to commit to. */
 	github?: {
 		repo: string;
@@ -75,7 +79,12 @@ export function defineSite<G extends Globals = {}>(
 	const localOnly = options.github === undefined;
 	const config: GitHubSiteConfig | LocalSiteConfig =
 		env.dev || options.github === undefined
-			? { forge: 'local', contentDir: options.contentDir, mediaDir: options.mediaDir }
+			? {
+					forge: 'local',
+					contentDir: options.contentDir,
+					mediaDir: options.mediaDir,
+					mediaUrlPrefix: options.mediaUrlPrefix
+				}
 			: {
 					forge: 'github',
 					repo: options.github.repo,
@@ -83,7 +92,8 @@ export function defineSite<G extends Globals = {}>(
 					contentDir: options.contentDir,
 					authWorkerUrl: options.github.authWorkerUrl ?? DEFAULT_AUTH_WORKER_URL,
 					appSlug: options.github.appSlug ?? DEFAULT_APP_SLUG,
-					mediaDir: options.mediaDir
+					mediaDir: options.mediaDir,
+					mediaUrlPrefix: options.mediaUrlPrefix
 				};
 	return {
 		config,

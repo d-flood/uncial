@@ -71,6 +71,10 @@
 			"types": "./dist/local/index.d.ts",
 			"default": "./dist/local/index.js"
 		},
+		"./nav": {
+			"types": "./dist/nav/index.d.ts",
+			"default": "./dist/nav/index.js"
+		},
 		"./paths": {
 			"types": "./dist/paths/index.d.ts",
 			"default": "./dist/paths/index.js"

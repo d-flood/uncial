@@ -85,15 +85,17 @@ function excluded(opts: ContentHandlerOptions, entry: ContentEntry): boolean {
 	return isGlobalsPath(entry.path) || (opts.exclude?.(entry) ?? false);
 }
 
+function listEntries(opts: ContentHandlerOptions, site: ResolvedSite): ContentEntry[] {
+	return listContentSources(site.localContentDir)
+		.map((rel) => {
+			const source = `${site.config.contentDir}/${rel}`;
+			return { path: defaultMapSourceToPath(source, site.config.contentDir), source };
+		})
+		.filter((entry) => !excluded(opts, entry));
+}
+
 function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => RouteEntry[] {
-	return () =>
-		listContentSources(site.localContentDir)
-			.map((rel) => {
-				const source = `${site.config.contentDir}/${rel}`;
-				return { path: defaultMapSourceToPath(source, site.config.contentDir), source };
-			})
-			.filter((entry) => !excluded(opts, entry))
-			.map(({ path }) => ({ path }));
+	return () => listEntries(opts, site).map(({ path }) => ({ path }));
 }
 
 /** The source for a site path, refusing one the site's `exclude` rules out. */
@@ -124,24 +126,42 @@ function contentDirRelative(source: string, contentDir: string): string {
 	return source.slice(prefix.length);
 }
 
+/** A content document ready to render, with the paths an editor route needs. */
+export interface ContentPage {
+	path: string;
+	/** Repo-root-relative, as the forge addresses it. */
+	sourcePath: string;
+	document: ContentDocument;
+}
+
 export function createContentHandlers(opts: ContentHandlerOptions): {
 	entries: () => RouteEntry[];
+	/** Every content document, normalized, in source order. */
+	list: () => ContentPage[];
 	load: (event: {
 		params: { path: string };
 	}) => Promise<{ document: ContentDocument; meta: Record<string, unknown>; path: string }>;
 } {
 	const site = resolveSite(opts);
+	const read = (path: string, source: string): ContentDocument => {
+		const rel = contentDirRelative(source, site.config.contentDir);
+		const raw = readFileSync(join(site.localContentDir, rel), 'utf-8');
+		return normalizeDocument(
+			JSON.parse(raw) as Partial<ContentDocument>,
+			opts.blocks,
+			schemaFor(opts, path)
+		);
+	};
 	return {
 		entries: createEntries(opts, site),
+		list: () =>
+			listEntries(opts, site).map(({ path, source }) => ({
+				path,
+				sourcePath: source,
+				document: read(path, source)
+			})),
 		load: async ({ params }) => {
-			const source = resolveSource(opts, site, params.path);
-			const rel = contentDirRelative(source, site.config.contentDir);
-			const raw = readFileSync(join(site.localContentDir, rel), 'utf-8');
-			const document = normalizeDocument(
-				JSON.parse(raw) as Partial<ContentDocument>,
-				opts.blocks,
-				schemaFor(opts, params.path)
-			);
+			const document = read(params.path, resolveSource(opts, site, params.path));
 			return { document, meta: document.meta ?? {}, path: params.path };
 		}
 	};
