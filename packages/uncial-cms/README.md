@@ -161,6 +161,28 @@ export const siteOptions: SiteOptions = {
 
 Leave both out and `mediaDir` must sit under the static dir, as before.
 
+### Drafts
+
+Set `github.drafts: true` and `EditorPage` offers **Save draft**, **Publish**
+and, once a Draft exists, **Discard draft** and **View published version**:
+
+```ts
+github: { repo: 'owner/name', branch: 'content', drafts: true }
+```
+
+- **Save draft** commits to `uncial/drafts/<page path, '/' → '__'>` (the root is
+  `uncial/drafts/index`), created from the tip of `github.branch` on the first
+  save. A site that deploys only on pushes to `github.branch` never deploys a Draft.
+- Opening a page's Editor variant loads its Draft when one exists and shows a
+  **Draft** badge (`.uncial-cms-draft-badge`). Any Editor with the edit URL sees it.
+- **Publish** fast-forwards `github.branch` to the Draft when it can, otherwise
+  merges it with a merge commit, then deletes the Draft branch. If
+  `github.branch` changed the same file since the Draft began, the conflict
+  banner shows and nothing is published. Without a Draft, Publish saves
+  straight to `github.branch`, as Save does without `drafts`.
+- The Dashboard's Pages section marks pages that have a Draft.
+- Media uploads still commit straight to `github.branch`.
+
 ## Vite plugins
 
 ```ts
@@ -892,9 +914,9 @@ Deliberately out of scope for v1 (tracked as future design rounds):
 - **Single-image upload only.** [Media](#media) commits one image at a time, up
   to the ~1 MB Contents API limit. `fit` downscales to reach it; there are no
   multi-image/galleries, no video, and no >1 MB via the blobs API.
-- **No drafts / PR workflows.** Save commits directly to the configured branch.
-  Editorial review in v1 is git **branch protection**, configured by the site
-  owner. A save-to-branch toggle is a candidate for v1.x.
+- **No PR workflows.** Save, or Publish with [Drafts](#drafts), commits to the
+  configured branch. Editorial review is git **branch protection**, configured by
+  the site owner.
 - **GitHub and local files only.** v1 ships the forge-adapter *interface*
   (validated on paper against GitLab's client-side PKCE), the GitHub
   implementation, and a development-only local filesystem implementation.

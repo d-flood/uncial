@@ -18,6 +18,7 @@ import {
 	type DeployStatusTimings,
 	type Schedule
 } from './deploy-status.js';
+import { draftBranch, type DraftForge } from './github/drafts.js';
 import type { ServerForgeAdapter } from './server-forge/adapter.js';
 import type { Action, ContentView, VersionView } from './server-forge/protocol.js';
 import type { ForgeAdapter, ForgeSession, SessionProvider, UncialCmsSiteConfig } from './types.js';
@@ -55,6 +56,11 @@ export interface EditorPageUi {
 	conflictVisible(visible: boolean): void;
 	/** The record's state, reported by the `server` forge only. */
 	record?(state: RecordState): void;
+	/**
+	 * Whether a Draft branch holds this page, on a GitHub site with `drafts`.
+	 * A surface that passes it offers Drafts; one that omits it saves straight to the branch.
+	 */
+	draft?(exists: boolean): void;
 	/** The record moved to a new path; this controller no longer addresses it. */
 	moved?(path: string): void;
 	failed?(error: unknown): void;
@@ -96,8 +102,17 @@ export interface EditorController {
 	downloadMyVersion(): void;
 	/** Close the banner, leaving content and the save button untouched. */
 	dismissConflict(): void;
-	/** `server` forge only: save any unsaved edit, then publish the Draft. */
+	/**
+	 * Save any unsaved edit, then publish the Draft. On a GitHub site with
+	 * Drafts and no Draft, publishing is a direct save.
+	 */
 	publish(): Promise<void>;
+	/** GitHub site with Drafts only: commit the document to the page's Draft branch. */
+	saveDraft(): Promise<void>;
+	/** GitHub site with Drafts only: delete the Draft (after confirm), then reload the Published copy. */
+	discardDraft(): Promise<void>;
+	/** GitHub site with Drafts only: the Published copy, for read-only display beside a Draft. */
+	publishedCopy(): Promise<ContentDocument>;
 	/** `server` forge only: withdraw the Published copy. */
 	unpublish(): Promise<void>;
 	/** `server` forge only: delete the record (after confirm); true once deleted. */
@@ -129,6 +144,10 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const schedule = opts.schedule ?? defaultSchedule;
 	const destroyed = () => opts.isDestroyed?.() ?? false;
 	const server = config.forge === 'server' ? (adapter as ServerForgeAdapter) : null;
+	const drafts =
+		config.forge === 'github' && config.drafts && ui.draft ? (adapter as DraftForge) : null;
+	const pageLabel = opts.pagePath ?? sourcePath;
+	const draftRef = draftBranch(pageLabel);
 	const branch =
 		config.forge === 'github'
 			? config.branch
@@ -145,19 +164,38 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	let saving = false;
 	let saveAgain = false;
 	let record: RecordState | null = null;
+	let hasDraft = false;
+
+	const showDraft = (exists: boolean) => {
+		hasDraft = exists;
+		ui.draft?.(exists);
+	};
 
 	const showRecord = (next: RecordState) => {
 		record = next;
 		ui.record?.(record);
 	};
 
-	const read = async (): Promise<{ content: string; sha: string; view?: ContentView }> => {
+	const read = async (): Promise<{
+		content: string;
+		sha: string;
+		view?: ContentView;
+		draft?: boolean;
+	}> => {
+		if (drafts) {
+			const draft = (await drafts.branchTip(draftRef)) !== null;
+			const file = await (draft
+				? drafts.readFileOn(draftRef, sourcePath)
+				: adapter.readFile(sourcePath));
+			return { ...file, draft };
+		}
 		if (!server) return adapter.readFile(sourcePath);
 		const view = await server.getRecord(sourcePath);
 		return { content: JSON.stringify(view.draft ?? view.published), sha: view.etag, view };
 	};
 
-	const applyView = (view: ContentView | undefined) => {
+	const applyView = (view: ContentView | undefined, draft?: boolean) => {
+		if (draft !== undefined) showDraft(draft);
 		if (!view) return;
 		showRecord({ draft: view.draft !== null, published: view.published !== null, allowed: view.allowed });
 	};
@@ -219,7 +257,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		const file = await read();
 		if (destroyed()) return;
 		sha = file.sha;
-		applyView(file.view);
+		applyView(file.view, file.draft);
 		currentDocument = parseDocument(file.content, blocks, schema);
 		ui.setDocument(currentDocument);
 		dirty = false;
@@ -227,7 +265,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		editingStatus();
 	};
 
-	const save = async () => {
+	const save = async (toDraft = hasDraft) => {
 		if (!session || !currentDocument) return;
 		// Autosave makes overlapping writes reachable in a way manual saving did
 		// not: a keystroke landing mid-write would otherwise PUT against a sha the
@@ -244,10 +282,29 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		ui.status({ tone: 'progress', text: 'Saving…' });
 		try {
 			const content = serializeDocument(currentDocument, blocks, schema);
+			const author = { name: session.user.name, email: session.user.email };
+			if (drafts && toDraft) {
+				const created = !hasDraft && (await drafts.createDraftBranch(draftRef));
+				try {
+					const result = await drafts.writeFileOn(draftRef, sourcePath, content, {
+						message: `uncial-cms: draft ${pageLabel}`,
+						sha: sha ?? undefined,
+						author
+					});
+					sha = result.sha;
+				} catch (error) {
+					if (created) await drafts.deleteBranch(draftRef).catch(() => {});
+					throw error;
+				}
+				dirty = false;
+				showDraft(true);
+				ui.status({ tone: 'success', text: 'Draft saved · not yet published' });
+				return;
+			}
 			const result = await adapter.writeFile(sourcePath, content, {
-				message: `uncial-cms: edit ${opts.pagePath ?? sourcePath}`,
+				message: `uncial-cms: edit ${pageLabel}`,
 				sha: sha ?? undefined,
-				author: { name: session.user.name, email: session.user.email }
+				author
 			});
 			sha = result.sha;
 			dirty = false;
@@ -268,7 +325,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			if (!destroyed()) ui.saveEnabled(true);
 			if (saveAgain && !destroyed()) {
 				saveAgain = false;
-				void save();
+				void save(toDraft);
 			}
 		}
 	};
@@ -282,7 +339,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		const file = await read();
 		if (destroyed()) return;
 		sha = file.sha;
-		applyView(file.view);
+		applyView(file.view, file.draft);
 		currentDocument = parseDocument(file.content, blocks, schema);
 		ui.setDocument(currentDocument);
 		dirty = false;
@@ -331,6 +388,77 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			if (!destroyed()) ui.saveEnabled(true);
 		}
 	};
+
+	const nothingToPublish = () =>
+		ui.status({ tone: 'success', text: 'Nothing to publish · the Published copy is current' });
+
+	const publishDraft = async () => {
+		if (!drafts || !session || sha === null) return;
+		cancelPendingAutosave();
+		if (!hasDraft) {
+			if (dirty) await save(false);
+			else nothingToPublish();
+			return;
+		}
+		if (dirty) {
+			await save(true);
+			if (dirty) return;
+		}
+		stopPolling();
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Publishing…' });
+		try {
+			const commitSha = await drafts.publishBranch(draftRef, {
+				path: sourcePath,
+				message: `uncial-cms: publish ${pageLabel}`
+			});
+			await drafts.deleteBranch(draftRef);
+			showDraft(false);
+			if (commitSha) startPolling(commitSha);
+			else nothingToPublish();
+		} catch (error) {
+			if (error instanceof ConflictError) {
+				ui.failed?.(error);
+				ui.conflictVisible(true);
+				ui.status({
+					tone: 'error',
+					text: `Publish conflicted — this page changed on ${branch} since the Draft was made.`
+				});
+			} else showFailure(error, 'Publish failed.');
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
+	const discardDraft = async () => {
+		if (!drafts || !session || !hasDraft) return;
+		const message = 'Discard this Draft? Its changes are lost; the Published copy stays as it is.';
+		if (!opts.confirm(message)) return;
+		cancelPendingAutosave();
+		stopPolling();
+		ui.conflictVisible(false);
+		ui.saveEnabled(false);
+		ui.status({ tone: 'progress', text: 'Discarding the Draft…' });
+		try {
+			await drafts.deleteBranch(draftRef);
+			showDraft(false);
+			const file = await adapter.readFile(sourcePath);
+			if (destroyed()) return;
+			sha = file.sha;
+			currentDocument = parseDocument(file.content, blocks, schema);
+			ui.setDocument(currentDocument);
+			dirty = false;
+			ui.status({ tone: 'success', text: 'Draft discarded' });
+		} catch (error) {
+			showFailure(error, 'Discard failed.');
+		} finally {
+			if (!destroyed()) ui.saveEnabled(true);
+		}
+	};
+
+	const publishedCopy = async () =>
+		parseDocument((await adapter.readFile(sourcePath)).content, blocks, schema);
 
 	const remove = async () => {
 		if (!server || !session || sha === null) return false;
@@ -417,11 +545,14 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 
 	return {
 		load,
-		save,
+		save: () => save(),
 		reloadLatest,
 		downloadMyVersion,
 		dismissConflict,
-		publish: () => transition('publish'),
+		publish: () => (drafts ? publishDraft() : transition('publish')),
+		saveDraft: () => save(true),
+		discardDraft,
+		publishedCopy,
 		unpublish: () => transition('unpublish'),
 		remove,
 		history,

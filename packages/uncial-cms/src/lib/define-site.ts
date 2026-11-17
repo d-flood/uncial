@@ -39,6 +39,8 @@ export interface SiteOptions<G extends Globals = Globals> {
 		branch: string;
 		authWorkerUrl?: string;
 		appSlug?: string;
+		/** Save Drafts on branches off `branch`, published into it on demand. */
+		drafts?: boolean;
 	};
 	/** Honoured only when the resolved forge is local; a forge commit is never autosaved. */
 	autosaveMs?: number;
@@ -93,7 +95,8 @@ export function defineSite<G extends Globals = {}>(
 					authWorkerUrl: options.github.authWorkerUrl ?? DEFAULT_AUTH_WORKER_URL,
 					appSlug: options.github.appSlug ?? DEFAULT_APP_SLUG,
 					mediaDir: options.mediaDir,
-					mediaUrlPrefix: options.mediaUrlPrefix
+					mediaUrlPrefix: options.mediaUrlPrefix,
+					drafts: options.github.drafts
 				};
 	return {
 		config,

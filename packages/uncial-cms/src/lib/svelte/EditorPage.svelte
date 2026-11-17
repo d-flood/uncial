@@ -77,6 +77,7 @@
 	// Autosave leaves nothing to press; a forge commit is never autosaved, so a
 	// Save button and autosave are exactly the two modes.
 	const manualSave = $derived(site.autosaveMs === undefined);
+	const drafting = $derived(site.config.forge === 'github' && site.config.drafts === true);
 	const mediaApiBase = $derived(site.config.forge === 'server' ? site.config.mediaApiBase : undefined);
 	// The Media library's URLs, so the editing view can flag media that is gone.
 	let library = $state<SvelteSet<string> | undefined>(undefined);
@@ -128,6 +129,8 @@
 	let conflict = $state(false);
 	let saveEnabled = $state(false);
 	let record = $state<RecordState | undefined>(undefined);
+	let draft = $state(false);
+	let published = $state<ContentDocument | undefined>(undefined);
 	let deleted = $state(false);
 	const can = (action: Action) => record?.allowed.includes(action) ?? false;
 	let moveTo = $state<string | undefined>(undefined);
@@ -164,6 +167,23 @@
 			selected = { id: versionId, doc: await controller!.version(versionId) };
 		} catch (error) {
 			failed(error, 'Failed to load the Version.');
+		}
+	}
+
+	async function togglePublished() {
+		if (published) {
+			published = undefined;
+			return;
+		}
+		try {
+			const [copy, render] = await Promise.all([
+				controller!.publishedCopy(),
+				import('uncial/render')
+			]);
+			Renderer = render.Renderer;
+			published = copy;
+		} catch (error) {
+			failed(error, 'Failed to load the published version.');
 		}
 	}
 
@@ -229,6 +249,12 @@
 					saveEnabled: (enabled) => (saveEnabled = enabled),
 					conflictVisible: (visible) => (conflict = visible),
 					record: (next) => (record = next),
+					draft: drafting
+						? (exists) => {
+								draft = exists;
+								if (!exists) published = undefined;
+							}
+						: undefined,
 					moved: (path) => onMoved?.(path)
 				}
 			});
@@ -251,7 +277,31 @@
 
 <div class="uncial-cms-editor-page" bind:this={root}>
 	<div class="uncial-cms-chrome">
-		{#if manualSave && !deleted}
+		{#if drafting}
+			{#if draft}<span class="uncial-cms-draft-badge">Draft</span>{/if}
+			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.saveDraft()}>
+				Save draft
+			</button>
+			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.publish()}>
+				Publish
+			</button>
+			{#if draft}
+				<button
+					type="button"
+					aria-pressed={published !== undefined}
+					onclick={() => void togglePublished()}
+				>
+					View published version
+				</button>
+				<button
+					type="button"
+					disabled={!saveEnabled}
+					onclick={() => void controller?.discardDraft()}
+				>
+					Discard draft
+				</button>
+			{/if}
+		{:else if manualSave && !deleted}
 			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
 				Save
 			</button>
@@ -381,6 +431,12 @@
 					<Renderer content={selected.doc} {blocks} schema={resolvedSchema} />
 				</div>
 			{/if}
+		</section>
+	{/if}
+
+	{#if published && Renderer}
+		<section class="uncial-cms-published" aria-label="Published version">
+			<Renderer content={published} {blocks} schema={resolvedSchema} />
 		</section>
 	{/if}
 
