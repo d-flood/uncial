@@ -1,4 +1,4 @@
-import type { FocalPoint, ImageValue, RenditionSpec } from 'uncial/core';
+import type { FocalPoint, ImageValue, RenditionSpec } from 'uncial';
 
 export interface PlannedRendition {
 	/** `w<width>` for a srcset width, else the crop's name. */

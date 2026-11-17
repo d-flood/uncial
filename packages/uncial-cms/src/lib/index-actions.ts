@@ -1,20 +1,26 @@
 /**
  * Forge-level actions behind the `/uncial/` index UI (PRD §6.6): list the
  * content dir, seed a new page, delete a page. DOM-free so they unit-test
- * against a fake adapter; `mountIndexPage` wires them to the UI.
+ * against a fake adapter; the Dashboard wires them to the UI.
  */
-import { normalizeDocument } from 'uncial/core';
-import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+import { normalizeDocument } from 'uncial';
+import type { BlockRegistry, ContentDocument, ContentSchema, DocumentMetaSchema } from 'uncial';
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES } from './constants.js';
 import type { Site } from './define-site.js';
 import { parseDocument, serializeDocument } from './document.js';
 import { FileTooLargeError, NotFoundError } from './errors.js';
-import { fitImage, type FitOptions, type ImageEncoder } from './fit-image.js';
-import { globalDocument, globalRecordPath, globalSourcePath, GLOBALS_DIR } from './globals.js';
+import {
+	globalDocument,
+	globalRecordPath,
+	globalSourcePath,
+	GLOBALS_DIR,
+	metaSchema
+} from './globals.js';
 import { defaultMapSourceToPath } from './paths/index.js';
+import { trimSlashes } from './record-paths.js';
 import type { ServerForgeAdapter } from './server-forge/adapter.js';
 import type { ForgeAdapter, UncialCmsSiteConfig } from './types.js';
-import { configMediaDir, getActiveForge } from './upload-context.js';
+import { configMediaDir } from './upload-context.js';
 
 export interface CreatePageDeps {
 	adapter: ForgeAdapter;
@@ -69,19 +75,20 @@ export async function deletePage(
 
 export async function readStoredGlobal(
 	deps: { adapter: ForgeAdapter; config: UncialCmsSiteConfig },
-	global: { name: string; schema: ContentSchema }
+	global: { name: string; meta: DocumentMetaSchema }
 ): Promise<{ value: Record<string, unknown>; sha?: string }> {
 	const { config } = deps;
+	const schema = metaSchema(global.meta);
 	const path =
 		config.forge === 'server'
 			? globalRecordPath(global.name)
 			: globalSourcePath(config.contentDir, global.name);
 	try {
 		const file = await deps.adapter.readFile(path);
-		return { value: parseDocument(file.content, [], global.schema).meta ?? {}, sha: file.sha };
+		return { value: parseDocument(file.content, [], schema).meta ?? {}, sha: file.sha };
 	} catch (error) {
 		if (!(error instanceof NotFoundError)) throw error;
-		return { value: normalizeDocument(null, [], global.schema).meta ?? {} };
+		return { value: normalizeDocument(null, [], schema).meta ?? {} };
 	}
 }
 
@@ -93,10 +100,10 @@ export interface SaveGlobalDeps {
 
 export async function saveGlobal(
 	deps: SaveGlobalDeps,
-	global: { name: string; schema: ContentSchema; value: Record<string, unknown>; sha?: string }
+	global: { name: string; meta: DocumentMetaSchema; value: Record<string, unknown>; sha?: string }
 ): Promise<{ sha: string; commitSha: string }> {
-	const { name, schema, value, sha } = global;
-	const content = serializeDocument(globalDocument(value), [], schema);
+	const { name, meta, value, sha } = global;
+	const content = serializeDocument(globalDocument(value), [], metaSchema(meta));
 	if (deps.config.forge === 'server') {
 		const adapter = deps.adapter as ServerForgeAdapter;
 		const record = await adapter.saveGlobal(name, JSON.parse(content), sha);
@@ -205,88 +212,23 @@ export function resolveMediaDir(...candidates: Array<string | undefined>): strin
 	return dir;
 }
 
-/** Read a picked `File` (or a `Blob`) into the bytes `uploadAsset` commits. */
-async function assetFileFromBlob(file: Blob & { name?: string }): Promise<UploadAssetFile> {
-	return {
-		bytes: new Uint8Array(await file.arrayBuffer()),
-		filename: file.name || 'image',
-		contentType: file.type || 'application/octet-stream'
-	};
-}
-
-/** A `Blob` view of an already-read asset, for handing to {@link fitImage}. */
-function blobFromAssetFile(file: UploadAssetFile): Blob & { name?: string } {
-	const blob: Blob & { name?: string } = new Blob([file.bytes as BlobPart], {
-		type: file.contentType
-	});
-	blob.name = file.filename;
-	return blob;
-}
-
-export interface UploadImageAssetOptions {
-	mediaDir?: string;
-	site?: Site;
-	/**
-	 * Re-encode an oversize image to fit the forge's limit before committing.
-	 * `true` takes the defaults; the object form also accepts an `encoder`, the
-	 * seam {@link fitImage} decodes and encodes through.
-	 */
-	fit?: boolean | (FitOptions & { encoder?: ImageEncoder });
-}
-
-/**
- * Editor-facing convenience over {@link uploadAsset}: resolves the adapter,
- * author and `mediaDir` from the {@link getActiveForge active editor session}
- * so a block's Upload affordance only has to supply the file. Throws a clear
- * error when no editor is mounted (e.g. called before sign-in). Import this
- * dynamically from a block so the reader bundle stays free of CMS runtime.
- */
-export async function uploadImageAsset(
-	file: UploadAssetFile | File,
-	opts: UploadImageAssetOptions = {}
-): Promise<UploadAssetResult> {
-	const forge = getActiveForge();
-	if (!forge) {
-		throw new Error(
-			'No active editor session — open a page in the editor and sign in before uploading.'
-		);
-	}
-	const mediaDir = resolveMediaDir(
-		opts.mediaDir,
-		opts.site && configMediaDir(opts.site.config),
-		configMediaDir(forge.config)
-	);
-
-	const asset = opts.fit
-		? await fitImage(
-				file instanceof Blob ? file : blobFromAssetFile(file),
-				opts.fit === true ? {} : opts.fit
-			)
-		: file instanceof Blob
-			? await assetFileFromBlob(file)
-			: file;
-
-	return uploadAsset({ adapter: forge.adapter }, asset, { mediaDir, author: forge.author });
-}
-
 export async function listPages(
 	adapter: ForgeAdapter,
 	contentDir: string,
-	mapSourceToPath: (source: string) => string = (source) =>
-		defaultMapSourceToPath(source, contentDir)
+	collectionDirs: string[] = []
 ): Promise<PageRef[]> {
 	const sources: string[] = [];
-	const globalsDir = `${contentDir}/${GLOBALS_DIR}`;
+	const skipped = new Set([`${contentDir}/${GLOBALS_DIR}`, ...collectionDirs.map(trimSlashes)]);
 	const walk = async (dir: string): Promise<void> => {
 		for (const entry of await adapter.listDir(dir)) {
 			if (entry.type === 'dir') {
-				if (entry.path !== globalsDir) await walk(entry.path);
+				if (!skipped.has(entry.path)) await walk(entry.path);
 			} else if (entry.path.endsWith('.json')) sources.push(entry.path);
 		}
 	};
 	await walk(contentDir);
 
 	return sources
-		.map((sourcePath) => ({ pagePath: mapSourceToPath(sourcePath), sourcePath }))
+		.map((sourcePath) => ({ pagePath: defaultMapSourceToPath(sourcePath, contentDir), sourcePath }))
 		.sort((a, b) => a.pagePath.localeCompare(b.pagePath));
 }

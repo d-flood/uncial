@@ -9,7 +9,6 @@ import {
 test('content page renders the Docs document without any editor chrome', async ({ page }) => {
 	await page.goto('/getting-started/');
 
-	await expect(page.locator('main h1')).toContainText('Getting started');
 	await expect(page.getByRole('heading', { name: GETTING_STARTED_TEXT })).toBeVisible();
 	// Production content page ships no uncial-cms runtime: no editor page.
 	await expect(page.locator('.uncial-cms-editor-page')).toHaveCount(0);

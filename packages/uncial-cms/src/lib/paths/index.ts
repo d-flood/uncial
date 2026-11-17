@@ -2,23 +2,15 @@ function normalizeSitePath(sitePath: string): string {
 	return sitePath.replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
-function contentDirForLocale(contentDir: string, locale: string): string {
-	return locale === 'en' ? contentDir : `${contentDir}/${locale}`;
-}
-
 /** Site-relative URL path (base already stripped) → repo-root-relative JSON path. */
-export function defaultMapPathToSource(
-	sitePath: string,
-	contentDir: string,
-	locale = 'en'
-): string {
+export function defaultMapPathToSource(sitePath: string, contentDir: string): string {
 	const path = normalizeSitePath(sitePath);
-	return `${contentDirForLocale(contentDir, locale)}/${path === '' ? 'index' : path}.json`;
+	return `${contentDir}/${path === '' ? 'index' : path}.json`;
 }
 
 /** Repo-root-relative JSON path → site-relative URL path (no leading/trailing slash). */
-export function defaultMapSourceToPath(source: string, contentDir: string, locale = 'en'): string {
-	const prefix = `${contentDirForLocale(contentDir, locale)}/`;
+export function defaultMapSourceToPath(source: string, contentDir: string): string {
+	const prefix = `${contentDir}/`;
 	if (!source.startsWith(prefix) || !source.endsWith('.json')) {
 		throw new Error(`Source "${source}" is not a JSON file under "${contentDir}".`);
 	}
@@ -44,16 +36,4 @@ export function validatePagePath(input: string): PagePathValidation {
 		};
 	}
 	return { ok: true, path };
-}
-
-/** `'about'` → `'#/about/'`; the site root (`''`) → `'#/'`. */
-export function hashForPagePath(path: string): string {
-	return path === '' ? '#/' : `#/${path}/`;
-}
-
-/** `'#/about/'` → `'about'`; `'#/'` → `''` (site root); no hash → null (list view). */
-export function pagePathFromHash(hash: string): string | null {
-	if (hash === '' || hash === '#') return null;
-	if (!hash.startsWith('#/')) return null;
-	return hash.slice(2).replace(/\/+$/, '');
 }

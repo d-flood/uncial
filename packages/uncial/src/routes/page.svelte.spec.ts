@@ -47,7 +47,7 @@ describe('/+page.svelte', () => {
 
 		await editor
 			.getByText(
-				'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+				'Declare blocks in their components, glob them into a content model, bind the editor to JSON, and render the same document anywhere.'
 			)
 			.click();
 
@@ -58,7 +58,7 @@ describe('/+page.svelte', () => {
 		render(Page);
 		const editor = page.getByRole('region', { name: 'Editor' });
 
-		await editor.getByText('createBlockRegistry').click();
+		await editor.getByText('createContentModel').click();
 		await expect.element(page.getByText(/Edit\s+Code block/i)).toBeInTheDocument();
 
 		await page.getByRole('combobox', { name: 'language' }).selectOptions('python');

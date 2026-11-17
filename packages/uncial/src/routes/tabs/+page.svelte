@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { createBlockRegistry } from '$lib/core/index.js';
-	import { Renderer } from '$lib/render/index.js';
-	import { tabBlock, tabsBlock } from '$lib/tabs.js';
+	import { createContentModel, Renderer } from '$lib/index.js';
+	import * as tab from '$lib/render/Tab.svelte';
+	import * as tabs from '$lib/render/Tabs.svelte';
 
-	const blocks = createBlockRegistry([tabsBlock, tabBlock]);
+	const model = createContentModel({ blocks: { tabs, tab } });
 	const content = {
 		type: 'doc',
 		content: [
@@ -44,6 +44,6 @@
 	};
 </script>
 
-<Renderer {blocks} {content} />
+<Renderer {model} {content} />
 
 <a href={resolve('/tabs/next')}>Next tab page</a>

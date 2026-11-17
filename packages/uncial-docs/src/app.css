@@ -129,8 +129,7 @@
 .uncial-renderer,
 .uncial-attrs-panel,
 .uncial-link-panel,
-.uncial-richtext-wrapper,
-.uncial-block-menu {
+.uncial-richtext-wrapper {
 	--uncial-color-bg: var(--color-base-100);
 	--uncial-color-surface: var(--color-base-100);
 	--uncial-color-surface-elevated: var(--color-base-200);

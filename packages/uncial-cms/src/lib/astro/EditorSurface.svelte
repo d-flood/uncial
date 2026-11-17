@@ -4,26 +4,17 @@
 	 * and cascade, driven by the headless editor session, with the status line,
 	 * conflict banner and Save or autosave around it.
 	 *
-	 * Blocks, schemas and Tiptap extensions are not serializable island props,
-	 * so the host mounts this from a small component of its own that imports
-	 * them, with `client:only="svelte"`.
+	 * The Site object is not a serializable island prop, so the host mounts this
+	 * from a small component of its own that imports it, with `client:only="svelte"`.
 	 */
 	import 'uncial/styles/chrome.css';
-	import { onMount, type ComponentProps } from 'svelte';
-	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-	import {
-		Editor,
-		type FileSource,
-		type ImageSource,
-		type ToolbarFeature,
-		type ToolbarFeatureSelection
-	} from 'uncial/editor';
+	import { onMount } from 'svelte';
+	import type { ContentDocument } from 'uncial';
+	import { Editor } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, StatusView } from '../editor-controller.js';
 	import { createEditorSession } from '../editor-session.js';
-	import { cmsFileSource, cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
-	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
 
 	interface Props {
@@ -33,48 +24,20 @@
 		sourcePath: string;
 		/** Site-relative page path, from the editor route's props. */
 		pagePath: string;
-		blocks: BlockRegistry;
-		/** One schema for the site, or the schema this page path is written against. */
-		schema: ContentSchema | ((path: string) => ContentSchema);
-		/** Defaults to the provider the resolved forge implies. */
-		sessionProvider?: SessionProvider;
-		/** Forwarded to `Editor`: the Tiptap extensions behind custom marks. */
-		extensions?: ComponentProps<typeof Editor>['extensions'];
-		/** Forwarded to `Editor`. */
-		toolbarFeatures?: ToolbarFeatureSelection;
-		/** Forwarded to `Editor`. */
-		toolbarExtensions?: ToolbarFeature[];
 		/** Forwarded to `Editor`; `'overlay'` keeps the document at the host's width. */
 		attributesPanel?: 'docked' | 'overlay' | 'off';
 		/** Forwarded to `Editor`; `'bare'` draws no surface of the editor's own. */
 		presentation?: 'card' | 'bare';
-		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
-		imageSource?: ImageSource;
-		/** Forwarded to `Editor`; defaults to `cmsFileSource(site.config)`. */
-		fileSource?: FileSource;
-		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
-		attributeInputs?: AttributeInputs;
 	}
 
 	let {
 		site,
 		sourcePath,
 		pagePath,
-		blocks,
-		schema,
-		sessionProvider,
-		extensions,
-		toolbarFeatures,
-		toolbarExtensions,
 		attributesPanel = 'overlay',
-		presentation = 'bare',
-		imageSource,
-		fileSource,
-		attributeInputs
+		presentation = 'bare'
 	}: Props = $props();
 
-	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
-	const resolvedImageSource = $derived(imageSource ?? cmsImageSource(site.config));
 	const signIn = $derived(site.config.forge === 'github');
 	const branch = $derived(
 		site.config.forge === 'github' ? site.config.branch : 'the local checkout'
@@ -109,9 +72,9 @@
 			config: site.config,
 			sourcePath,
 			pagePath,
-			blocks,
-			schema: resolvedSchema,
-			sessionProvider,
+			blocks: site.blocks,
+			schemaFor: site.schemaFor,
+			sessionProvider: site.sessionProvider,
 			autosaveMs: site.autosaveMs,
 			timings: site.deployStatusTimings,
 			isDestroyed: () => cancelled,
@@ -172,19 +135,14 @@
 
 	{#if doc}
 		<Editor
-			{blocks}
-			schema={resolvedSchema}
-			metaFields={resolvedSchema.metaFields}
+			model={site}
 			bind:json={doc}
 			bind:meta
-			{extensions}
-			{toolbarFeatures}
-			{toolbarExtensions}
+			path={pagePath}
 			{attributesPanel}
 			{presentation}
-			imageSource={resolvedImageSource}
-			fileSource={fileSource ?? cmsFileSource(site.config)}
-			{attributeInputs}
+			imageSource={site.media}
+			fileSource={site.files}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}

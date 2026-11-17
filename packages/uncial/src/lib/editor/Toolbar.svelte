@@ -19,32 +19,31 @@
 	import TextStrikethroughIcon from 'phosphor-svelte/lib/TextStrikethroughIcon';
 	import TextSubscriptIcon from 'phosphor-svelte/lib/TextSubscriptIcon';
 	import TextSuperscriptIcon from 'phosphor-svelte/lib/TextSuperscriptIcon';
-	import type { ContentSchema } from '../core/types.js';
-	import {
-		resolveToolbarFeatures,
-		type ToolbarFeature,
-		type ToolbarFeatureSelection
-	} from './toolbarFeatures.js';
+	import TableIcon from 'phosphor-svelte/lib/TableIcon';
+	import RowsPlusBottomIcon from 'phosphor-svelte/lib/RowsPlusBottomIcon';
+	import ColumnsPlusRightIcon from 'phosphor-svelte/lib/ColumnsPlusRightIcon';
+	import type { BlockIcon, ContentSchema } from '../core/types.js';
+	import { defaultToolbar, type MarkDeclaration, type ToolbarItem } from '../model.js';
+	import { resolveToolbar, type ToolbarFeature } from './toolbarFeatures.js';
 
 	interface Props {
 		editor?: Editor | null;
 		schema?: ContentSchema;
-		toolbarFeatures?: ToolbarFeatureSelection;
-		toolbarExtensions?: ToolbarFeature[];
+		/** Built-in ids, defined Mark ids and features, in display order. */
+		toolbar?: readonly ToolbarItem[];
+		marks?: readonly MarkDeclaration[];
 		onEditLink?: () => void;
 	}
 
 	let {
 		editor = null,
 		schema = undefined,
-		toolbarFeatures = undefined,
-		toolbarExtensions = [],
+		toolbar = defaultToolbar,
+		marks = [],
 		onEditLink
 	}: Props = $props();
 
-	const features = $derived(
-		resolveToolbarFeatures({ editor, schema, toolbarFeatures, toolbarExtensions })
-	);
+	const features = $derived(resolveToolbar({ editor, schema, toolbar, marks }));
 	const groupedFeatures = $derived.by(() => {
 		const groups: { group: string; features: ToolbarFeature[] }[] = [];
 		for (const feature of features) {
@@ -101,8 +100,9 @@
 		feature.run({ editor, schema });
 	}
 
-	function iconFor(featureId: string): Component<Record<string, unknown>> | null {
+	function iconFor(feature: ToolbarFeature): BlockIcon | null {
 		return (
+			feature.icon ??
 			{
 				bold: TextBIcon,
 				italic: TextItalicIcon,
@@ -120,8 +120,12 @@
 				orderedList: ListNumbersIcon,
 				blockquote: QuotesIcon,
 				codeBlock: CodeBlockIcon,
-				horizontalRule: MinusIcon
-			}[featureId] ?? null
+				horizontalRule: MinusIcon,
+				table: TableIcon,
+				addRowAfter: RowsPlusBottomIcon,
+				addColumnAfter: ColumnsPlusRightIcon
+			}[feature.id] ??
+			null
 		);
 	}
 </script>
@@ -131,7 +135,7 @@
 		<div class="uncial-join">
 			{#each group.features as feature (feature.id)}
 				{@const context = toolbarContext}
-				{@const Icon = iconFor(feature.id)}
+				{@const icon = iconFor(feature)}
 				{@const active = context ? (feature.isActive?.(context) ?? false) : false}
 				{@const disabled = !context || !(feature.canRun?.(context) ?? true)}
 				<button
@@ -148,7 +152,10 @@
 					]}
 					onclick={() => runFeature(feature)}
 				>
-					{#if Icon}
+					{#if typeof icon === 'string'}
+						{icon}
+					{:else if icon}
+						{@const Icon = icon as Component<Record<string, unknown>>}
 						<Icon size={16} weight="bold" />
 					{:else}
 						{feature.label}

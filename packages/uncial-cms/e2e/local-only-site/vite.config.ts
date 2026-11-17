@@ -34,7 +34,6 @@ export default defineConfig({
 			...uncialAliases,
 			{ find: 'uncial-cms/sveltekit', replacement: new URL('../../src/lib/sveltekit/index.ts', import.meta.url).pathname },
 			{ find: 'uncial-cms/svelte', replacement: new URL('../../src/lib/svelte/index.ts', import.meta.url).pathname },
-			{ find: 'uncial-cms/dashboard', replacement: new URL('../../src/lib/dashboard/element.ts', import.meta.url).pathname },
 			{ find: /^uncial-cms$/, replacement: new URL('../../src/lib/index.ts', import.meta.url).pathname }
 		]
 	}

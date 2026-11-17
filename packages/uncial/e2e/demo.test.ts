@@ -15,7 +15,7 @@ test('clicking rich text focuses the editor surface', async ({ page }) => {
 	await page.goto('/');
 
 	const firstLine = page.getByText(
-		'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+		'Declare blocks in their components, glob them into a content model, bind the editor to JSON, and render the same document anywhere.'
 	);
 	await firstLine.click();
 
@@ -30,7 +30,7 @@ test('editing rich text keeps it out of the block menu', async ({ page }) => {
 
 	await page
 		.getByText(
-			'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+			'Declare blocks in their components, glob them into a content model, bind the editor to JSON, and render the same document anywhere.'
 		)
 		.click();
 	await page.keyboard.type('!');

@@ -1,204 +1,63 @@
 /**
  * `uncial-cms/sveltekit` — route factories for prerendered SvelteKit sites.
- * `@sveltejs/kit` and `svelte` are peers of this subpath ONLY; the runtime
- * root must not import them. This module runs at build time (prerender) and
- * reads the local content directory with node:fs — do not import it from
- * client-side code (the pure mapping lives in `./mapping.js` for that).
+ * `@sveltejs/kit` is a peer of this subpath only. It runs at build time and
+ * reads the local content directory with node:fs, so keep it out of client code.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { normalizeDocument } from 'uncial/core';
-import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-import type { Site } from '../define-site.js';
-import type { GitHubSiteConfig, LocalSiteConfig, UncialCmsSiteConfig } from '../types.js';
-import { listContentSources } from '../content-sources.js';
-import { isGlobalsPath } from '../globals.js';
-import { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
+import { error } from '@sveltejs/kit';
+import type { ContentDocument } from 'uncial';
+import type { MetaOf, Site } from '../define-site.js';
+import { contentSource, type ContentPage, type RouteOptions } from '../routes.js';
 
-export { defaultMapPathToSource, defaultMapSourceToPath } from '../paths/index.js';
-export { loadGlobal, type GlobalStore } from '../content-sources.js';
-export type { GlobalValue } from '../globals.js';
+export type { MetaOf } from '../define-site.js';
+export type { ContentEntry, ContentPage, RouteOptions } from '../routes.js';
 
-/** A content file as the factories see it: site-relative path, repo-root-relative source. */
-export interface ContentEntry {
-	path: string;
-	source: string;
-}
-
-interface HandlerOptionsBase {
-	blocks: BlockRegistry;
-	/** One schema for the whole site, or the schema this page path is written against. */
-	schema: ContentSchema | ((path: string) => ContentSchema);
-	/** Site-relative URL path → repo-root-relative JSON path. */
-	mapPathToSource?: (path: string) => string;
-	exclude?: (entry: ContentEntry) => boolean;
-}
-
-/** The site object from `defineSite`, or the resolved config plus its build-time FS path. */
-interface SiteSource<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
-	site: Site<Config>;
-	config?: never;
-	localContentDir?: never;
-}
-
-interface ConfigSource<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> {
-	site?: never;
-	config: Config;
-	/** FS path of the content dir at build time (differs from config.contentDir,
-	 * which is repo-root-relative for the forge API). */
-	localContentDir: string;
-}
-
-export type ContentHandlerOptions = HandlerOptionsBase & (SiteSource | ConfigSource);
-
-export type IndexHandlerOptions<Config extends UncialCmsSiteConfig = UncialCmsSiteConfig> =
-	HandlerOptionsBase &
-		(
-			| SiteSource<Config>
-			| (Omit<ConfigSource<Config>, 'localContentDir'> & { localContentDir?: string })
-		);
-
-interface RouteEntry {
-	path: string;
-}
-
-interface ResolvedSite {
-	config: GitHubSiteConfig | LocalSiteConfig;
-	localContentDir: string;
-	localOnly: boolean;
-}
-
-function resolveSite(opts: ContentHandlerOptions): ResolvedSite {
-	const config = opts.site ? opts.site.config : opts.config;
-	if (config.forge === 'server') {
-		throw new Error(
-			'These route factories read a content directory; a server site serves its content through createServerContentHandlers.'
-		);
-	}
-	if (opts.site) {
-		return { config, localContentDir: opts.site.localContentDir, localOnly: opts.site.localOnly };
-	}
-	return { config, localContentDir: opts.localContentDir, localOnly: false };
-}
-
-function excluded(opts: ContentHandlerOptions, entry: ContentEntry): boolean {
-	return isGlobalsPath(entry.path) || (opts.exclude?.(entry) ?? false);
-}
-
-function listEntries(opts: ContentHandlerOptions, site: ResolvedSite): ContentEntry[] {
-	return listContentSources(site.localContentDir)
-		.map((rel) => {
-			const source = `${site.config.contentDir}/${rel}`;
-			return { path: defaultMapSourceToPath(source, site.config.contentDir), source };
-		})
-		.filter((entry) => !excluded(opts, entry));
-}
-
-function createEntries(opts: ContentHandlerOptions, site: ResolvedSite): () => RouteEntry[] {
-	return () => listEntries(opts, site).map(({ path }) => ({ path }));
-}
-
-/** The source for a site path, refusing one the site's `exclude` rules out. */
-function resolveSource(
-	opts: ContentHandlerOptions,
-	site: ResolvedSite,
-	sitePath: string
-): string {
-	const map =
-		opts.mapPathToSource ?? ((path: string) => defaultMapPathToSource(path, site.config.contentDir));
-	const source = map(sitePath);
-	if (excluded(opts, { path: sitePath, source })) {
-		throw new Error(`Content path "${sitePath}" is excluded from this site's routes.`);
-	}
-	return source;
-}
-
-function schemaFor(opts: HandlerOptionsBase, path: string): ContentSchema {
-	return typeof opts.schema === 'function' ? opts.schema(path) : opts.schema;
-}
-
-/** Repo-root-relative source → path relative to the content dir (for local FS reads). */
-function contentDirRelative(source: string, contentDir: string): string {
-	const prefix = `${contentDir}/`;
-	if (!source.startsWith(prefix)) {
-		throw new Error(`Source "${source}" is outside the content dir "${contentDir}".`);
-	}
-	return source.slice(prefix.length);
-}
-
-/** A content document ready to render, with the paths an editor route needs. */
-export interface ContentPage {
-	path: string;
-	/** Repo-root-relative, as the forge addresses it. */
-	sourcePath: string;
-	document: ContentDocument;
-}
-
-export function createContentHandlers(opts: ContentHandlerOptions): {
+/** One route per content document; `load` 404s a path no page lives at. */
+export function contentRoutes<S extends Site>(
+	site: S,
+	options: RouteOptions = {}
+): {
 	entries: () => RouteEntry[];
-	/** Every content document, normalized, in source order. */
-	list: () => ContentPage[];
+	list: () => ContentPage<MetaOf<S>>[];
 	load: (event: {
 		params: { path: string };
-	}) => Promise<{ document: ContentDocument; meta: Record<string, unknown>; path: string }>;
+	}) => Promise<{ document: ContentDocument; meta: MetaOf<S>; path: string }>;
 } {
-	const site = resolveSite(opts);
-	const read = (path: string, source: string): ContentDocument => {
-		const rel = contentDirRelative(source, site.config.contentDir);
-		const raw = readFileSync(join(site.localContentDir, rel), 'utf-8');
-		return normalizeDocument(
-			JSON.parse(raw) as Partial<ContentDocument>,
-			opts.blocks,
-			schemaFor(opts, path)
-		);
-	};
+	const source = contentSource(site, options);
 	return {
-		entries: createEntries(opts, site),
-		list: () =>
-			listEntries(opts, site).map(({ path, source }) => ({
-				path,
-				sourcePath: source,
-				document: read(path, source)
-			})),
+		entries: () => source.entries().map(({ path }) => ({ path })),
+		/** Every content document, normalized, in source order. */
+		list: source.list,
 		load: async ({ params }) => {
-			const document = read(params.path, resolveSource(opts, site, params.path));
-			return { document, meta: document.meta ?? {}, path: params.path };
+			const entry = source.find(params.path);
+			if (!entry) error(404, 'Not found');
+			const { document, meta, path } = source.read(entry);
+			return { document, meta, path };
 		}
 	};
 }
 
-export function createEditorHandlers(opts: ContentHandlerOptions & { devOnly?: boolean }): {
+/** The Editor variant of every content route. The document is never baked: the editor loads it live. */
+export function editorRoutes(
+	site: Site,
+	options: RouteOptions = {}
+): {
 	entries: () => RouteEntry[];
-	// Bakes the mapping only (PRD D9); document data is NEVER baked — the edit
-	// page component fetches it live from the forge via mountEditorPage().
 	load: (event: { params: { path: string } }) => Promise<{ sourcePath: string; pagePath: string }>;
 } {
-	const site = resolveSite(opts);
-	// A local-only site has no forge to commit to outside development, so its
-	// editor variants are development-only without anyone saying so.
-	const devOnly = opts.devOnly ?? site.localOnly;
-	const entries = createEntries(opts, site);
+	const source = contentSource(site, options);
 	return {
-		// Prerendering a dynamic route walks `entries`: an empty list emits no editor pages.
-		// These routes are unlinked, so strict builds do not encounter them, while development
-		// servers still serve them on demand.
-		entries: () => (devOnly && !import.meta.env.DEV ? [] : entries()),
-		load: async ({ params }) => ({
-			sourcePath: resolveSource(opts, site, params.path),
-			pagePath: params.path
-		})
+		// A local-only site has no forge to commit to outside development, and an
+		// empty list prerenders no editor pages.
+		entries: () =>
+			site.localOnly && !import.meta.env.DEV ? [] : source.entries().map(({ path }) => ({ path })),
+		load: async ({ params }) => {
+			const entry = source.find(params.path);
+			if (!entry) error(404, 'Not found');
+			return { sourcePath: entry.source, pagePath: entry.path };
+		}
 	};
 }
 
-export function createIndexHandlers<Config extends UncialCmsSiteConfig>(
-	opts: IndexHandlerOptions<Config>
-): {
-	// '/uncial/' shell: session status + placeholder nav; create/delete and the
-	// fallback editor arrive in a later slice (issue 04).
-	load: () => Promise<{ config: Config }>;
-} {
-	const config = opts.site ? opts.site.config : opts.config;
-	return {
-		load: async () => ({ config })
-	};
+interface RouteEntry {
+	path: string;
 }

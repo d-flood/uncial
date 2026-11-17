@@ -1,16 +1,20 @@
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { createBlockRegistry, createSchema } from 'uncial/core';
 import type { UncialEditorElement } from 'uncial/web-components';
 import { LOCAL_API_PATH } from '../local/constants.js';
 import type { ContentSummary, MediaListView } from '../server-forge/protocol.js';
-import type { ForgeSession, LocalSiteConfig, ServerSiteConfig } from '../types.js';
+import { site } from '../../fixtures/site.js';
+import {
+	defineServerSite,
+	defineSite,
+	type ServerSiteOptions,
+	type SiteOptions
+} from '../define-site.js';
+import type { ForgeSession, ServerSiteConfig } from '../types.js';
 import Dashboard from './Dashboard.svelte';
 import './element.js';
 
-const blocks = createBlockRegistry([]);
-const schema = createSchema(blocks);
 const config: ServerSiteConfig = { forge: 'server', apiBase: '/api/content' };
 const session: ForgeSession = {
 	token: '',
@@ -18,6 +22,12 @@ const session: ForgeSession = {
 	repo: config.apiBase,
 	user: { login: 'ada@example.org', name: 'Ada Lovelace', email: 'ada@example.org' }
 };
+const serverSite = (
+	options: ServerSiteOptions = config,
+	sessionProvider = async () => session
+) => ({ ...defineServerSite(options, { blocks: [] }), sessionProvider });
+const localSite = (options: Partial<SiteOptions> = {}, base?: string) =>
+	defineSite({ contentDir: 'content', ...options }, { blocks: [], base }, { dev: true });
 const ABOUT: ContentSummary = {
 	path: '/about/',
 	kind: 'page',
@@ -45,7 +55,7 @@ const records = () => Response.json({ records: [ABOUT] });
 it('hides the create and delete controls that can() refuses', async () => {
 	serveList(records);
 	const can = vi.fn((action: string) => action !== 'create' && action !== 'delete');
-	render(Dashboard, { config, blocks, schema, can, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite(), can });
 
 	const row = page.getByRole('listitem').filter({ hasText: '/about/' });
 	await expect.element(row.getByRole('link', { name: 'Edit /about/' })).toBeInTheDocument();
@@ -57,7 +67,7 @@ it('hides the create and delete controls that can() refuses', async () => {
 
 it('allows every control without can()', async () => {
 	serveList(records);
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 
 	const row = page.getByRole('listitem').filter({ hasText: '/about/' });
 	await expect.element(row.getByRole('button', { name: 'Delete /about/' })).toBeInTheDocument();
@@ -70,7 +80,7 @@ it('shows the signed-out screen when the provider rejects, and Sign in re-runs i
 		.fn<() => Promise<ForgeSession>>()
 		.mockRejectedValueOnce(new Error('Your sign-in has expired.'))
 		.mockResolvedValue(session);
-	render(Dashboard, { config, blocks, schema, sessionProvider, signOutHref: '/logout' });
+	render(Dashboard, { site: serverSite(config, sessionProvider), signOutHref: '/logout' });
 
 	await expect.element(page.getByRole('heading', { name: 'Signed out' })).toBeInTheDocument();
 	await expect.element(page.getByText('Your sign-in has expired.')).toBeInTheDocument();
@@ -91,7 +101,7 @@ it('shows the signed-out screen when the provider rejects, and Sign in re-runs i
 
 it('shows the signed-out screen when a forge call returns 401', async () => {
 	serveList(() => Response.json({ error: 'Unauthorized' }, { status: 401 }));
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 
 	await expect.element(page.getByRole('heading', { name: 'Signed out' })).toHaveFocus();
 	await expect.element(page.getByText('You are signed out.', { exact: false })).toBeInTheDocument();
@@ -106,7 +116,7 @@ it.each(['media', 'edit/about'])('returns to sign-in when %s returns 401', async
 			? Response.json({ error: 'Unauthorized' }, { status: 401 })
 			: originalFetch(input, init)
 	) as typeof fetch;
-	render(Dashboard, { config: media, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite(media) });
 
 	await expect.element(page.getByRole('heading', { name: 'Signed out' })).toHaveFocus();
 	await expect.element(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
@@ -117,7 +127,7 @@ it('hides fallback editing when can() refuses save-draft, including direct hash 
 	history.replaceState(null, '', '#/edit/about');
 	serveList(records);
 	const can = vi.fn((action: string) => action !== 'save-draft');
-	render(Dashboard, { config, blocks, schema, can, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite(), can });
 
 	await expect
 		.element(page.getByText('You don’t have permission to edit this page.'))
@@ -140,7 +150,7 @@ it('returns to sign-in when a fallback save meets an expired session', async () 
 			allowed: ['save-draft']
 		});
 	}) as typeof fetch;
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 
 	const save = page.getByRole('button', { name: 'Save' });
 	await expect.element(save).toBeEnabled();
@@ -149,8 +159,53 @@ it('returns to sign-in when a fallback save meets an expired session', async () 
 	await expect.element(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 });
 
+it('keeps Collection records out of Pages, and needs publish to create one on the server', async () => {
+	history.replaceState(null, '', '#/edit/states/ohio');
+	serveList(() => Response.json({ records: [ABOUT, { ...ABOUT, path: '/states/ohio/' }] }));
+	const collections = { states: { dir: 'states', meta: {} } };
+	render(Dashboard, { site: serverSite({ ...config, collections }), can: (a) => a !== 'publish' });
+
+	await expect.element(page.getByText(/^Showing/)).toHaveTextContent('Showing 1–1 of 1 page');
+	expect(location.hash).toBe('#/pages');
+	await page.getByLabelText('New page path').fill('states/texas');
+	await page.getByRole('button', { name: 'Create page' }).click();
+	await expect.element(page.getByRole('alert')).toHaveTextContent('is inside a Collection');
+	location.hash = '#/collections/states';
+	await expect.element(page.getByRole('heading', { name: 'states' })).toBeInTheDocument();
+	await expect.element(page.getByLabelText('New record slug')).not.toBeInTheDocument();
+});
+
+it('gives a Collection record form the Site object’s Media, showing fields by their when', async () => {
+	history.replaceState(null, '', '#/collections/states/new_york');
+	globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+		const path = new URL(String(input)).pathname;
+		if (path === `${LOCAL_API_PATH}/files/content/states/new_york.json`) {
+			const meta = { capital: 'Albany' };
+			return Response.json({ content: JSON.stringify({ type: 'doc', meta }), sha: 'ny' });
+		}
+		if (path === `${LOCAL_API_PATH}/dirs/static/uploads`) {
+			return Response.json({ entries: [{ path: 'static/uploads/flag.png', type: 'file' }] });
+		}
+		return originalFetch(input, init);
+	}) as typeof fetch;
+	const flag = {
+		default: '',
+		input: 'image' as const,
+		when: (meta: Record<string, unknown>) => meta.capital !== ''
+	};
+	const states = { dir: 'content/states', meta: { capital: { default: '' }, flag } };
+	render(Dashboard, { site: localSite({ mediaDir: 'static/uploads', collections: { states } }) });
+
+	await page.getByRole('button', { name: 'Choose existing' }).click();
+	await expect.element(page.getByRole('button', { name: 'flag.png' })).toBeVisible();
+	await page.getByRole('button', { name: 'Close' }).click();
+	await page.getByLabelText('capital').fill('');
+	await expect
+		.element(page.getByRole('button', { name: 'Choose existing' }))
+		.not.toBeInTheDocument();
+});
+
 it('searches git pages by their stored title even when the path does not match', async () => {
-	const local: LocalSiteConfig = { forge: 'local', contentDir: 'content' };
 	globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
 		const path = new URL(String(input)).pathname;
 		if (path === `${LOCAL_API_PATH}/dirs/content`) {
@@ -164,7 +219,7 @@ it('searches git pages by their stored title even when the path does not match',
 		}
 		return originalFetch(input, init);
 	}) as typeof fetch;
-	render(Dashboard, { config: local, blocks, schema });
+	render(Dashboard, { site: localSite() });
 
 	await expect.element(page.getByText('Our research team')).toBeVisible();
 	await page.getByLabelText('Search').fill('RESEARCH');
@@ -172,17 +227,16 @@ it('searches git pages by their stored title even when the path does not match',
 	await expect.element(page.getByRole('link', { name: 'Edit /about/' })).toBeVisible();
 });
 
-it('uses the Dashboard media directory and base in the fallback picker, respecting upload permission', async () => {
+it('gives the fallback editor the Site object’s sources and inputs, respecting upload permission', async () => {
 	history.replaceState(null, '', '#/edit/about');
-	const local: LocalSiteConfig = {
-		forge: 'local',
-		contentDir: 'content',
-		mediaDir: 'public/assets'
-	};
 	globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
 		const path = new URL(String(input)).pathname;
 		if (path === `${LOCAL_API_PATH}/dirs/public/assets`) {
-			return Response.json({ entries: [{ path: 'public/assets/folio.png', type: 'file' }] });
+			const entries = ['folio.png', 'brief.pdf'].map((name) => ({
+				path: `public/assets/${name}`,
+				type: 'file'
+			}));
+			return Response.json({ entries });
 		}
 		if (path === `${LOCAL_API_PATH}/files/content/about.json`) {
 			return Response.json({
@@ -192,22 +246,21 @@ it('uses the Dashboard media directory and base in the fallback picker, respecti
 		}
 		return originalFetch(input, init);
 	}) as typeof fetch;
-	render(Dashboard, {
-		config: local,
-		blocks,
-		schema,
-		staticDir: 'public',
-		basePath: '/brand',
-		can: (action) => action !== 'media-upload'
-	});
+	render(Dashboard, { site, can: (action) => action !== 'media-upload' });
 
-	await expect
-		.poll(() => document.querySelector<UncialEditorElement>('uncial-editor')?.imageSource)
-		.toBeDefined();
-	const source = document.querySelector<UncialEditorElement>('uncial-editor')!.imageSource!;
-	expect(source.upload).toBeUndefined();
-	expect(await source.browse!()).toEqual(['/assets/folio.png']);
-	expect(source.thumbnail!('/assets/folio.png')).toBe('/brand/assets/folio.png');
+	const editor = () => document.querySelector<UncialEditorElement>('uncial-editor');
+	const pick = () =>
+		editor()?.shadowRoot?.querySelector<HTMLButtonElement>('[aria-label="Pick pick"]');
+	await expect.poll(pick).toBeTruthy();
+	pick()!.click();
+	await expect.poll(() => pick()?.textContent?.trim()).toBe('picked');
+	const { imageSource, fileSource } = editor()!;
+	expect(imageSource!.upload).toBeUndefined();
+	expect(await imageSource!.browse!()).toEqual(['/assets/folio.png']);
+	expect(imageSource!.thumbnail!('/assets/folio.png')).toBe('/brand/assets/folio.png');
+	expect(fileSource!.upload).toBeUndefined();
+	expect((await fileSource!.browse!()).map((file) => file.src)).toEqual(['/assets/brief.pdf']);
+	expect(fileSource!.href!('/assets/brief.pdf')).toBe('/brand/assets/brief.pdf');
 });
 
 const RECORDS: ContentSummary[] = Array.from({ length: 120 }, (_, n) => ({
@@ -220,7 +273,7 @@ const RECORDS: ContentSummary[] = Array.from({ length: 120 }, (_, n) => ({
 
 it('searches, filters and pages 120 server records, keeping the query in the hash', async () => {
 	serveList(() => Response.json({ records: RECORDS }));
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 
 	const summary = page.getByText(/^Showing/);
 	await expect.element(summary).toHaveTextContent('Showing 1–50 of 120 pages');
@@ -249,7 +302,7 @@ it('searches, filters and pages 120 server records, keeping the query in the has
 it('restores the Pages query from the hash', async () => {
 	history.replaceState(null, '', '#/pages?status=published&page=2');
 	serveList(() => Response.json({ records: RECORDS }));
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 
 	await expect.element(page.getByText(/^Showing/)).toHaveTextContent('Showing 51–80 of 80 pages');
 	await expect.element(page.getByLabelText('Status')).toHaveValue('published');
@@ -264,7 +317,7 @@ it('keeps the Pages query and page when returning from another section', async (
 	onTestFinished(() => page.viewport(innerWidth, innerHeight));
 	history.replaceState(null, '', '#/pages?status=published&page=2');
 	serveList(() => Response.json({ records: RECORDS }));
-	render(Dashboard, { config, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite() });
 	await expect.element(page.getByText(/^Showing/)).toHaveTextContent('Showing 51–80 of 80 pages');
 
 	const nav = page.getByRole('navigation', { name: 'Dashboard' });
@@ -305,7 +358,7 @@ it('shows server media with title, size, dimensions and usage, and alerts a refu
 		}
 		return Response.json({ items: [FOLIO], allowed: [] });
 	}) as typeof fetch;
-	render(Dashboard, { config: media, blocks, schema, sessionProvider: async () => session });
+	render(Dashboard, { site: serverSite(media) });
 
 	await expect.element(page.getByText('Folio 12 recto')).toBeInTheDocument();
 	await expect.element(page.getByText('folio.png · 640×480 · 2 KB')).toBeInTheDocument();
@@ -324,18 +377,13 @@ it('shows server media with title, size, dimensions and usage, and alerts a refu
 
 it('shows no metadata, usage or search UI for git-forge media', async () => {
 	history.replaceState(null, '', '#/media');
-	const local: LocalSiteConfig = {
-		forge: 'local',
-		contentDir: 'content',
-		mediaDir: 'static/uploads'
-	};
 	const dirs = `${LOCAL_API_PATH}/dirs/static/uploads`;
 	globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
 		new URL(String(input)).pathname === dirs
 			? Response.json({ entries: [{ path: 'static/uploads/folio.png', type: 'file' }] })
 			: originalFetch(input, init)
 	) as typeof fetch;
-	render(Dashboard, { config: local, blocks, schema, basePath: '/docs' });
+	render(Dashboard, { site: localSite({ mediaDir: 'static/uploads' }, '/docs') });
 
 	const item = page.getByRole('listitem').filter({ hasText: 'folio.png' });
 	await expect.element(item).toBeInTheDocument();
@@ -354,10 +402,7 @@ it('shows a slotted App section only while its hash is active, styled by host CS
 	style.textContent = '.host-redirects { color: rgb(12, 34, 56); }';
 	const element = document.createElement('uncial-dashboard');
 	Object.assign(element, {
-		config,
-		blocks,
-		schema,
-		sessionProvider: async () => session,
+		site: serverSite(),
 		appSections: [
 			{ id: 'redirects/rules', label: 'Redirects' },
 			{ id: 'store', label: 'Store', href: '/admin/store/' }
@@ -403,13 +448,7 @@ it('falls back to #/pages for an unknown or linked App section id', async () => 
 	for (const hash of ['#/app/nope', '#/app/store']) {
 		history.replaceState(null, '', hash);
 		serveList(records);
-		const { unmount } = render(Dashboard, {
-			config,
-			blocks,
-			schema,
-			appSections,
-			sessionProvider: async () => session
-		});
+		const { unmount } = render(Dashboard, { site: serverSite(), appSections });
 		await expect.element(page.getByRole('heading', { name: 'Pages' })).toBeInTheDocument();
 		expect(location.hash).toBe('#/pages');
 		unmount();
@@ -418,9 +457,8 @@ it('falls back to #/pages for an unknown or linked App section id', async () => 
 
 it('shows a Global read-only, with its schema defaults, when can() refuses global-edit', async () => {
 	history.replaceState(null, '', '#/globals/footer');
-	const local: LocalSiteConfig = { forge: 'local', contentDir: 'content' };
-	const footer = createSchema(blocks, {
-		metaFields: {
+	const footer = {
+		meta: {
 			note: { default: 'Made in Dallas' },
 			columns: {
 				default: [{ heading: 'Visit', links: [{ label: 'Map', href: '/map' }] }],
@@ -433,7 +471,7 @@ it('shows a Global read-only, with its schema defaults, when can() refuses globa
 				}
 			}
 		}
-	});
+	};
 	const source = `${LOCAL_API_PATH}/files/content/_globals/footer.json`;
 	globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
 		new URL(String(input)).pathname === source
@@ -441,7 +479,7 @@ it('shows a Global read-only, with its schema defaults, when can() refuses globa
 			: originalFetch(input, init)
 	) as typeof fetch;
 	const can = vi.fn((action: string) => action !== 'global-edit');
-	render(Dashboard, { config: local, blocks, schema, globals: { footer }, can });
+	render(Dashboard, { site: localSite({ globals: { footer } }), can });
 
 	await expect.element(page.getByRole('heading', { name: 'footer' })).toBeInTheDocument();
 	await expect

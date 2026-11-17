@@ -45,8 +45,7 @@
 		path?: string;
 		errors?: Record<string, string>;
 		onChange: (value: unknown) => void;
-		onCustom?: (name: string, inputKind: string) => void;
-		/** Components that edit host-defined input kinds in place of the `onCustom` chooser. */
+		/** Components that edit host-defined input kinds; a kind without one renders no field. */
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
@@ -61,7 +60,6 @@
 		path,
 		errors = {},
 		onChange,
-		onCustom,
 		attributeInputs,
 		imageSource,
 		imagePreviews,
@@ -70,7 +68,7 @@
 
 	const fieldId = `uncial-field-${nextFieldId++}`;
 	const inputKind = $derived(inferAttributeInputKind(spec));
-	// The rich-text editor and custom choosers render a component / <button>,
+	// The rich-text editor and host inputs render a component,
 	// neither of which a <label for> can address, so only native form controls
 	// get an associated <label>.
 	const hasLabelableControl = $derived(
@@ -87,7 +85,9 @@
 		if (value === undefined || value === null) return '';
 		return String(value);
 	});
-	const customLabel = $derived(value ? `Change ${name}: ${value}` : `Choose ${name}`);
+	const CustomInput = $derived(
+		isBuiltInInputKind(inputKind) ? undefined : attributeInputs?.[inputKind]
+	);
 	// A stored value outside the declared options (e.g. a legacy value from before the
 	// options list changed) must stay visible and re-selectable instead of being silently
 	// remapped to the first option on the next commit.
@@ -189,26 +189,15 @@
 	}
 </script>
 
-{#if inputKind !== 'hidden'}
+{#if inputKind !== 'hidden' && (isBuiltInInputKind(inputKind) || CustomInput)}
 	<div class="uncial-field">
 		{#if hasLabelableControl}
 			<label class="uncial-field__label" for={fieldId}>{name}</label>
 		{:else}
 			<span class="uncial-field__label">{name}</span>
 		{/if}
-		{#if !isBuiltInInputKind(inputKind)}
-			{@const CustomInput = attributeInputs?.[inputKind]}
-			{#if CustomInput}
-				<CustomInput {name} {spec} {value} update={onChange} />
-			{:else}
-				<button
-					type="button"
-					class="uncial-btn uncial-btn--outline uncial-btn--sm uncial-btn--start"
-					onclick={() => onCustom?.(name, inputKind)}
-				>
-					{customLabel}
-				</button>
-			{/if}
+		{#if CustomInput}
+			<CustomInput {name} {spec} {value} update={onChange} />
 		{:else if inputKind === 'checkbox'}
 			<input
 				id={fieldId}
@@ -320,7 +309,6 @@
 								error={errors[itemPath]}
 								{errors}
 								onChange={(next) => replaceItem(index, next)}
-								{onCustom}
 								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
@@ -337,7 +325,6 @@
 									error={errors[subPath]}
 									{errors}
 									onChange={(next) => setItemField(index, fieldName, next)}
-									{onCustom}
 									{attributeInputs}
 									{imageSource}
 									{imagePreviews}
@@ -439,7 +426,11 @@
 					</span>
 				{/if}
 				{#if fileSource}
-					<FileActions source={fileSource} current={fileValue?.src} onPick={onChange} />
+					<FileActions
+						source={fileSource}
+						current={fileValue?.src}
+						onPick={(picked) => onChange(typeof spec.default === 'string' ? picked.src : picked)}
+					/>
 				{/if}
 				{#if fileValue?.src}
 					<div class="uncial-image-field__actions">

@@ -3,7 +3,6 @@ import {
 	attributeListFields,
 	attributeListValueSpec,
 	coerceAttributeValue,
-	serializeAttributeValue,
 	toAttributeDraftValue
 } from './attributes.js';
 import type { AttributeSpec, ValidateDocumentOptions, ValidationIssue } from './types.js';
@@ -129,17 +128,5 @@ export function parseMetaDraftValues(
 ): Record<string, unknown> {
 	return Object.fromEntries(
 		Array.from(metaFields, ([name, spec]) => [name, coerceAttributeValue(spec, draft[name])])
-	);
-}
-
-export function serializeMeta(
-	metaFields: ReadonlyMap<string, AttributeSpec<unknown>>,
-	meta: Record<string, unknown> = {}
-): Record<string, unknown> {
-	return Object.fromEntries(
-		Array.from(metaFields, ([name, spec]) => [
-			name,
-			serializeAttributeValue(spec, coerceAttributeValue(spec, meta[name]))
-		])
 	);
 }

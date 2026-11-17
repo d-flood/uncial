@@ -8,10 +8,6 @@ export function bytesToBase64(bytes: Uint8Array): string {
 	return btoa(binary);
 }
 
-export function encodeBase64(text: string): string {
-	return bytesToBase64(new TextEncoder().encode(text));
-}
-
 export function decodeBase64(base64: string): string {
 	// The Contents API wraps base64 payloads in newlines.
 	const binary = atob(base64.replaceAll('\n', ''));

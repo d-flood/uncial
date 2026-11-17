@@ -3,7 +3,7 @@ import { fitImage } from './fit-image.js';
 import { uploadAsset } from './index-actions.js';
 import { servedUrl } from './served-url.js';
 import { deleteMedia, listMedia, uploadMedia } from './server-forge/media.js';
-import type { Action, MediaItemView } from './server-forge/protocol.js';
+import type { MediaItemView } from './server-forge/protocol.js';
 import type { ForgeAdapter, UncialCmsSiteConfig } from './types.js';
 import { configMediaDir } from './upload-context.js';
 
@@ -122,16 +122,12 @@ function fromView(item: MediaItemView): MediaItem {
 	};
 }
 
-export function serverMediaSource(
-	apiBase: string,
-	onAllowed?: (allowed: Action[]) => void
-): MediaSource {
+export function serverMediaSource(apiBase: string): MediaSource {
 	return {
 		capabilities: { metadata: true, usage: true, delete: true, search: true },
 
 		async list(query) {
 			const view = await listMedia(apiBase, query);
-			onAllowed?.(view.allowed);
 			return view.items.map((item) => ({
 				...fromView(item),
 				usage: item.usagePaths.map((path) => ({ path }))

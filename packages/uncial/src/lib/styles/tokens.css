@@ -7,8 +7,7 @@
 	.uncial-renderer,
 	.uncial-attrs-panel,
 	.uncial-link-panel,
-	.uncial-richtext-wrapper,
-	.uncial-block-menu {
+	.uncial-richtext-wrapper {
 		--uncial-color-bg: light-dark(oklch(99% 0.006 85), oklch(18% 0.015 60));
 		--uncial-color-surface: light-dark(oklch(99% 0.006 85), oklch(18% 0.015 60));
 		--uncial-color-surface-elevated: light-dark(oklch(96% 0.022 85), oklch(22% 0.02 60));

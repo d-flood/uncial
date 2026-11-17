@@ -25,6 +25,7 @@ vi.mock('./fit-image.js', async (importOriginal) => {
 const author = { name: 'Octo Cat', email: 'octocat@users.noreply.github.com' };
 const config = defineSite(
 	{ contentDir: 'content', mediaDir: 'packages/docs/static/uploads' },
+	{ blocks: [] },
 	{ dev: true }
 ).config;
 
@@ -97,28 +98,9 @@ describe('cmsImageSource', () => {
 	it('rejects a browse with no editor session or no media dir', async () => {
 		await expect(source().browse!()).rejects.toThrow(/no active editor session/i);
 
-		const bare = defineSite({ contentDir: 'content' }, { dev: true }).config;
+		const bare = defineSite({ contentDir: 'content' }, { blocks: [] }, { dev: true }).config;
 		setActiveForge({ adapter: fakeAdapter(), author, config: bare });
 		await expect(cmsImageSource(bare).browse!()).rejects.toThrow(/no media directory/i);
-	});
-
-	it('lists through `list` when given, without touching the forge', async () => {
-		const adapter = fakeAdapter();
-		setActiveForge({ adapter, author, config });
-		const list = vi.fn().mockResolvedValue(['/uploads/hero.jpg']);
-
-		const srcs = await cmsImageSource(config, { list }).browse!();
-
-		expect(srcs).toEqual(['/uploads/hero.jpg']);
-		expect(adapter.listDir).not.toHaveBeenCalled();
-	});
-
-	it('uses the `thumbnail` option in place of the default', () => {
-		const thumbnail = (src: string) => src.replace(/\.jpg$/, '-400.jpg');
-
-		expect(cmsImageSource(config, { base: '/site', thumbnail }).thumbnail!('/uploads/a.jpg')).toBe(
-			'/uploads/a-400.jpg'
-		);
 	});
 
 	it('resolves thumbnails against the base', () => {

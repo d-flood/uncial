@@ -5,7 +5,7 @@
  * binding; both the per-page editor variants and the index fallback editor go
  * through it, so all three surfaces share this one behaviour.
  */
-import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial';
 import { parseDocument, serializeDocument } from './document.js';
 import { ConflictError } from './errors.js';
 import {
@@ -72,7 +72,8 @@ export interface EditorControllerOptions {
 	/** Site-relative path for the deterministic commit message; defaults to sourcePath. */
 	pagePath?: string;
 	blocks: BlockRegistry;
-	schema: ContentSchema;
+	/** The schema for a document's meta: the Page template it names, else the first. */
+	schemaFor: (meta?: Record<string, unknown>) => ContentSchema;
 	adapter: ForgeAdapter;
 	sessionProvider: SessionProvider;
 	ui: EditorPageUi;
@@ -139,7 +140,7 @@ export function conflictDownloadFilename(sourcePath: string): string {
 }
 
 export function createEditorController(opts: EditorControllerOptions): EditorController {
-	const { config, sourcePath, blocks, schema, adapter, sessionProvider, ui } = opts;
+	const { config, sourcePath, blocks, schemaFor, adapter, sessionProvider, ui } = opts;
 	const timings = opts.timings ?? DEFAULT_DEPLOY_STATUS_TIMINGS;
 	const schedule = opts.schedule ?? defaultSchedule;
 	const destroyed = () => opts.isDestroyed?.() ?? false;
@@ -165,6 +166,18 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	let saveAgain = false;
 	let record: RecordState | null = null;
 	let hasDraft = false;
+
+	const parse = (raw: string) => {
+		let meta: Record<string, unknown> | undefined;
+		try {
+			meta = JSON.parse(raw)?.meta;
+		} catch {
+			// parseDocument reports the malformed file.
+		}
+		return parseDocument(raw, blocks, schemaFor(meta));
+	};
+
+	const serialize = (doc: ContentDocument) => serializeDocument(doc, blocks, schemaFor(doc.meta));
 
 	const showDraft = (exists: boolean) => {
 		hasDraft = exists;
@@ -197,7 +210,11 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const applyView = (view: ContentView | undefined, draft?: boolean) => {
 		if (draft !== undefined) showDraft(draft);
 		if (!view) return;
-		showRecord({ draft: view.draft !== null, published: view.published !== null, allowed: view.allowed });
+		showRecord({
+			draft: view.draft !== null,
+			published: view.published !== null,
+			allowed: view.allowed
+		});
 	};
 
 	const showFailure = (error: unknown, fallback: string) => {
@@ -246,8 +263,8 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		session = await adapter.authenticate(config, sessionProvider);
 		if (destroyed()) return;
 		// Publish the authenticated forge so in-editor block UIs (the Image block's
-		// upload) can reach the same adapter + author. Cleared by mountEditorPage on
-		// teardown.
+		// upload) can reach the same adapter + author. Cleared by the editing
+		// surface on teardown.
 		setActiveForge({
 			adapter,
 			author: { name: session.user.name, email: session.user.email },
@@ -258,7 +275,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		if (destroyed()) return;
 		sha = file.sha;
 		applyView(file.view, file.draft);
-		currentDocument = parseDocument(file.content, blocks, schema);
+		currentDocument = parse(file.content);
 		ui.setDocument(currentDocument);
 		dirty = false;
 		ui.saveEnabled(true);
@@ -281,7 +298,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		ui.saveEnabled(false);
 		ui.status({ tone: 'progress', text: 'Saving…' });
 		try {
-			const content = serializeDocument(currentDocument, blocks, schema);
+			const content = serialize(currentDocument);
 			const author = { name: session.user.name, email: session.user.email };
 			if (drafts && toDraft) {
 				const created = !hasDraft && (await drafts.createDraftBranch(draftRef));
@@ -340,7 +357,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		if (destroyed()) return;
 		sha = file.sha;
 		applyView(file.view, file.draft);
-		currentDocument = parseDocument(file.content, blocks, schema);
+		currentDocument = parse(file.content);
 		ui.setDocument(currentDocument);
 		dirty = false;
 		ui.conflictVisible(false);
@@ -351,7 +368,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		if (!currentDocument) return;
 		opts.download({
 			filename: conflictDownloadFilename(sourcePath),
-			content: serializeDocument(currentDocument, blocks, schema),
+			content: serialize(currentDocument),
 			mimeType: 'application/json'
 		});
 	};
@@ -446,7 +463,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			const file = await adapter.readFile(sourcePath);
 			if (destroyed()) return;
 			sha = file.sha;
-			currentDocument = parseDocument(file.content, blocks, schema);
+			currentDocument = parse(file.content);
 			ui.setDocument(currentDocument);
 			dirty = false;
 			ui.status({ tone: 'success', text: 'Draft discarded' });
@@ -457,12 +474,12 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 		}
 	};
 
-	const publishedCopy = async () =>
-		parseDocument((await adapter.readFile(sourcePath)).content, blocks, schema);
+	const publishedCopy = async () => parse((await adapter.readFile(sourcePath)).content);
 
 	const remove = async () => {
 		if (!server || !session || sha === null) return false;
-		if (!opts.confirm(`Delete ${opts.pagePath ?? sourcePath}? This cannot be undone.`)) return false;
+		if (!opts.confirm(`Delete ${opts.pagePath ?? sourcePath}? This cannot be undone.`))
+			return false;
 		cancelPendingAutosave();
 		ui.saveEnabled(false);
 		ui.status({ tone: 'progress', text: 'Deleting…' });
@@ -483,7 +500,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 	const version = async (versionId: string) => {
 		if (!server) throw new Error('Versions exist on the server forge only.');
 		const doc = await server.getVersion(sourcePath, versionId);
-		return parseDocument(JSON.stringify(doc), blocks, schema);
+		return parse(JSON.stringify(doc));
 	};
 
 	const restore = async (versionId: string) => {
@@ -497,7 +514,7 @@ export function createEditorController(opts: EditorControllerOptions): EditorCon
 			const view = await server.restore(sourcePath, versionId, sha);
 			sha = view.etag;
 			applyView(view);
-			currentDocument = parseDocument(JSON.stringify(view.draft), blocks, schema);
+			currentDocument = parse(JSON.stringify(view.draft));
 			ui.setDocument(currentDocument);
 			dirty = false;
 			ui.status({ tone: 'success', text: 'Version restored into the Draft' });

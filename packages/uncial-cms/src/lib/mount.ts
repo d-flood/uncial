@@ -6,23 +6,22 @@ import 'uncial/web-components';
 // CSS pipeline when the specifier itself ends in .css; a bare subpath gets
 // bundled by esbuild into a sidecar file the host never loads.
 import 'uncial/styles/chrome.css';
-import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+import type { ContentDocument } from 'uncial';
 import type { UncialEditorElement } from 'uncial/web-components';
 import { type EditorPageUi, type StatusView } from './editor-controller.js';
-import { createEditorSession, defaultSessionProvider } from './editor-session.js';
-import { cmsFileSource, cmsImageSource } from './image-source.js';
+import { createEditorSession } from './editor-session.js';
+import type { Site } from './define-site.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
-import type { SessionProvider, UncialCmsSiteConfig } from './types.js';
+import type { SessionProvider } from './types.js';
 import { clearActiveForge } from './upload-context.js';
 
-export interface MountEditorPageOptions {
-	config: UncialCmsSiteConfig;
+export interface MountEditorOptions {
+	/** Supplies the Content model, session provider and Media and file sources that are not passed. */
+	site: Site;
 	sourcePath: string; // repo-root-relative JSON path
 	/** Site-relative page path, used in the deterministic commit message
 	 * `uncial-cms: edit <path>`. Falls back to sourcePath. */
 	pagePath?: string;
-	blocks: unknown; // site registry, passed through to the element
-	schema: unknown; // site schema, passed through to the element
 	sessionProvider?: SessionProvider;
 	/**
 	 * Debounced autosave in milliseconds. When set, the page saves on its own
@@ -43,26 +42,14 @@ export interface MountEditorPageOptions {
 	 * `presentation`. Pairs with `attributesPanel: 'overlay'` for WYSIWYG parity.
 	 */
 	presentation?: UncialEditorElement['presentation'];
-	/**
-	 * Stylesheet URLs to load inside the editor's shadow root. Defaults to
-	 * mirroring every stylesheet of the host page (WYSIWYG parity: the editor
-	 * renders behind a shadow boundary, which page styles do not cross).
-	 */
-	editorStylesheets?: string[];
-	/** Where `input: 'image'` fields get images; defaults to `cmsImageSource(config)`. */
+	/** Defaults to `site.media`. */
 	imageSource?: UncialEditorElement['imageSource'];
-	/** Where `input: 'file'` fields and Document links get files; defaults to `cmsFileSource(config)`. */
+	/** Defaults to `site.files`. */
 	fileSource?: UncialEditorElement['fileSource'];
-	/** Svelte components for host-defined attribute `input` kinds. */
-	attributeInputs?: UncialEditorElement['attributeInputs'];
 	onerror?: (error: unknown) => void;
 }
 
-function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: string[]): void {
-	if (explicit) {
-		editor.stylesheet = explicit.join(' ');
-		return;
-	}
+function mirrorPageStylesIntoEditor(editor: UncialEditorElement): void {
 	const links = Array.from(
 		document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
 		(link) => link.href
@@ -74,14 +61,12 @@ function mirrorPageStylesIntoEditor(editor: UncialEditorElement, explicit?: stri
 	}
 }
 
-export function mountEditorPage(
+export function mountEditor(
 	target: HTMLElement,
-	opts: MountEditorPageOptions
+	opts: MountEditorOptions
 ): { destroy(): void; isDirty(): boolean } {
-	const { config, sourcePath } = opts;
-	const sessionProvider = opts.sessionProvider ?? defaultSessionProvider(config);
-	const blocks = opts.blocks as BlockRegistry;
-	const schema = opts.schema as ContentSchema;
+	const { site, sourcePath } = opts;
+	const config = site.config;
 
 	const root = document.createElement('div');
 	root.className = 'uncial-cms-editor-page';
@@ -132,18 +117,13 @@ export function mountEditorPage(
 	banner.append(bannerText, bannerActions);
 
 	const editor = document.createElement('uncial-editor') as UncialEditorElement;
-	mirrorPageStylesIntoEditor(editor, opts.editorStylesheets);
+	mirrorPageStylesIntoEditor(editor);
 	if (opts.attributesPanel !== undefined) editor.attributesPanel = opts.attributesPanel;
 	if (opts.presentation !== undefined) editor.presentation = opts.presentation;
-	editor.imageSource = opts.imageSource ?? cmsImageSource(config);
-	editor.fileSource = opts.fileSource ?? cmsFileSource(config);
-	editor.attributeInputs = opts.attributeInputs;
-	editor.blocks = blocks;
-	editor.schema = schema;
-	// Forward the schema's declared meta fields so the editor renders (and edits)
-	// them in its "Edit document metadata" panel. Without this a consumer whose
-	// schema declares metaFields gets no metadata UI.
-	editor.metaFields = schema.metaFields;
+	editor.imageSource = opts.imageSource ?? site.media;
+	editor.fileSource = opts.fileSource ?? site.files;
+	// The Fallback editor has no route data to draw a Page template with.
+	editor.model = { ...site, templateFor: () => undefined };
 
 	if (manualSave) chrome.append(saveButton);
 	chrome.append(status);
@@ -186,10 +166,11 @@ export function mountEditorPage(
 		config,
 		sourcePath,
 		pagePath: opts.pagePath,
-		blocks,
-		schema,
-		sessionProvider,
+		blocks: site.blocks,
+		schemaFor: site.schemaFor,
+		sessionProvider: opts.sessionProvider ?? site.sessionProvider,
 		autosaveMs: opts.autosaveMs,
+		timings: site.deployStatusTimings,
 		ui,
 		isDestroyed: () => destroyed
 	});

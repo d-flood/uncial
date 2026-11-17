@@ -10,12 +10,13 @@
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "page-metadata"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Edit document-level metadata"
+					"text": "Page metadata"
 				}
 			]
 		},
@@ -24,7 +25,106 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Add typed metaFields to your schema for frontmatter-style data such as title, author, publish date, or tags. Metadata is stored as JSON on the top-level document meta field and is not serialized to YAML."
+					"text": "The Content model's "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " declares the fields every page has. They use the same specs as Block attributes, are stored as JSON on the document's "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and appear in the editor's metadata panel."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const model = createContentModel({\n\tblocks: import.meta.glob('./blocks/*.svelte', { eager: true }),\n\tmeta: {\n\t\ttitle: { default: 'Untitled page', required: true },\n\t\tpublishedAt: { default: '', placeholder: 'YYYY-MM-DD' }\n\t}\n});"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "page-templates"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Page templates"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A Page template draws a page's shell (banner, title, navigation) from its metadata. "
+				},
+				{
+					"type": "text",
+					"text": "Page",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " draws it around the Renderer and "
+				},
+				{
+					"type": "text",
+					"text": "Editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " around the live editing surface, so authors edit inside the page readers get. Register a folder with "
+				},
+				{
+					"type": "text",
+					"text": "templates: import.meta.glob('./templates/*.svelte', { eager: true })",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
@@ -36,7 +136,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "<script lang=\"ts\">\n\timport {\n\t\tDocumentMetaPanel,\n\t\tEditor,\n\t\tcreateDocumentMetaController,\n\t\tcreateSchema\n\t} from 'uncial';\n\n\tconst schema = createSchema(blocks, {\n\t\tmetaFields: {\n\t\t\ttitle: { default: '', required: true },\n\t\t\tauthor: { default: '' },\n\t\t\tpublishedAt: { default: '', placeholder: 'YYYY-MM-DD' },\n\t\t\ttags: { default: [], input: 'json' }\n\t\t}\n\t});\n\n\tconst metaController = createDocumentMetaController(schema.metaFields);\n\tlet document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n\tlet meta = $state({ title: 'Hello world', author: 'Ada' });\n</script>\n\n<Editor {blocks} {schema} {metaController} bind:json={document} bind:meta />\n<DocumentMetaPanel\n\tcontroller={metaController}\n\tfields={schema.metaFields}\n\tonCommit={(nextMeta) => (meta = nextMeta)}\n/>"
+					"text": "<script module lang=\"ts\">\n\timport { defineTemplate } from 'uncial';\n\n\texport const template = defineTemplate({\n\t\tid: 'feature',\n\t\tlabel: 'Feature',\n\t\tmeta: { kicker: { default: '' } },\n\t\tallowedBlocks: ['figure', 'callout']\n\t});\n</script>\n\n<script lang=\"ts\">\n\timport { Text, type TemplateProps } from 'uncial';\n\n\tlet { data, body }: TemplateProps<typeof template> = $props();\n</script>\n\n<p class=\"kicker\"><Text name=\"kicker\" /></p>\n<h1><Text name=\"title\" /></h1>\n<SubNav items={data.subnav} />\n{@render body()}"
 				}
 			]
 		},
@@ -45,31 +145,72 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "When metadata fields are configured, Editor also shows a built-in Metadata button in the toolbar. The renderer normalizes the same metadata and exposes it as an optional snippet prop."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte"
-			},
-			"content": [
+					"text": "A page's "
+				},
 				{
 					"type": "text",
-					"text": "<Renderer content={document} {blocks} {schema}>\n\t{#snippet meta(meta)}\n\t\t<h1>{meta?.title}</h1>\n\t{/snippet}\n</Renderer>"
+					"text": "template",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " metadata value picks its template; with two or more, the metadata panel offers a select and the editor redraws at once. A template adds its own "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "allowedBlocks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " limits the Blocks, and route data reaches it as "
+				},
+				{
+					"type": "text",
+					"text": "data",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Field components inside a template edit page metadata."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "marks-and-the-toolbar"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Match Uncial to your site"
+					"text": "Marks and the toolbar"
 				}
 			]
 		},
@@ -78,7 +219,33 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Uncial's editor and renderer chrome are plain CSS. Tailwind and DaisyUI are not required by the library. Import the default styles once, then override --uncial-* custom properties anywhere above the editor in the cascade."
+					"text": "Declare a custom Mark once with "
+				},
+				{
+					"type": "text",
+					"text": "defineMark",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Listing it in "
+				},
+				{
+					"type": "text",
+					"text": "marks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " registers it in the editor, the Renderer, the schema and the toolbar. The extension is a lazy import, so the model stays server-safe."
 				}
 			]
 		},
@@ -90,7 +257,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "// Full default editor, renderer, controls, and rich text prose styles.\nimport 'uncial/styles';\n\n// Or import only the editor chrome if your app owns prose typography.\nimport 'uncial/styles/chrome';"
+					"text": "import { createContentModel, defaultToolbar, defineMark } from 'uncial';\nimport Highlight from './Highlight.svelte'; // <mark>{@render children()}</mark>\n\nexport const highlight = defineMark({\n\tid: 'highlight',\n\textension: () => import('@tiptap/extension-highlight'),\n\tcomponent: Highlight,\n\ttoolbar: { label: 'Highlight' }\n});\n\nexport const model = createContentModel({\n\tblocks: import.meta.glob('./blocks/*.svelte', { eager: true }),\n\tmarks: [highlight],\n\teditor: { toolbar: [...defaultToolbar, 'highlight', 'table', 'addRowAfter', 'deleteRow'] }\n});"
 				}
 			]
 		},
@@ -99,296 +266,133 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Scope theme tokens to a wrapper when one page should look different from the rest of your app:"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "css"
-			},
-			"content": [
+					"text": "editor.toolbar",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
 				{
 					"type": "text",
-					"text": ".your-custom-class .uncial-editor-shell,\n.your-custom-class .uncial-renderer {\n\t--uncial-color-surface: white;\n\t--uncial-color-primary: #7c3aed;\n\t--uncial-color-primary-contrast: white;\n\t--uncial-color-accent: #d97706;\n\n\t--uncial-radius-md: 0.5rem;\n\t--uncial-font-body: Inter, system-ui, sans-serif;\n\t--uncial-font-display: Georgia, serif;\n\t--uncial-font-mono: 'IBM Plex Mono', ui-monospace, monospace;\n}"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
+					"text": " is one list of built-in ids, Mark ids and your own "
+				},
 				{
 					"type": "text",
-					"text": "The most common tokens are:"
-				}
-			]
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
+					"text": "ToolbarFeature",
+					"marks": [
 						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-primary",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Primary buttons, links, active controls, block focus outlines."
-								}
-							]
+							"type": "code"
 						}
 					]
 				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-primary-contrast",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Text/icons on primary buttons."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-accent",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Secondary emphasis color for consumers who want one."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-surface",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Main editor and renderer background."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-surface-elevated",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Toolbar, inputs, nested block surfaces."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-border",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Control, panel, renderer, and block chrome borders."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-text",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Editor UI and rich text foreground."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-color-code-bg",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Fenced code block background. Defaults dark in both light and dark themes."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-radius-sm/md/lg",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Buttons, inputs, panels, renderer, and block chrome radius."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "--uncial-font-body/display/mono",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — Editor UI, headings, and code typography."
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
 				{
 					"type": "text",
-					"text": "Rich text uses a stable .uncial-rich-content hook. If your site already has article typography, import uncial/styles/chrome and style that hook yourself:"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "css"
-			},
-			"content": [
+					"text": " objects. The table ids are "
+				},
 				{
 					"type": "text",
-					"text": ".your-custom-class .uncial-rich-content {\n\tfont: 400 1rem/1.7 var(--site-body-font);\n\tcolor: var(--site-ink);\n}\n\n.your-custom-class .uncial-rich-content h2 {\n\tfont: 700 1.75rem/1.2 var(--site-display-font);\n\tmargin-block: 2rem 0.75rem;\n}"
+					"text": "table",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "addRowAfter",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "deleteRow",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "addColumnAfter",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "deleteColumn",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Omitted, it is "
+				},
+				{
+					"type": "text",
+					"text": "defaultToolbar",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " plus every Mark with a "
+				},
+				{
+					"type": "text",
+					"text": "toolbar",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "base-paths-and-images"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Normalize and validate before publish"
+					"text": "Base paths and images"
 				}
 			]
 		},
@@ -397,70 +401,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Use normalizeDocument and validateDocument around persistence boundaries, or pass onIssue to Editor and Renderer to observe document issues as they happen."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/lib/publish.ts\nimport { normalizeDocument, validateDocument } from 'uncial';\nimport { blocks, schema } from './uncial';\n\nconst normalized = normalizeDocument(document, blocks, schema);\nconst result = validateDocument(normalized, blocks, schema, {\n\tonIssue: (issue) => console.warn(issue.code, issue.path)\n});\n\nif (!result.ok) {\n\tthrow new Error('Document is not publishable');\n}"
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Render on the server without the editor"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "\"Same component in editor and frontend\" only works if the frontend half stays lean. The Renderer is safe to import in a server bundle. Use the granular entry points so the browser-only editor stack (Tiptap, node views, mount()) never reaches your server."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// Server-safe: no editor mount code enters your bundle.\nimport { Renderer } from 'uncial/render';\nimport { createBlockRegistry, createSchema, defineSvelteBlock } from 'uncial/core';"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "uncial/render and uncial/core are free of editor machinery, and a regression test walks the render/ import graph to keep it that way. The package root (import ... from 'uncial') also re-exports the editor, so prefer these entry points on the server."
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Image attributes need one extra step when your site is served under a base path, such as a GitHub Pages project site. Stored image URLs start at the site root ("
+					"text": "Store image, file and link URLs from the site root ("
 				},
 				{
 					"type": "text",
@@ -473,11 +414,11 @@
 				},
 				{
 					"type": "text",
-					"text": "), so add the base when you render them with "
+					"text": "), never with the base path. The Renderer and the editor add the model's "
 				},
 				{
 					"type": "text",
-					"text": "resolveImageSrc",
+					"text": "base",
 					"marks": [
 						{
 							"type": "code"
@@ -486,19 +427,20 @@
 				},
 				{
 					"type": "text",
-					"text": ":"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte"
-			},
-			"content": [
+					"text": ", so Blocks and templates receive "
+				},
 				{
 					"type": "text",
-					"text": "<!-- src/lib/blocks/Figure.svelte -->\n<script lang=\"ts\">\n\timport { base } from '$app/paths';\n\timport { resolveImageSrc } from 'uncial/render';\n\n\tlet { src = '', alt = '' } = $props();\n</script>\n\n{#if src}<img src={resolveImageSrc(src, base)} {alt} />{/if}"
+					"text": "/your-base/media/photo.webp",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
@@ -507,7 +449,11 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "resolveImageSrc",
+					"text": "An image attribute that declares "
+				},
+				{
+					"type": "text",
+					"text": "renditions",
 					"marks": [
 						{
 							"type": "code"
@@ -516,11 +462,11 @@
 				},
 				{
 					"type": "text",
-					"text": " only changes URLs that start with a single "
+					"text": " gets them from the "
 				},
 				{
 					"type": "text",
-					"text": "/",
+					"text": "Image",
 					"marks": [
 						{
 							"type": "code"
@@ -529,11 +475,11 @@
 				},
 				{
 					"type": "text",
-					"text": ". Full URLs, "
+					"text": " Field: a "
 				},
 				{
 					"type": "text",
-					"text": "data:",
+					"text": "srcset",
 					"marks": [
 						{
 							"type": "code"
@@ -542,11 +488,11 @@
 				},
 				{
 					"type": "text",
-					"text": " URLs and the editor's "
+					"text": " from its widths, or a named crop. The Site object supplies the URLs, and the editor shows the original. A focal point sets "
 				},
 				{
 					"type": "text",
-					"text": "blob:",
+					"text": "object-position",
 					"marks": [
 						{
 							"type": "code"
@@ -555,7 +501,351 @@
 				},
 				{
 					"type": "text",
-					"text": " previews pass through unchanged, so the same component works in the editor and on the live site."
+					"text": " when no crop is drawn."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "image: {\n\tdefault: null,\n\tinput: 'image',\n\trenditions: { widths: [480, 960], crops: { square: { aspect: '1:1', width: 400 } } }\n}\n// <Image name=\"image\" sizes=\"(min-width: 60rem) 50vw, 100vw\" />\n// <Image name=\"image\" crop=\"square\" />"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "server-rendering"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Server rendering"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The "
+				},
+				{
+					"type": "text",
+					"text": "uncial",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " root is server-safe: the editor stack lives in "
+				},
+				{
+					"type": "text",
+					"text": "uncial/editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". "
+				},
+				{
+					"type": "text",
+					"text": "toHtml",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " server-renders the Renderer, so it matches what readers get; "
+				},
+				{
+					"type": "text",
+					"text": "toPlainText",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " collapses a document or rich-text value to text."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import { normalizeDocument, toHtml, toPlainText, validateDocument } from 'uncial';\n\nconst description = toPlainText(document).slice(0, 160);\nconst html = toHtml(document, model);\n\nconst schema = model.schemaFor(document.meta);\nconst result = validateDocument(normalizeDocument(document, model.blocks, schema), model.blocks, schema);"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Pass "
+				},
+				{
+					"type": "text",
+					"text": "onIssue",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to "
+				},
+				{
+					"type": "text",
+					"text": "Editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " or "
+				},
+				{
+					"type": "text",
+					"text": "Renderer",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to observe issues as they happen. The Renderer draws only registered Blocks and sanitizes links to http, https, mailto, tel, relative and hash URLs. Block components are trusted code; sanitize raw HTML they emit."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "styling"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Styling"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The default styles are plain CSS driven by "
+				},
+				{
+					"type": "text",
+					"text": "--uncial-*",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " custom properties. Import them once, or import only the chrome if your site owns prose typography and styles "
+				},
+				{
+					"type": "text",
+					"text": ".uncial-rich-content",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " itself."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import 'uncial/styles'; // or 'uncial/styles/chrome'"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "css"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": ".docs .uncial-editor-shell,\n.docs .uncial-renderer {\n\t--uncial-color-primary: #7c3aed;\n\t--uncial-color-surface: white;\n\t--uncial-radius-md: 0.5rem;\n\t--uncial-font-body: Inter, system-ui, sans-serif;\n}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The tokens cover colours ("
+				},
+				{
+					"type": "text",
+					"text": "--uncial-color-*",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "), fonts ("
+				},
+				{
+					"type": "text",
+					"text": "--uncial-font-body",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "-display",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "-mono",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "), radii ("
+				},
+				{
+					"type": "text",
+					"text": "--uncial-radius-sm",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "-md",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "-lg",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "), spacing ("
+				},
+				{
+					"type": "text",
+					"text": "--uncial-space-1",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to "
+				},
+				{
+					"type": "text",
+					"text": "-6",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ") and editor structure."
 				}
 			]
 		}

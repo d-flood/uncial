@@ -19,7 +19,11 @@ const trimSlashes = (path: string) => path.replace(/^\/+|\/+$/g, '');
  * `paths.base` the same content is built at, so the site prepends its base at
  * render time.
  */
-export function servedUrl(site: Pick<Site, 'config'>, repoPath: string, staticDir = 'static'): string {
+export function servedUrl(
+	site: Pick<Site, 'config'> & { staticDir?: string },
+	repoPath: string,
+	staticDir = site.staticDir ?? 'static'
+): string {
 	const mediaDir = configMediaDir(site.config);
 	const urlPrefix = configMediaUrlPrefix(site.config);
 	const path = repoPath.replace(/^\/+/, '');

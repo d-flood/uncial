@@ -1,7 +1,8 @@
 import type { Editor } from '@tiptap/core';
 import { Fragment, type NodeType, type Node as PMModelNode } from '@tiptap/pm/model';
-import type { Transaction } from '@tiptap/pm/state';
-import type { BlockRegistry, ContentSchema } from '../core/types.js';
+import { NodeSelection, type Selection, type Transaction } from '@tiptap/pm/state';
+import { findWrapping } from '@tiptap/pm/transform';
+import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
 import { getBlockDefaultAttrs } from '../shared/tiptap.js';
 import type { ActiveBlockSelection } from './attributesController.js';
 
@@ -23,7 +24,7 @@ export interface ContainerChildOpsContext {
 	getSchema(): ContentSchema | undefined;
 	/** The block the panel is currently editing, re-resolved against the live doc. */
 	resolveActiveBlock(): ActiveBlockSelection | null;
-	/** Dispatch a transaction with `bindEditor`'s auto-open suppressed for its echo. */
+	/** Dispatch a transaction with `attachEditor`'s auto-open suppressed for its echo. */
 	dispatch(tr: Transaction): void;
 	/** Re-derive controller state after the doc changed (an 'update' sync). */
 	sync(): void;
@@ -45,6 +46,59 @@ function createEditableNode(type: NodeType, attrs?: Record<string, unknown>): PM
 	const childType = type.contentMatch.defaultType;
 	const child = childType ? createEditableNode(childType) : null;
 	return child ? (type.createAndFill(attrs ?? null, Fragment.from(child)) ?? node) : node;
+}
+
+function enclosing(selection: Selection, type: string): { pos: number; node: PMModelNode } | null {
+	if (selection instanceof NodeSelection && selection.node.type.name === type) {
+		return { pos: selection.from, node: selection.node };
+	}
+	const { $from } = selection;
+	for (let depth = $from.depth; depth > 0; depth -= 1) {
+		if ($from.node(depth).type.name === type)
+			return { pos: $from.before(depth), node: $from.node(depth) };
+	}
+	return null;
+}
+
+/** Whether inserting `block` at the selection lifts the container of that type around it instead. */
+export function unwrapsAtSelection(selection: Selection, block: BlockDefinition): boolean {
+	return Boolean(block.content && enclosing(selection, block.id));
+}
+
+/**
+ * Insert a Block at the selection. A container instead lifts its content out
+ * when the selection is inside one, and wraps the selected top-level Blocks
+ * when text is selected.
+ */
+export function insertBlockAtSelection(
+	editor: Editor,
+	block: BlockDefinition,
+	attrs: Record<string, unknown>
+): boolean {
+	const { selection, doc } = editor.state;
+	if (block.content) {
+		const container = enclosing(selection, block.id);
+		if (container) {
+			// Containers are isolating, which `liftTarget` refuses to cross.
+			const { pos, node } = container;
+			return editor
+				.chain()
+				.focus()
+				.command(({ tr }) => (tr.replaceWith(pos, pos + node.nodeSize, node.content), true))
+				.run();
+		}
+		if (!selection.empty) {
+			const range = selection.$from.blockRange(selection.$to, (node) => node.type === doc.type);
+			const wrapping = range && findWrapping(range, editor.schema.nodes[block.id]!, attrs);
+			if (!range || !wrapping) return false;
+			return editor
+				.chain()
+				.focus()
+				.command(({ tr }) => (tr.wrap(range, wrapping), true))
+				.run();
+		}
+	}
+	return editor.chain().focus().insertContent({ type: block.id, attrs }).run();
 }
 
 /**

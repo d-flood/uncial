@@ -8,38 +8,7 @@ import { stampDocumentIdentity } from '../shared/documentIdentity.js';
  */
 export const CURRENT_DOCUMENT_VERSION = 2;
 
-export interface DocumentMigration {
-	/** The document version this migration upgrades from (to `from + 1`). */
-	from: number;
-	/** Upgrades a document from version `from` to version `from + 1`. */
-	migrate: (document: PMDoc) => PMDoc;
-}
-
-const migrations = new Map<number, DocumentMigration['migrate']>([[1, stampDocumentIdentity]]);
-
-/**
- * Registers a migration that upgrades documents from version `from` to
- * `from + 1`. Returns a disposer that removes the registration (useful for
- * tests and hot-reload scenarios).
- */
-export function registerDocumentMigration(migration: DocumentMigration): () => void {
-	if (!Number.isInteger(migration.from)) {
-		throw new Error(`Document migration "from" must be an integer, got ${migration.from}`);
-	}
-
-	const previous = migrations.get(migration.from);
-	migrations.set(migration.from, migration.migrate);
-
-	return () => {
-		if (migrations.get(migration.from) === migration.migrate) {
-			if (previous) {
-				migrations.set(migration.from, previous);
-			} else {
-				migrations.delete(migration.from);
-			}
-		}
-	};
-}
+const migrations = new Map<number, (document: PMDoc) => PMDoc>([[1, stampDocumentIdentity]]);
 
 /**
  * Runs registered migrations stepwise from `fromVersion` up to `toVersion`

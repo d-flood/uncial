@@ -31,7 +31,7 @@ function errorsFromIssues(issues: ValidationIssue[]): Record<string, string> {
 	return errors;
 }
 
-export function createDocumentMetaController(
+export function createMetaController(
 	fields: ReadonlyMap<string, AttributeSpec<unknown>> = new Map(),
 	meta: Record<string, unknown> = {}
 ): DocumentMetaController {

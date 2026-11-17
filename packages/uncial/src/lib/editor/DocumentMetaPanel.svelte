@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { parseMetaDraftValues } from '../core/meta.js';
 	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
@@ -31,7 +32,10 @@
 		errors: {},
 		dirty: false
 	});
-	const fieldEntries = $derived(Array.from(fields.entries()));
+	const fieldEntries = $derived.by(() => {
+		const meta = parseMetaDraftValues(fields, controllerState.draft);
+		return Array.from(fields.entries()).filter(([, spec]) => spec.when?.(meta) ?? true);
+	});
 
 	function commitMeta(): void {
 		const result = controller.commit();

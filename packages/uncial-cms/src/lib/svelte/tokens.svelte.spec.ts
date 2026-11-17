@@ -1,12 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { createBlockRegistry, createSchema } from 'uncial/core';
 import { defineSite } from '../define-site.js';
 import EditorPage from './EditorPage.svelte';
-
-const blocks = createBlockRegistry([]);
-const schema = createSchema(blocks, { metaFields: {} });
 
 const originalFetch = globalThis.fetch;
 
@@ -30,11 +26,8 @@ it('follows the host color-scheme, not the operating system preference', async (
 
 	const preference = matchMedia('(prefers-color-scheme: dark)').matches;
 	render(EditorPage, {
-		site: defineSite({ contentDir: 'content' }, { dev: true }),
-		sourcePath: 'content/about.json',
-		pagePath: 'about',
-		blocks,
-		schema
+		site: defineSite({ contentDir: 'content' }, { blocks: [] }, { dev: true }),
+		data: { sourcePath: 'content/about.json', pagePath: 'about' }
 	});
 
 	const shell = page.getByRole('textbox');

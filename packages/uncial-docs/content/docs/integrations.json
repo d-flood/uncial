@@ -10,12 +10,13 @@
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "react-vue-or-plain-js"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Use Uncial from React, Vue, or vanilla JS"
+					"text": "React, Vue, or plain JS"
 				}
 			]
 		},
@@ -24,7 +25,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "React, Vue, and vanilla apps can use Uncial through browser-native custom elements. Register them once on the client, then drop the tags into your markup."
+					"text": "Register the custom elements once on the client, then set their inputs as properties: they are objects and functions, which HTML attributes cannot carry."
 				}
 			]
 		},
@@ -36,19 +37,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "import 'uncial/web-components';"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "html"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<uncial-editor></uncial-editor>\n<uncial-renderer></uncial-renderer>"
+					"text": "import 'uncial/web-components';\n\nconst editor = document.querySelector('uncial-editor');\nObject.assign(editor, { model, json: doc, imageSource });\neditor.addEventListener('uncial-change', (event) => (doc = event.detail));\n\nconst renderer = document.querySelector('uncial-renderer');\nObject.assign(renderer, { model, content: doc });"
 				}
 			]
 		},
@@ -57,28 +46,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Configure the elements with JS properties, not HTML attributes: the inputs are structured objects and components that do not round-trip through strings. Editor document updates arrive as a bubbling uncial-change event, because non-Svelte hosts cannot use bind:json."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "const editor = document.querySelector('uncial-editor');\nObject.assign(editor, { blocks, schema, json: document, attributesController, imageSource });\neditor.addEventListener('uncial-change', (event) => {\n\tdocument = event.detail;\n});\n\nconst renderer = document.querySelector('uncial-renderer');\nObject.assign(renderer, { blocks, schema, content: document });"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "imageSource",
+					"text": "uncial-meta-change",
 					"marks": [
 						{
 							"type": "code"
@@ -87,11 +55,11 @@
 				},
 				{
 					"type": "text",
-					"text": " is only needed if your blocks have "
+					"text": " reports metadata edits and "
 				},
 				{
 					"type": "text",
-					"text": "input: 'image'",
+					"text": "uncial-issue",
 					"marks": [
 						{
 							"type": "code"
@@ -100,11 +68,11 @@
 				},
 				{
 					"type": "text",
-					"text": " attributes. It is the same object you would pass to the Svelte "
+					"text": " reports validation issues. Setting "
 				},
 				{
 					"type": "text",
-					"text": "Editor",
+					"text": "json",
 					"marks": [
 						{
 							"type": "code"
@@ -113,32 +81,20 @@
 				},
 				{
 					"type": "text",
-					"text": "; see "
+					"text": " again keeps the editor's selection and undo history. Both elements render into an open shadow root, so pass Uncial's CSS through the "
 				},
 				{
 					"type": "text",
-					"text": "Let authors add images",
+					"text": "stylesheet",
 					"marks": [
 						{
-							"type": "link",
-							"attrs": {
-								"href": "../blocks/#let-authors-add-images"
-							}
+							"type": "code"
 						}
 					]
 				},
 				{
 					"type": "text",
-					"text": "."
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Both elements render into an open shadow root, so page styles do not reach them. Pass Uncial's default CSS through the one reflected attribute, stylesheet (a whitespace-separated list of stylesheet URLs)."
+					"text": " attribute:"
 				}
 			]
 		},
@@ -155,14 +111,128 @@
 			]
 		},
 		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "For uncial-cms, "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/elements",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " registers "
+				},
+				{
+					"type": "text",
+					"text": "<uncial-editor-page>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " (properties "
+				},
+				{
+					"type": "text",
+					"text": "site",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "sourcePath",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "pagePath",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ") and "
+				},
+				{
+					"type": "text",
+					"text": "<uncial-dashboard>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A Svelte host should prefer "
+				},
+				{
+					"type": "text",
+					"text": "EditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "Dashboard",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", which render in your own cascade."
+				}
+			]
+		},
+		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "your-own-editor-layout"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Store Uncial documents in Wagtail pages"
+					"text": "Your own editor layout"
 				}
 			]
 		},
@@ -171,19 +241,54 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Wagtail is the origin story here: deeply nested StreamFields render as towers of stacked form panels, and headless preview requires real plumbing. The companion uncial-wagtail package replaces that experience — it stores an Uncial document in an ordinary Wagtail page field and mounts this editor inside the Wagtail admin, so editors work in your actual components instead of generated forms. Because the body is just JSON, the document you edit is the document served headless (with a resolved image sidecar) for your frontend to render: no admin-to-frontend translation layer, and preview comes for free."
+					"text": "bindEditor(model)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " from "
+				},
+				{
+					"type": "text",
+					"text": "uncial/editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " attaches the editor to an element you place, and returns the props for the panels:"
 				}
 			]
 		},
 		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "python"
+				"language": "svelte"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "from wagtail.admin.panels import FieldPanel\nfrom wagtail.models import Page\n\nfrom uncial_wagtail.fields import UncialField\nfrom uncial_wagtail.schema import UncialEditorConfig\n\n\nclass ArticlePage(Page):\n    body = UncialField(config=UncialEditorConfig(allowed_blocks=[\"wagtail.image\"]))\n    content_panels = Page.content_panels + [FieldPanel(\"body\")]"
+					"text": "<script lang=\"ts\">\n\timport { BlockAttributesPanel, DocumentMetaPanel, Toolbar, bindEditor } from 'uncial/editor';\n\n\tconst editor = bindEditor(model);\n\tlet doc = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n\tlet meta = $state({});\n\tlet tiptap = $state(null);\n</script>\n\n<Toolbar editor={tiptap} toolbar={model.editor.toolbar} marks={model.marks} />\n<div\n\tuse:editor.attach={{\n\t\tjson: doc,\n\t\tmeta,\n\t\tonChange: (next) => (doc = next),\n\t\tonMetaChange: (next) => (meta = next),\n\t\tonEditor: (next) => (tiptap = next)\n\t}}\n></div>\n<BlockAttributesPanel {...editor.attributes} />\n<DocumentMetaPanel {...editor.meta} onCommit={(next) => (meta = next)} />"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "your-own-server"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Your own server"
 				}
 			]
 		},
@@ -192,35 +297,94 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "See the "
-				},
-				{
-					"type": "text",
-					"text": "uncial-wagtail README",
+					"text": "uncial-cms/server",
 					"marks": [
 						{
-							"type": "link",
-							"attrs": {
-								"href": "https://github.com/d-flood/uncial/tree/main/packages/uncial-wagtail"
-							}
+							"type": "code"
 						}
 					]
 				},
 				{
 					"type": "text",
-					"text": " for the headless API, image reference resolution, and custom block registration."
+					"text": " is the host side of the server forge: "
+				},
+				{
+					"type": "text",
+					"text": "createServerContentHandlers",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "createServerMediaHandlers",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "createPostgresContentStore",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "createMediaLibrary",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", for a site that serves content from its own endpoints and declares them with "
+				},
+				{
+					"type": "text",
+					"text": "defineServerSite",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "security"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Render known blocks, validate user content"
+					"text": "Security"
 				}
 			]
 		},
@@ -235,7 +399,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Renderer uses the block registry you provide, so unknown custom blocks are not rendered as trusted components."
+									"text": "The Renderer draws only registered Blocks, and sanitizes links to http, https, mailto, tel, relative and hash URLs."
 								}
 							]
 						}
@@ -249,7 +413,20 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Built-in rich text links are sanitized to http, https, mailto, tel, relative paths, and hash links."
+									"text": "Block components and "
+								},
+								{
+									"type": "text",
+									"text": "html.render",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " hooks are trusted code; sanitize raw HTML they emit."
 								}
 							]
 						}
@@ -263,7 +440,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Run validation before publishing or saving user-authored documents."
+									"text": "Validate documents before publishing user-authored content."
 								}
 							]
 						}
@@ -277,7 +454,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Custom block components and html.render hooks are trusted application code; sanitize any raw HTML or navigation attributes they emit."
+									"text": "On github, the browser holds only a token scoped to one repository for about an hour, released only to origins the repository allowlists. Saves are checked against the loaded sha, so concurrent edits never overwrite each other. Editor variants and the Dashboard should load no third-party scripts."
 								}
 							]
 						}

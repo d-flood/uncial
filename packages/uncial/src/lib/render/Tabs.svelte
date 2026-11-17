@@ -1,3 +1,19 @@
+<script module lang="ts">
+	import { defineBlock } from '../model.js';
+
+	const isNonEmptyString = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+
+	export const block = defineBlock({
+		id: 'tabs',
+		label: 'Tabs',
+		description: 'A linked group of labelled content tabs.',
+		attributes: {
+			group: { default: '', required: true, validate: isNonEmptyString, placeholder: 'framework' }
+		},
+		content: { kind: 'flow', allowedBlocks: ['tab'] }
+	});
+</script>
+
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { PMNode } from '../shared/document.js';

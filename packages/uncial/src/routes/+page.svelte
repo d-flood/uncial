@@ -4,12 +4,13 @@
 	import BracketsCurlyIcon from 'phosphor-svelte/lib/BracketsCurlyIcon';
 	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
 	import { base } from '$app/paths';
-	import { BlockAttributesPanel, Editor, Renderer } from '$lib/index.js';
+	import { Renderer } from '$lib/index.js';
+	import { BlockAttributesPanel, Editor } from '$lib/editor/index.js';
 	import { buildDemo } from './demo.js';
 	import Logo from './demo/Logo.svelte';
 	import ThemeSwitcher from '$lib/ui/ThemeSwitcher.svelte';
 
-	const { blocks, schema, attributesController, metaController, initialDocument } = buildDemo();
+	const { model, attributesController, metaController, initialDocument } = buildDemo();
 	const pageWashBackground =
 		'radial-gradient(1200px 600px at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 55%), radial-gradient(900px 700px at 10% 90%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%)';
 	const repoUrl = 'https://github.com/d-flood/uncial';
@@ -183,8 +184,7 @@
 				{#if activeTab === 'editor'}
 					<div class="min-w-0" role="region" aria-label="Editor" bind:this={editorRegion}>
 						<Editor
-							{blocks}
-							{schema}
+							{model}
 							{attributesController}
 							{metaController}
 							attributesPanel={false}
@@ -197,22 +197,17 @@
 						<p class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-secondary/80">
 							Proof copy · same JSON
 						</p>
-						<Renderer {blocks} {schema} content={doc}>
-							{#snippet meta(meta)}
-								{#if meta?.title}
-									<header class="mb-6 border-b border-base-content/15 pb-4">
-										<p
-											class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-primary"
-										>
-											{meta.author ?? 'Unknown author'} · {meta.publishedAt ?? 'Unpublished'}
-										</p>
-										<h2 class="mt-2 font-vellum-display text-3xl font-black italic">
-											{meta.title}
-										</h2>
-									</header>
-								{/if}
-							{/snippet}
-						</Renderer>
+						{#if meta.title}
+							<header class="mb-6 border-b border-base-content/15 pb-4">
+								<p class="font-vellum-mono text-[0.62rem] uppercase tracking-[0.3em] text-primary">
+									{meta.author ?? 'Unknown author'} · {meta.publishedAt ?? 'Unpublished'}
+								</p>
+								<h2 class="mt-2 font-vellum-display text-3xl font-black italic">
+									{meta.title}
+								</h2>
+							</header>
+						{/if}
+						<Renderer {model} content={doc} />
 					</article>
 				{:else}
 					<pre
@@ -238,7 +233,7 @@
 						</p>
 					</div>
 					<div class="p-4">
-						<BlockAttributesPanel controller={attributesController} {blocks} />
+						<BlockAttributesPanel controller={attributesController} blocks={model.blocks} />
 					</div>
 				</aside>
 			{:else}

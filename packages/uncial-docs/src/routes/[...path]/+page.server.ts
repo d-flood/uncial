@@ -1,7 +1,4 @@
-import { createContentHandlers } from 'uncial-cms/sveltekit';
-import { blocks, schema, site } from '../site.js';
+import { contentRoutes } from 'uncial-cms/sveltekit';
+import { site } from '../site.js';
 
-const handlers = createContentHandlers({ site, blocks, schema });
-
-export const entries = handlers.entries;
-export const load = handlers.load;
+export const { entries, load } = contentRoutes(site);

@@ -17,7 +17,16 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "There is no CMS server and no database: the git repository is the single source of truth."
+					"text": "There is no CMS server and no database: the "
+				},
+				{
+					"type": "text",
+					"text": "git repository",
+					"marks": [{ "type": "smallCaps" }]
+				},
+				{
+					"type": "text",
+					"text": " is the single source of truth."
 				}
 			]
 		}

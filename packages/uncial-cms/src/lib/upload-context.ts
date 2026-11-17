@@ -1,13 +1,10 @@
 /**
- * The active editor's forge, exposed so a block's in-editor UI (e.g. the Image
- * block's Upload affordance) can reach the same authenticated adapter + author
- * `mountEditorPage` uses — without threading them through the editor web
- * component and every block's props.
+ * The signed-in forge the Site's image and file sources upload through, so
+ * they need no adapter threaded into every editing surface.
  *
  * It is a single last-writer-wins slot: one page hosts one editor at a time.
- * `createEditorController` sets it once the session is established;
- * `mountEditorPage` clears it on teardown. A block reads it through
- * {@link uploadImageAsset}, never directly.
+ * `createEditorController` and the Dashboard set it; editing surfaces clear it
+ * on teardown.
  */
 import type { ForgeAdapter, UncialCmsSiteConfig } from './types.js';
 

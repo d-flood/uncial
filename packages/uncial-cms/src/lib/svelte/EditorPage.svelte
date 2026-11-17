@@ -1,23 +1,16 @@
 <script lang="ts">
 	/**
 	 * The SvelteKit door onto an Editor variant: Uncial's `Editor` rendered in
-	 * the host's own tree and cascade, with the whole editing surface
-	 * `mountEditorPage` owns — status line, conflict banner, metadata seeding,
-	 * Save or autosave — around it.
-	 *
-	 * `mountEditorPage` builds a custom element with a shadow root, which is the
-	 * right shape for a host with no component model. It is the wrong shape for a
-	 * SvelteKit site whose Editor variant exists to show an author the measure,
-	 * face and ground a reader will see: no rule the site sets on `body` crosses
-	 * that boundary, so the site has to restate every one of them.
+	 * the host's own tree and cascade, with the status line, conflict banner,
+	 * metadata seeding and Save or autosave around it. No shadow boundary, so
+	 * every rule the site sets on `body` reaches the document.
 	 */
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-	import type { FileSource, ImageSource } from 'uncial/editor';
+	import type { ContentDocument } from 'uncial';
+	import type { ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
-	import { cmsFileSource, cmsImageSource } from '../image-source.js';
 	import { isMediaUrl, listMedia } from '../server-forge/media.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import {
@@ -26,31 +19,20 @@
 		type Action,
 		type VersionView
 	} from '../server-forge/protocol.js';
-	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
 
 	interface Props {
 		/** The site object from `defineSite`. */
 		site: Site;
-		/** Repo-root-relative JSON path, from the editor route's payload. */
-		sourcePath: string;
-		/** Site-relative page path, from the editor route's payload. */
-		pagePath: string;
-		blocks: BlockRegistry;
-		/** One schema for the site, or the schema this page path is written against. */
-		schema: ContentSchema | ((path: string) => ContentSchema);
-		/** Defaults to the provider the resolved forge implies. */
-		sessionProvider?: SessionProvider;
+		/**
+		 * The editor route's data: the repo-root-relative JSON path and the
+		 * site-relative page path. Everything else reaches the Page template.
+		 */
+		data: { sourcePath: string; pagePath: string } & Record<string, unknown>;
 		/** Forwarded to `Editor`; `'overlay'` keeps the document at the host's width. */
 		attributesPanel?: 'docked' | 'overlay' | 'off';
 		/** Forwarded to `Editor`; `'bare'` draws no surface of the editor's own. */
 		presentation?: 'card' | 'bare';
-		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
-		imageSource?: ImageSource;
-		/** Forwarded to `Editor`; defaults to `cmsFileSource(site.config)`. */
-		fileSource?: FileSource;
-		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
-		attributeInputs?: AttributeInputs;
 		/** Where the host previews a Draft; the editing view links there when given. */
 		previewUrl?: (sourcePath: string) => string;
 		/** The record moved, by a save that derived a new path or by Move; reopen it at `sourcePath`. */
@@ -61,22 +43,20 @@
 
 	let {
 		site,
-		sourcePath,
-		pagePath,
-		blocks,
-		schema,
-		sessionProvider,
+		data,
 		attributesPanel = 'overlay',
 		presentation = 'bare',
-		imageSource,
-		fileSource,
-		attributeInputs,
 		previewUrl,
 		onMoved,
 		movable = false
 	}: Props = $props();
 
-	const resolvedSchema = $derived(typeof schema === 'function' ? schema(pagePath) : schema);
+	const sourcePath = $derived(data.sourcePath);
+	const pagePath = $derived(data.pagePath);
+	const routeData = $derived.by(() => {
+		const { sourcePath: _sourcePath, pagePath: _pagePath, ...rest } = data;
+		return rest;
+	});
 	// Autosave leaves nothing to press; a forge commit is never autosaved, so a
 	// Save button and autosave are exactly the two modes.
 	const manualSave = $derived(site.autosaveMs === undefined);
@@ -89,7 +69,7 @@
 	let libraryChecked = $state(false);
 	const isMissing = (src: string) => (library ? isMediaUrl(src) && !library.has(src) : false);
 	const resolvedImageSource = $derived.by((): ImageSource => {
-		const source = imageSource ?? cmsImageSource(site.config);
+		const source = site.media;
 		const { upload } = source;
 		if (!mediaApiBase) return source;
 		return {
@@ -125,7 +105,7 @@
 	);
 
 	type EditorComponent = (typeof import('uncial/editor'))['Editor'];
-	type RendererComponent = (typeof import('uncial/render'))['Renderer'];
+	type RendererComponent = (typeof import('uncial'))['Renderer'];
 
 	let Editor = $state<EditorComponent | undefined>(undefined);
 	let doc = $state<ContentDocument | undefined>(undefined);
@@ -159,7 +139,7 @@
 		if (!controller) return;
 		historyOpen = true;
 		try {
-			const [list, render] = await Promise.all([controller.history(), import('uncial/render')]);
+			const [list, render] = await Promise.all([controller.history(), import('uncial')]);
 			versions = list;
 			Renderer = render.Renderer;
 		} catch (error) {
@@ -181,10 +161,7 @@
 			return;
 		}
 		try {
-			const [copy, render] = await Promise.all([
-				controller!.publishedCopy(),
-				import('uncial/render')
-			]);
+			const [copy, render] = await Promise.all([controller!.publishedCopy(), import('uncial')]);
 			Renderer = render.Renderer;
 			published = copy;
 		} catch (error) {
@@ -222,8 +199,6 @@
 
 		void Promise.all([
 			import('uncial/editor'),
-			// The package's own session module, not the `uncial-cms/session`
-			// subpath: this file is inside the package.
 			import('../editor-session.js'),
 			// The editor's chrome — tokens, shell layout and controls. Loaded here
 			// so the host never has to know the component has a stylesheet. The
@@ -236,9 +211,9 @@
 				config: site.config,
 				sourcePath,
 				pagePath,
-				blocks,
-				schema: resolvedSchema,
-				sessionProvider,
+				blocks: site.blocks,
+				schemaFor: site.schemaFor,
+				sessionProvider: site.sessionProvider,
 				autosaveMs: site.autosaveMs,
 				timings: site.deployStatusTimings,
 				isDestroyed: () => cancelled,
@@ -433,7 +408,7 @@
 					{#if can('restore')}
 						<button type="button" onclick={() => void restore(versionId)}>Restore</button>
 					{/if}
-					<Renderer content={selected.doc} {blocks} schema={resolvedSchema} />
+					<Renderer content={selected.doc} model={site} path={pagePath} />
 				</div>
 			{/if}
 		</section>
@@ -441,22 +416,21 @@
 
 	{#if published && Renderer}
 		<section class="uncial-cms-published" aria-label="Published version">
-			<Renderer content={published} {blocks} schema={resolvedSchema} />
+			<Renderer content={published} model={site} path={pagePath} />
 		</section>
 	{/if}
 
 	{#if Editor && doc && libraryChecked && !deleted}
 		<Editor
-			{blocks}
-			schema={resolvedSchema}
-			metaFields={resolvedSchema.metaFields}
+			model={site}
 			bind:json={doc}
 			bind:meta
+			path={pagePath}
+			data={routeData}
 			{attributesPanel}
 			{presentation}
 			imageSource={resolvedImageSource}
-			fileSource={fileSource ?? cmsFileSource(site.config)}
-			{attributeInputs}
+			fileSource={site.files}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>
 	{/if}

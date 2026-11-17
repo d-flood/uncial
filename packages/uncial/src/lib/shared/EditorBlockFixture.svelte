@@ -1,37 +1,39 @@
-<script lang="ts" module>
-	export type UpdateAttributes = (attrs: Record<string, unknown>) => void;
-
-	// Lets a test reach one block instance's `updateAttributes` prop directly,
-	// keyed by that instance's root element, without going through a control
-	// whose own focus or selection side effects would confuse the assertion.
-	export const fixtureUpdateAttributes = new WeakMap<Element, UpdateAttributes>();
-</script>
-
 <script lang="ts">
-	// Test fixture: a custom block editor component with an attribute-bound input.
-	import type { Snippet } from 'svelte';
+	// Test fixture: a block that edits its title in place and prints its Block context.
+	import { getContext, type Snippet } from 'svelte';
+	import { getBlock } from '../runtime/blockContext.js';
+	import Text from '../render/Text.svelte';
 
 	interface Props {
 		title?: string;
 		children?: Snippet;
-		updateAttributes?: UpdateAttributes;
 	}
 
-	let { title = '', children, updateAttributes }: Props = $props();
+	let { title = '', children }: Props = $props();
+
+	const block = getBlock<{ title: string }>();
+	const app = getContext<string | undefined>('fixture-app');
 </script>
 
-<div
-	data-testid="editor-block-fixture"
-	{@attach (node) => {
-		if (updateAttributes) fixtureUpdateAttributes.set(node, updateAttributes);
-	}}
->
+<div data-testid="editor-block-fixture">
 	<input
 		data-testid="title-input"
 		value={title}
-		oninput={(event) => updateAttributes?.({ title: event.currentTarget.value })}
+		oninput={(event) => block.update({ title: event.currentTarget.value })}
 	/>
-	<p data-testid="fixture-title">{title}</p>
+	<p data-testid="fixture-title"><Text name="title" /></p>
+	<output data-testid="fixture-context"
+		>{JSON.stringify({
+			type: block.type,
+			attrs: block.attrs,
+			editing: block.editing,
+			parent: block.parent,
+			index: block.index,
+			siblings: block.siblings,
+			page: block.page,
+			app
+		})}</output
+	>
 	{#if children}
 		<div data-testid="fixture-children">{@render children()}</div>
 	{/if}

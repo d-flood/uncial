@@ -1,0 +1,2135 @@
+{
+	"type": "doc",
+	"version": 1,
+	"meta": {
+		"title": "Upgrading",
+		"navGroup": "Upgrading",
+		"navOrder": 30
+	},
+	"content": [
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "how-to-read-this-page"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "How to read this page"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The new major versions of "
+				},
+				{
+					"type": "text",
+					"text": "uncial",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " replace a site's glue with one declaration. Each entry names an old pattern, shows the old code and then the new, and says what you can delete. Removed APIs have no shims, so the type checker finds every place to change."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "declaring-the-site"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Declaring the site"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "separate-blocks-and-schema-props"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Separate "
+				},
+				{
+					"type": "text",
+					"text": "blocks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "schema",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " props"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\tconst blocks = createBlockRegistry([hero, figure]);\n\tconst schema = createSchema(blocks, { metaFields: { title: { default: '' } } });\n\tconst attributesController = createBlockAttributesController();\n</script>\n\n<EditorPage {site} {blocks} {schema} {attributesController} {sourcePath} {pagePath} />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const site = defineSite(siteOptions, {\n\tbase,\n\tblocks: import.meta.glob('./blocks/*.svelte', { eager: true }),\n\tmeta: { title: { default: '' } }\n});\n// <EditorPage {site} {data} />, <Page {site} {data} />, <Dashboard {site} />"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: every registry, schema and controller, and the props that passed them. Hosts using "
+				},
+				{
+					"type": "text",
+					"text": "uncial",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " alone pass a Content model as "
+				},
+				{
+					"type": "text",
+					"text": "model",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "a-hand-built-config-or-dev-prod-ternary"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "A hand-built config or dev/prod ternary"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "const config = dev\n\t? { forge: 'local', contentDir: 'content' }\n\t: { forge: 'github', repo: 'owner/name', branch: 'main', contentDir: 'content' };"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const site = defineSite(siteOptions, model); // resolves the forge for the build"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the ternary in each route file, and any second config built to keep the editor out of server code; the Site object is server-safe."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "passing-a-session-provider"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Passing a session provider"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<EditorPage {site} sessionProvider={brokerSessionProvider({ brokerOrigin, clientId, appSlug, basePath: base })} />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "github: { repo: 'owner/name', branch: 'main', auth: { kind: 'broker', origin, clientId, appSlug } }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the provider module and every "
+				},
+				{
+					"type": "text",
+					"text": "sessionProvider",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " prop. PAT sign-in is gone; "
+				},
+				{
+					"type": "text",
+					"text": "authWorkerUrl",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "appSlug",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " move to "
+				},
+				{
+					"type": "text",
+					"text": "auth: { kind: 'worker', url, appSlug }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "cmsimagesource-and-static-dir-plumbing"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "cmsImageSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "STATIC_DIR",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " plumbing"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const STATIC_DIR = 'static';\nconst imageSource = cmsImageSource(site.config, { base, staticDir: STATIC_DIR });\n// <EditorPage {imageSource} … /> and <uncial-dashboard staticDir={STATIC_DIR} …>"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const siteOptions = { contentDir: 'content', staticDir: 'static' } satisfies SiteOptions;"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the constant, the image source and its props. Pass "
+				},
+				{
+					"type": "text",
+					"text": "media",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " to "
+				},
+				{
+					"type": "text",
+					"text": "defineSite",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " only to filter or add thumbnails."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "filesource-and-cmsfilesource-on-editing-surfaces"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "fileSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "cmsFileSource",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " on editing surfaces"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<EditorPage {site} fileSource={cmsFileSource(site.config, { base, staticDir })} />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<EditorPage {site} {data} />"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the file source and its props. The Fallback editor now gets it too."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "blocks-and-editing"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Blocks and editing"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "definesvelteblock"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "defineSvelteBlock",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import Hero from './Hero.svelte';\n\nexport const hero = defineSvelteBlock({ id: 'hero', label: 'Hero', attributes: { headline: '' }, component: Hero });"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- blocks/Hero.svelte -->\n<script module lang=\"ts\">\n\texport const block = defineBlock({ id: 'hero', label: 'Hero', attributes: { headline: '' } });\n</script>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the registration module, and the component's own "
+				},
+				{
+					"type": "text",
+					"text": "Props",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " interface and defaults; use "
+				},
+				{
+					"type": "text",
+					"text": "BlockProps<typeof block>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "updateattributes-checks-and-editor-only-ui"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "updateAttributes",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " checks and editor-only UI"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\tlet { headline, updateAttributes } = $props();\n</script>\n\n{#if updateAttributes}\n\t<input value={headline} oninput={(e) => updateAttributes({ headline: e.currentTarget.value })} />\n{:else}\n\t<h1>{headline}</h1>\n{/if}"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<h1><Text name=\"headline\" /></h1>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the branches, the inputs, and any CMS import inside a Block. "
+				},
+				{
+					"type": "text",
+					"text": "getBlock()",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " gives "
+				},
+				{
+					"type": "text",
+					"text": "editing",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "update",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "media",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " when a Block needs more, and "
+				},
+				{
+					"type": "text",
+					"text": "parent",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "index",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "siblings",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " replace block-context modules and sibling scans."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "hidden-attributes-rebuilt-in-a-component"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Hidden attributes rebuilt in a component"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "caption: { default: '', input: 'hidden' } // and a caption field drawn inside the component when layout is 'image'"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "caption: { default: '', when: (attrs) => attrs.layout === 'image' }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the in-component field."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "copied-editor-variant-shells"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Copied Editor variant shells"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- edit/+page.svelte, a copy of the Content page's layout -->\n<Banner image={lastBuild.meta.banner} />\n<h1>{lastBuild.meta.title}</h1>\n<EditorPage {site} {blocks} {schema} {sourcePath} {pagePath} />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- templates/Page.svelte, drawn by both <Page> and <EditorPage> -->\n<Banner image={meta.banner} />\n<h1><Text name=\"title\" /></h1>\n{@render body()}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the copied shell, its data loading, and the Renderer's "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " snippet."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "the-choose-attribute-event"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "The choose-attribute event"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "window.addEventListener('uncial:choose-attribute', (event) => openPicker(event.detail));"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "editor: { attributeInputs: { 'item-page': () => import('./ItemPagePicker.svelte') } }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the listener and "
+				},
+				{
+					"type": "text",
+					"text": "onChooseAttribute",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "; the event is removed."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "built-in-embed-and-tabs-blocks"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Built-in Embed and Tabs Blocks"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import { embedBlock, tabsBlock, tabBlock } from 'uncial';\nconst blocks = [embedBlock, tabsBlock, tabBlock, hero];"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- blocks/Embed.svelte, your own copy -->\n<script module lang=\"ts\">\n\texport const block = defineBlock({ id: 'embed', label: 'Embed', attributes: { url: '', title: '' } });\n</script>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the imports. Copy the Blocks you used into your blocks folder, keeping the ids "
+				},
+				{
+					"type": "text",
+					"text": "embed",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "tabs",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "tab",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Until a Block declares one of those ids, the editor drops stored Blocks of that id on the next save."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "rich-text"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Rich text"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "mark-extensions-and-toolbar-plumbing"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Mark extensions and toolbar plumbing"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<Editor {blocks} {schema} extensions={[Superscript]} toolbarFeatures={[supFeature]} />\n<Renderer {blocks} {schema} marks={createMarkRegistry([supMark])} />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const superscript = defineMark({\n\tid: 'superscript',\n\textension: () => import('@tiptap/extension-superscript'),\n\tcomponent: Sup,\n\ttoolbar: { label: 'Sup' }\n});\n// createContentModel({ …, marks: [superscript] })"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the extension, toolbar and mark lists on each surface, the "
+				},
+				{
+					"type": "text",
+					"text": "allowedMarks",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " entry, and any redirect around the Fallback editor, which now keeps your Marks."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "table-and-indent-controls"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Table and indent controls"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "extensions: [Table, TableRow, TableHeader, TableCell],\ntoolbarFeatures: [insertTableFeature, addRowFeature, indentFeature]"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "editor: { toolbar: [...defaultToolbar, 'table', 'addRowAfter', 'deleteRow', 'addColumnAfter', 'deleteColumn'] }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the hand-written features. Inserting a flow container Block over a selection wraps it, and the same control lifts it out, so an indent Block needs no command of its own."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "base-path-rewriting-and-rich-text-serializers"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Base-path rewriting and rich-text serializers"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "const href = link.startsWith('/') ? `${base}${link}` : link;\nconst src = resolveImageSrc(image, base);\nconst html = myRichTextToHtml(caption);\nconst description = myPlainText(document);"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "import { toHtml, toPlainText } from 'uncial';\n// links and images arrive with the base applied"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: link and image rewriting, and your serializers. "
+				},
+				{
+					"type": "text",
+					"text": "toHtml",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " runs on the server or at build time."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "stored-content-with-the-base-path"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Stored content with the base path"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "json"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "{ \"src\": \"/my-repo/uploads/photo.webp\" }"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "json"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "{ \"src\": \"/uploads/photo.webp\" }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the base from every stored image, file and link URL, once. The library adds it when rendering, and "
+				},
+				{
+					"type": "text",
+					"text": "update",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " strips it."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "media"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Media"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "rendition-and-resolveimagesrc-base-in-blocks"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "rendition(…)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "resolveImageSrc(…, base)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " in Blocks"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<img {...rendition(image, spec, { mediaUrlPrefix: '/media' })} src={resolveImageSrc(image.src, base)} alt=\"\" />"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<Image name=\"image\" sizes=\"50vw\" />\n<Image name=\"image\" crop=\"square\" />"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: rendition and base calls in Blocks. A focal point sets "
+				},
+				{
+					"type": "text",
+					"text": "object-position",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for you."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "a-rendition-build-step"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "A rendition build step"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "const jobs = collectRenditions(document, blocks, schema.metaFields);\nawait writeRenditions(jobs, { mediaUrlPrefix: '/media', sourceDir: 'content/media', outDir });"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "plugins: [...uncialCms(siteOptions, { site: 'src/lib/site.ts' }), sveltekit()]"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the script and its hook in the build. Development gets renditions too."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "media-serving-and-dev-host-vite-plugins"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Media-serving and dev-host Vite plugins"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "plugins: [serveMedia('content/media', '/media'), devHost('0.0.0.0'), ...uncialCms(siteOptions), sveltekit()]"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "plugins: [...uncialCms(siteOptions, { host: '0.0.0.0' }), sveltekit()]"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: both plugins. Declare "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "mediaUrlPrefix",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the build ships the media too."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "routes-and-the-dashboard"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Routes and the Dashboard"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "route-handler-factories"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Route handler factories"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "const handlers = createContentHandlers({ site, blocks, schema });\nexport const entries = handlers.entries;\nexport const load = handlers.load;"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const { entries, load } = contentRoutes(site);"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the handler objects, the Dashboard route's server module, and meta interfaces and casts, since "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is typed from your fields. In Astro, "
+				},
+				{
+					"type": "text",
+					"text": "createContentRoutes",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " becomes "
+				},
+				{
+					"type": "text",
+					"text": "contentRoutes",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and "
+				},
+				{
+					"type": "text",
+					"text": "uncialCms(siteOptions, { site, layout })",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " replaces injecting the editor routes yourself."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "404-slash-and-cache-handling"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "404, slash and cache handling"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "let pages;\nexport const load = async (event) => {\n\tpages ??= handlers.list();\n\tconst path = event.params.path.replace(/^\\/+|\\/+$/g, '');\n\tif (!pages.some((page) => page.path === path)) error(404);\n\treturn handlers.load({ ...event, params: { path } });\n};"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "export const { entries, load } = contentRoutes(site);"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the wrapper. The factories 404 unknown paths, strip slashes and cache listings outside development."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "data-directories-walkers-and-path-mappers"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Data directories, walkers and path mappers"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "contentRoutes(site, { mapPathToSource: (path) => (path.startsWith('states/') ? `data/${path}.json` : …) });\nconst states = walk('data/states').map(readJson);"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "collections: { states: { dir: 'data/states', label: 'States', meta: { name: { default: '' } } } }\n// const states = await loadCollection(site, 'states');"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the walker, the path mappers, extra editor entries, the Dashboard "
+				},
+				{
+					"type": "text",
+					"text": "editorHref",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for records, and the Vite plugin options that permitted the directory."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 3,
+				"slug": "mountindexpage-and-the-dashboard-element-guard"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "mountIndexPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the Dashboard element guard"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\timport 'uncial-cms/dashboard';\n\tlet mounted = $state(false);\n\tonMount(() => (mounted = true));\n</script>\n\n{#if mounted}<uncial-dashboard config={site} {blocks} {schema} basePath={base}></uncial-dashboard>{/if}"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<Dashboard {site} />"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Delete: the guard, "
+				},
+				{
+					"type": "text",
+					"text": "mountIndexPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and the route's server module. "
+				},
+				{
+					"type": "text",
+					"text": "mountEditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " becomes "
+				},
+				{
+					"type": "text",
+					"text": "<uncial-editor-page>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/elements",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "removed-entry-points"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Removed entry points"
+				}
+			]
+		},
+		{
+			"type": "bulletList",
+			"content": [
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "uncial/core",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial/render",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial/runtime/svelte",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": import from "
+								},
+								{
+									"type": "text",
+									"text": "uncial",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "uncial-cms/dashboard",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": "
+								},
+								{
+									"type": "text",
+									"text": "Dashboard",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " from "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/svelte",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", or "
+								},
+								{
+									"type": "text",
+									"text": "<uncial-dashboard>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " from "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/elements",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "uncial-cms/nav",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": "
+								},
+								{
+									"type": "text",
+									"text": "buildNav",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " from "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "uncial-cms/session",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/github",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/local",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/paths",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": declare "
+								},
+								{
+									"type": "text",
+									"text": "github.auth",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " in site options; the Site object does the rest."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "uncial-cms/renditions",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/renditions/build",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": "
+								},
+								{
+									"type": "text",
+									"text": "<Image>",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", and "
+								},
+								{
+									"type": "text",
+									"text": "uncialCms(…, { site })",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "loadGlobal",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " from "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/sveltekit",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " or "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms/astro",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": import it from "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

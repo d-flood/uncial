@@ -5,11 +5,6 @@ export default defineConfig({
 	webServer: [
 		{
 			command:
-				'vite build --config vite.fixture.config.ts && vite preview --config vite.fixture.config.ts --port 4318',
-			port: 4318
-		},
-		{
-			command:
 				'BUILD_DIR=.e2e-build/plain KIT_OUT_DIR=.svelte-kit-e2e-plain vite build && node scripts/serve-static.mjs .e2e-build/plain 4319',
 			port: 4319,
 			timeout: 180_000
@@ -42,13 +37,8 @@ export default defineConfig({
 	],
 	projects: [
 		{
-			name: 'fixture',
-			testMatch: /editor-page\.test\.ts/,
-			use: { baseURL: 'http://localhost:4318' }
-		},
-		{
 			name: 'demo',
-			testMatch: /demo-(editor|index|media|globals)\.test\.ts/,
+			testMatch: /demo-(editor|index|media|collections)\.test\.ts/,
 			use: { baseURL: 'http://localhost:4319' }
 		},
 		{

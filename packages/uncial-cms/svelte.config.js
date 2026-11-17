@@ -25,11 +25,9 @@ const config = {
 					'uncial/styles/chrome.css': '../uncial/src/lib/styles/chrome.css',
 					'uncial/styles/chrome': '../uncial/src/lib/styles/chrome.css',
 					'uncial/styles': '../uncial/src/lib/styles/index.css',
-					'uncial/core': '../uncial/src/lib/core/index.ts',
-					'uncial/render': '../uncial/src/lib/render/index.ts',
 					'uncial/editor': '../uncial/src/lib/editor/index.ts',
-					'uncial/runtime/svelte': '../uncial/src/lib/runtime/svelte.ts',
 					'uncial/web-components': '../uncial/src/lib/web-components/index.ts',
+					'uncial/internal': '../uncial/src/lib/internal.ts',
 					uncial: '../uncial/src/lib/index.ts'
 				},
 		// Fully prerendered demo site; no fallback — every route is static.

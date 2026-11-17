@@ -21,20 +21,13 @@ export const workspaceAliases = [
 	// the optional group also takes the './styles/*.css' form the package exports.
 	{ find: /^uncial\/styles\/(.+?)(?:\.css)?$/, replacement: uncialSrc('styles/$1.css') },
 	{ find: /^uncial\/styles$/, replacement: uncialSrc('styles/index.css') },
-	{ find: 'uncial/core', replacement: uncialSrc('core/index.ts') },
-	{ find: 'uncial/render', replacement: uncialSrc('render/index.ts') },
 	{ find: 'uncial/editor', replacement: uncialSrc('editor/index.ts') },
-	{ find: 'uncial/runtime/svelte', replacement: uncialSrc('runtime/svelte.ts') },
 	{ find: 'uncial/web-components', replacement: uncialSrc('web-components/index.ts') },
+	{ find: 'uncial/internal', replacement: uncialSrc('internal.ts') },
 	{ find: /^uncial$/, replacement: uncialSrc('index.ts') },
 	{ find: 'uncial-cms/sveltekit', replacement: cmsSrc('sveltekit/index.ts') },
 	{ find: 'uncial-cms/svelte', replacement: cmsSrc('svelte/index.ts') },
-	{ find: 'uncial-cms/dashboard', replacement: cmsSrc('dashboard/element.ts') },
-	{ find: 'uncial-cms/session', replacement: cmsSrc('editor-session.ts') },
-	{ find: 'uncial-cms/paths', replacement: cmsSrc('paths/index.ts') },
 	{ find: 'uncial-cms/vite', replacement: cmsSrc('vite/index.ts') },
-	{ find: 'uncial-cms/github', replacement: cmsSrc('github/index.ts') },
-	{ find: 'uncial-cms/local', replacement: cmsSrc('local/index.ts') },
 	{ find: /^uncial-cms$/, replacement: cmsSrc('index.ts') }
 ];
 

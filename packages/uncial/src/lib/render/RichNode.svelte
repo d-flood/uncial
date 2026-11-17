@@ -1,9 +1,11 @@
 <script lang="ts">
-	import type { Component } from 'svelte';
 	import type { BlockRegistry, ContentSchema, MarkRegistry } from '../core/types.js';
 	import type { PMMark, PMNode } from '../shared/document.js';
 	import { getCodeLanguageClass, highlightCodeToHtml } from '../shared/syntaxHighlight.js';
+	import RenderBlock from './RenderBlock.svelte';
 	import RichContent from './RichContent.svelte';
+	import { getFieldHost } from '../runtime/fields.js';
+	import { resolveImageSrc } from './resolveImageSrc.js';
 	import { resolveLinkRel, sanitizeHref } from './sanitize.js';
 
 	interface Props {
@@ -11,8 +13,8 @@
 		registry: BlockRegistry;
 		markRegistry?: MarkRegistry;
 		schema?: ContentSchema;
-		tabsGroup?: string;
-		tabsLabels?: string[];
+		index?: number;
+		siblings?: PMNode[];
 	}
 
 	let {
@@ -20,13 +22,12 @@
 		registry,
 		markRegistry = undefined,
 		schema = undefined,
-		tabsGroup = undefined,
-		tabsLabels = undefined
+		index = 0,
+		siblings = []
 	}: Props = $props();
 
+	const host = getFieldHost();
 	const block = $derived(registry.get(node.type));
-	const blockAttrs = $derived((node.attrs ?? {}) as Record<string, unknown>);
-	const blockContent = $derived((node.content ?? []) as PMNode[]);
 	const codeLanguage = $derived(node.attrs?.language);
 	const codeText = $derived.by(() =>
 		(node.content ?? [])
@@ -35,25 +36,8 @@
 			.join('')
 	);
 	const highlightedCode = $derived(highlightCodeToHtml(codeText, codeLanguage));
-	const childTabsGroup = $derived.by(() => {
-		if (node.type !== 'tabs' || typeof node.attrs?.group !== 'string') return tabsGroup;
-		return node.attrs.group.trim() || undefined;
-	});
-	const childTabsLabels = $derived.by(() => {
-		if (node.type !== 'tabs') return tabsLabels;
-		return blockContent.flatMap((child) => {
-			if (child.type !== 'tab' || typeof child.attrs?.label !== 'string') return [];
-			const label = child.attrs.label.trim();
-			return label ? [label] : [];
-		});
-	});
-
 	function getActiveMarks(marks: PMMark[] = []): PMMark[] {
 		return schema ? marks.filter((mark) => schema.allowedMarks.has(mark.type)) : marks;
-	}
-
-	function getSvelteRenderComponent(component: unknown): Component<Record<string, unknown>> {
-		return component as Component<Record<string, unknown>>;
 	}
 
 	function getLinkAttrs(attrs: Record<string, unknown> | undefined): Record<string, string> {
@@ -70,17 +54,6 @@
 		return result;
 	}
 </script>
-
-{#snippet blockChildren()}
-	<RichContent
-		nodes={blockContent}
-		{registry}
-		{markRegistry}
-		{schema}
-		tabsGroup={childTabsGroup}
-		tabsLabels={childTabsLabels}
-	/>
-{/snippet}
 
 {#snippet renderMarkedText(text: string, marks: PMMark[])}
 	{#if marks.length === 0}
@@ -104,7 +77,8 @@
 		{:else if mark.type === 'subscript'}
 			<sub>{@render renderMarkedText(text, rest)}</sub>
 		{:else if mark.type === 'link'}
-			{@const href = sanitizeHref(mark.attrs?.href)}
+			{@const sanitized = sanitizeHref(mark.attrs?.href)}
+			{@const href = sanitized && resolveImageSrc(sanitized, host?.base ?? '')}
 			{#if href}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- sanitized rich-text links may be external, app-relative, mailto, tel, or hash URLs -->
 				<a {href} {...getLinkAttrs(mark.attrs)}>{@render renderMarkedText(text, rest)}</a>
@@ -124,15 +98,7 @@
 		></pre>
 	<!-- eslint-enable svelte/no-at-html-tags -->
 {:else if block && (!schema || schema.allowedBlocks.has(block.id))}
-	{@const RenderComponent = getSvelteRenderComponent(block.components.render.component)}
-	<RenderComponent
-		{...blockAttrs}
-		{...(block as unknown as { renderProps?: Record<string, unknown> }).renderProps ?? {}}
-		content={blockContent}
-		{tabsGroup}
-		{tabsLabels}
-		children={block.content ? blockChildren : undefined}
-	/>
+	<RenderBlock {node} {block} {index} {siblings} {registry} {markRegistry} {schema} />
 {:else if node.type === 'paragraph'}
 	<p>
 		<RichContent nodes={node.content ?? []} {registry} {markRegistry} {schema} />

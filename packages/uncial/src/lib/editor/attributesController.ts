@@ -3,14 +3,14 @@ import { get, writable, type Readable } from 'svelte/store';
 import { NodeSelection, type Transaction } from '@tiptap/pm/state';
 import type { BlockDefinition, BlockRegistry, ContentSchema } from '../core/types.js';
 import {
-	parseBlockDraftAttributes,
-	toAttributeDraftValues,
+	parseAttributeDrafts,
+	toAttributeDrafts,
 	type AttributeDefinition
 } from '../core/attributes.js';
 import { CODE_BLOCK_ID } from '../shared/codeBlockAttributes.js';
 import { createAttributeTargets, type AttributeTargets } from './attributeTargets.js';
 import { createLinkController, getActiveLinkAttrs } from './linkController.js';
-import { createContainerChildOps } from './containerChildOps.js';
+import { createContainerChildOps, insertBlockAtSelection } from './containerChildOps.js';
 
 export type BlockAttributeMode = 'insert' | 'edit' | null;
 
@@ -92,7 +92,7 @@ interface ParsedDraftAttributes {
 /**
  * The single source of truth for a fresh controller state snapshot. Every
  * consumer that needs an initial `BlockAttributesState` (the controller store,
- * `bindEditor`, and the Svelte panels) imports this factory rather than
+ * `attachEditor`, and the Svelte panels) imports this factory rather than
  * duplicating the literal, so the shape can never drift between them.
  */
 export function createInitialState(): BlockAttributesState {
@@ -175,7 +175,7 @@ function findBlockAt(
 	};
 }
 
-export function createBlockAttributesController(): BlockAttributesController {
+export function createAttributesController(): BlockAttributesController {
 	const state = writable<BlockAttributesState>(createInitialState());
 
 	let editor: Editor | null = null;
@@ -184,7 +184,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 	// Attribute-metadata resolver over the current registry plus the virtual code
 	// block; rebuilt whenever the registry changes (attach/detach).
 	let targets: AttributeTargets = createAttributeTargets(null);
-	// One-shot suppression of `bindEditor`'s auto-open behavior. The controller
+	// One-shot suppression of `attachEditor`'s auto-open behavior. The controller
 	// dispatches its own transactions (selecting a block, mutating a container's
 	// children); Tiptap fires the resulting `selectionUpdate`/`update` events
 	// SYNCHRONOUSLY inside `view.dispatch`, so a flag that is raised for the
@@ -234,7 +234,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		const block = targets.get(blockId);
 		state.update((current) => ({
 			...current,
-			draftAttrs: block ? toAttributeDraftValues(block, targets.defaultAttrs(blockId)) : {},
+			draftAttrs: block ? toAttributeDrafts(block, targets.defaultAttrs(blockId)) : {},
 			validationErrors: {}
 		}));
 	}
@@ -345,9 +345,9 @@ export function createBlockAttributesController(): BlockAttributesController {
 			const nextDraft = shouldPreserveDraftAttrs
 				? current.draftAttrs
 				: nextMode === 'edit' && active && activeBlock && active.id === selectedBlockId
-					? toAttributeDraftValues(activeBlock, active.attrs)
+					? toAttributeDrafts(activeBlock, active.attrs)
 					: explicitContainerOpen && currentActive && targets.get(currentActive.id)
-						? toAttributeDraftValues(targets.get(currentActive.id)!, currentActive.attrs)
+						? toAttributeDrafts(targets.get(currentActive.id)!, currentActive.attrs)
 						: current.draftAttrs;
 
 			return {
@@ -402,7 +402,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		const activeTarget = active ? targets.get(active.id) : null;
 		const draftAttrs =
 			mode === 'edit' && active && activeTarget
-				? toAttributeDraftValues(activeTarget, active.attrs)
+				? toAttributeDrafts(activeTarget, active.attrs)
 				: get(state).draftAttrs;
 
 		state.update((next) => ({
@@ -433,7 +433,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 			mode: 'edit',
 			selectedBlockId: active.id,
 			activeBlock: active,
-			draftAttrs: toAttributeDraftValues(block, active.attrs),
+			draftAttrs: toAttributeDrafts(block, active.attrs),
 			validationErrors: {},
 			containerChildren: getContainerChildrenInfo(active)
 		}));
@@ -452,7 +452,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		block: AttributeDefinition,
 		draftAttrs: Record<string, unknown>
 	): ParsedDraftAttributes {
-		const attrs = parseBlockDraftAttributes(block, draftAttrs);
+		const attrs = parseAttributeDrafts(block, draftAttrs);
 		const validationErrors = Object.fromEntries(
 			Object.entries(block.attributes).flatMap(([name, spec]) => {
 				const value = attrs[name];
@@ -551,14 +551,7 @@ export function createBlockAttributesController(): BlockAttributesController {
 		const block = registry.get(blockId);
 		if (!block) return false;
 
-		return editor
-			.chain()
-			.focus()
-			.insertContent({
-				type: blockId,
-				attrs
-			})
-			.run();
+		return insertBlockAtSelection(editor, block, attrs);
 	}
 
 	function updateSelectedBlockAttrs(

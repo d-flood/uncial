@@ -10,3 +10,8 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** The largest file, such as a PDF Document, an upload commits. */
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
+
+/** The auth worker this project operates for sites using the canonical GitHub App. */
+export const DEFAULT_AUTH_WORKER_URL = 'https://uncial-cms-auth.dflood.workers.dev';
+/** The canonical GitHub App a site installs on its repository. */
+export const DEFAULT_APP_SLUG = 'uncial-cms';

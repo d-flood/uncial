@@ -28,7 +28,8 @@ const CONFIG_KEYS = [
 	'options',
 	'list',
 	'richText',
-	'renditions'
+	'renditions',
+	'when'
 ] as const;
 
 export function isAttributeSpecConfig<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
@@ -81,7 +82,8 @@ function parseJsonValue(raw: string): unknown {
  */
 function cloneDefault<T>(value: T): T {
 	if (value !== null && typeof value === 'object') {
-		return structuredClone(value);
+		// A JSON round trip, unlike structuredClone, also copies a default held in a Svelte state proxy.
+		return JSON.parse(JSON.stringify(value)) as T;
 	}
 	return value;
 }
@@ -123,7 +125,7 @@ const BUILT_IN_INPUT_KINDS: ReadonlySet<string> = new Set([
 	'file'
 ]);
 
-/** False for a host-defined kind, which a host input component or chooser edits. */
+/** False for a host-defined kind, which a host input component edits. */
 export function isBuiltInInputKind(kind: string): boolean {
 	return BUILT_IN_INPUT_KINDS.has(kind);
 }
@@ -167,11 +169,19 @@ export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown):
 		return coerceRichTextDocument(value) as T;
 	}
 
+	if (
+		spec.input &&
+		!isBuiltInInputKind(spec.input) &&
+		(isPlainObject(value) || Array.isArray(value))
+	) {
+		return value as T;
+	}
+
 	if (typeof fallback === 'string') {
 		return String(value) as T;
 	}
 
-	if (typeof fallback === 'number') {
+	if (typeof fallback === 'number' || (fallback === null && spec.input === 'number')) {
 		if (typeof value === 'number' && Number.isFinite(value)) return value as T;
 		if (typeof value === 'string' && value.trim()) {
 			const parsed = Number(value);
@@ -263,14 +273,12 @@ export function toAttributeDraftValue(spec: AttributeSpec<unknown>, value: unkno
 		return normalized;
 	}
 	// A host input edits the stored JSON itself.
-	if (!isBuiltInInputKind(input) && typeof normalized === 'object' && normalized !== null) {
-		return normalized;
-	}
+	if (!isBuiltInInputKind(input)) return normalized;
 
 	return String(normalized ?? '');
 }
 
-export function toAttributeDraftValues(
+export function toAttributeDrafts(
 	block: AttributeDefinition,
 	attrs: Record<string, unknown>
 ): Record<string, unknown> {
@@ -288,4 +296,4 @@ export function toAttributeDraftValues(
  * both coerce every declared attribute through `coerceAttributeValue`. Kept as a
  * named export for the editor's attributes controller and existing callers.
  */
-export const parseBlockDraftAttributes = normalizeBlockAttributes;
+export const parseAttributeDrafts = normalizeBlockAttributes;

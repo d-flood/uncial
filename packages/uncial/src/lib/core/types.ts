@@ -54,6 +54,13 @@ export interface RenditionSpec {
 	crops?: Record<string, RenditionCrop>;
 }
 
+/** `src` and `srcset` of an image value's renditions under a spec, without the base; null for none. */
+export type RenditionResolver = (
+	value: ImageValue | string,
+	spec: RenditionSpec,
+	crop?: string
+) => { src: string; srcset?: string } | null;
+
 export interface AttributeOption<T> {
 	value: T;
 	label?: string;
@@ -110,6 +117,8 @@ export interface AttributeSpec<T> {
 	};
 	/** Renditions a build makes of an image value; the editor ignores them. */
 	renditions?: RenditionSpec;
+	/** The panel shows the field only while this holds; a hidden field keeps its value. */
+	when?: (attrs: Record<string, unknown>) => boolean;
 }
 
 export type AttributeConfig<T> = AttributeSpec<T> | T;

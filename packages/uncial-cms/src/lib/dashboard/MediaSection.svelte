@@ -15,23 +15,13 @@
 		session: ForgeSession;
 		staticDir?: string;
 		basePath: string;
-		mapSourceToPath?: (source: string) => string;
 		branchLabel: string;
 		can: (action: DashboardAction, subject?: unknown) => boolean;
 		onsignedout: (reason: string) => void;
 	}
 
-	let {
-		config,
-		adapter,
-		session,
-		staticDir,
-		basePath,
-		mapSourceToPath,
-		branchLabel,
-		can,
-		onsignedout
-	}: Props = $props();
+	let { config, adapter, session, staticDir, basePath, branchLabel, can, onsignedout }: Props =
+		$props();
 
 	const media = $derived.by((): { source: MediaSource } | { error: string } => {
 		try {
@@ -52,7 +42,7 @@
 	const labelFor = (pagePath: string) => (pagePath === '' ? '(site root)' : `/${pagePath}/`);
 
 	function loadDocuments(contentDir: string) {
-		documents ??= listPages(adapter, contentDir, mapSourceToPath)
+		documents ??= listPages(adapter, contentDir)
 			.then((pages) =>
 				Promise.all(
 					pages.map(async (page) => ({

@@ -1,5 +1,5 @@
-import { normalizeDocument, validateDocument } from 'uncial/core';
-import type { BlockDefinition, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
+import { normalizeDocument, validateDocument } from 'uncial';
+import type { BlockDefinition, BlockRegistry, ContentDocument, ContentSchema } from 'uncial';
 
 export type Blocks = BlockRegistry | BlockDefinition[];
 

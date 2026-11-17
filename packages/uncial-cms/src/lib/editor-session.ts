@@ -1,37 +1,17 @@
 /**
  * The CMS's editing session without a DOM: storage, autosave, deploy status and
- * conflict recovery, driven by a host that renders the editor however it likes.
- *
- * `mountEditorPage` is the other door onto the same machinery, and it builds the
- * whole surface itself — a custom element with a shadow root, seeded with the
- * host page's stylesheets. That is the right shape for a host with no component
- * model to speak of. It is the wrong shape for one that has Uncial's own
- * `Editor` component available: the shadow boundary that buys style isolation
- * costs a framework host every rule the page sets on `body`, which is where most
- * sites put their type and their ground.
- *
- * So this is the same batteries, minus the surface. A Svelte, React or Vue host
- * renders `Editor` itself, in its own tree and its own cascade, and hands the
- * session four callbacks and each edit as it happens.
- *
- * Reach it at `uncial-cms/session` rather than through the package root. The
- * root exports `mountEditorPage` too, and importing that pulls in the custom
- * element, its shadow-root machinery and the editor's chrome stylesheet — which
- * a host rendering its own surface neither wants loaded nor wants arriving after
- * its own corrections to that stylesheet.
+ * conflict recovery, driven by a surface that renders the editor itself.
  */
 import {
 	createEditorController,
 	type EditorController,
 	type EditorPageUi
 } from './editor-controller.js';
-import { createGitHubAdapter, popupSessionProvider } from './github/index.js';
+import { createGitHubAdapter } from './github/adapter.js';
 import { createLocalAdapter } from './local/adapter.js';
 import type { DeployStatusTimings, Schedule } from './deploy-status.js';
-import { localSessionProvider } from './local/session.js';
 import { createServerAdapter } from './server-forge/adapter.js';
-import { serverSessionProvider } from './server-forge/session.js';
-import type { BlockRegistry, ContentSchema } from 'uncial/core';
+import type { BlockRegistry, ContentSchema } from 'uncial';
 import type { ForgeAdapter, SessionProvider, UncialCmsSiteConfig } from './types.js';
 
 export type {
@@ -52,7 +32,8 @@ export interface CreateEditorSessionOptions {
 	 */
 	pagePath?: string;
 	blocks: BlockRegistry;
-	schema: ContentSchema;
+	/** The schema for a document's meta; pass `site.schemaFor`. */
+	schemaFor: (meta?: Record<string, unknown>) => ContentSchema;
 	/** The four things the session needs the host to do to its own surface. */
 	ui: EditorPageUi;
 	/**
@@ -60,8 +41,7 @@ export interface CreateEditorSessionOptions {
 	 * what a forge backend wants — there, every keystroke would be a commit.
 	 */
 	autosaveMs?: number;
-	/** Defaults to the provider the configured forge implies. */
-	sessionProvider?: SessionProvider;
+	sessionProvider: SessionProvider;
 	/** Defaults to `window.confirm`. */
 	confirm?: (message: string) => boolean;
 	/** Defaults to an anchor-driven blob download. */
@@ -84,13 +64,11 @@ export function forgeAdapter(config: UncialCmsSiteConfig): ForgeAdapter {
 	throw new Error(`Unknown forge "${(config as { forge: string }).forge}".`);
 }
 
-export function defaultSessionProvider(config: UncialCmsSiteConfig): SessionProvider {
-	if (config.forge === 'local') return localSessionProvider;
-	if (config.forge === 'server') return serverSessionProvider;
-	return popupSessionProvider;
-}
-
-export function triggerDownload(payload: { filename: string; content: string; mimeType: string }): void {
+export function triggerDownload(payload: {
+	filename: string;
+	content: string;
+	mimeType: string;
+}): void {
 	const blob = new Blob([payload.content], { type: payload.mimeType });
 	const url = URL.createObjectURL(blob);
 	const anchor = document.createElement('a');
@@ -108,9 +86,9 @@ export function createEditorSession(opts: CreateEditorSessionOptions): EditorCon
 		sourcePath: opts.sourcePath,
 		pagePath: opts.pagePath,
 		blocks: opts.blocks,
-		schema: opts.schema,
+		schemaFor: opts.schemaFor,
 		adapter: forgeAdapter(opts.config),
-		sessionProvider: opts.sessionProvider ?? defaultSessionProvider(opts.config),
+		sessionProvider: opts.sessionProvider,
 		ui: opts.ui,
 		confirm: opts.confirm ?? ((message: string) => window.confirm(message)),
 		download: opts.download ?? triggerDownload,

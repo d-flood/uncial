@@ -80,7 +80,7 @@ test('the Dashboard Docs pages are reachable from the sidebar', async ({ page })
 	const nav = page.getByRole('navigation', { name: 'Docs navigation' });
 	const pages = [
 		{ title: 'The Dashboard', path: 'dashboard' },
-		{ title: 'Globals', path: 'globals' },
+		{ title: 'Globals and Collections', path: 'globals' },
 		{ title: 'Media sources', path: 'media-sources' },
 		{ title: 'App sections', path: 'app-sections' }
 	];

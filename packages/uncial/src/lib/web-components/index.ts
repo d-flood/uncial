@@ -1,41 +1,22 @@
 import UncialEditor from './UncialEditor.svelte';
 import UncialRenderer from './UncialRenderer.svelte';
-import { mount, unmount } from 'svelte';
-import { reactiveProps } from './reactiveProps.svelte.js';
+import { mount } from 'svelte';
+import { UncialElement } from './element.js';
 
-import type { AnyExtension, JSONContent } from '@tiptap/core';
-import type {
-	BlockAttributesController,
-	FileSource,
-	ImageSource,
-	ToolbarFeature,
-	ToolbarFeatureSelection
-} from '../editor/index.js';
-import type {
-	AttributeInputs,
-	AttributeSpec,
-	BlockDefinition,
-	BlockRegistry,
-	ContentSchema,
-	DocumentMetaSchema,
-	ValidationIssue
-} from '../core/types.js';
+import type { JSONContent } from '@tiptap/core';
+import type { BlockAttributesController, FileSource, ImageSource } from '../editor/index.js';
+import type { ValidationIssue } from '../core/types.js';
+import type { ContentModel } from '../model.js';
 
 type EditorProps = {
-	blocks?: BlockRegistry | BlockDefinition[];
-	schema?: ContentSchema;
+	model?: ContentModel;
 	json?: JSONContent;
 	meta?: Record<string, unknown>;
-	metaFields?: DocumentMetaSchema | ReadonlyMap<string, AttributeSpec<unknown>>;
-	extensions?: AnyExtension[];
-	toolbarFeatures?: ToolbarFeatureSelection;
-	toolbarExtensions?: ToolbarFeature[];
 	attributesController?: BlockAttributesController | null;
 	attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 	presentation?: 'card' | 'bare';
 	imageSource?: ImageSource;
 	fileSource?: FileSource;
-	attributeInputs?: AttributeInputs;
 };
 
 type EditorHostProps = EditorProps & {
@@ -46,90 +27,12 @@ type EditorHostProps = EditorProps & {
 
 type RendererProps = {
 	content?: JSONContent;
-	blocks?: BlockRegistry | BlockDefinition[];
-	schema?: ContentSchema;
+	model?: ContentModel;
 };
 
 type RendererHostProps = RendererProps & {
 	onIssue?: (issue: ValidationIssue) => void;
 };
-
-const BrowserHTMLElement = globalThis.HTMLElement ?? class {};
-
-const STYLESHEET_ATTRIBUTE = 'stylesheet';
-
-abstract class UncialElement<Props extends Record<string, unknown>> extends BrowserHTMLElement {
-	static readonly observedAttributes = [STYLESHEET_ATTRIBUTE];
-
-	/**
-	 * `$state`-backed props shared with the mounted Svelte component. Mutating
-	 * this object updates the component in place; the component is mounted once
-	 * per connection instead of being destroyed and recreated per property set.
-	 */
-	protected readonly props: Props = reactiveProps({} as Props);
-	private instance: Record<string, unknown> | null = null;
-	private readonly root = this.attachShadow({ mode: 'open' });
-	private stylesheetLinks: HTMLLinkElement[] = [];
-
-	connectedCallback(): void {
-		if (this.instance) return;
-		this.instance = this.mountComponent(this.root);
-	}
-
-	disconnectedCallback(): void {
-		if (!this.instance) return;
-		void unmount(this.instance);
-		this.instance = null;
-	}
-
-	attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-		if (name !== STYLESHEET_ATTRIBUTE || oldValue === newValue) return;
-		this.renderStylesheetLinks(newValue);
-	}
-
-	/**
-	 * One or more whitespace-separated stylesheet URLs rendered as
-	 * `<link rel="stylesheet">` elements inside the shadow root.
-	 */
-	get stylesheet(): string | null {
-		return this.getAttribute(STYLESHEET_ATTRIBUTE);
-	}
-
-	set stylesheet(value: string | null | undefined) {
-		if (value == null || value === '') {
-			this.removeAttribute(STYLESHEET_ATTRIBUTE);
-			return;
-		}
-
-		this.setAttribute(STYLESHEET_ATTRIBUTE, value);
-	}
-
-	protected setProp<Key extends keyof Props>(key: Key, value: Props[Key]): void {
-		this.props[key] = value;
-	}
-
-	protected emit(type: string, detail: unknown): void {
-		this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
-	}
-
-	protected abstract mountComponent(target: ShadowRoot): Record<string, unknown>;
-
-	private renderStylesheetLinks(value: string | null): void {
-		for (const link of this.stylesheetLinks) {
-			link.remove();
-		}
-
-		const hrefs = (value ?? '').split(/\s+/).filter(Boolean);
-		this.stylesheetLinks = hrefs.map((href) => {
-			const link = document.createElement('link');
-			link.rel = 'stylesheet';
-			link.href = href;
-			return link;
-		});
-
-		this.root.prepend(...this.stylesheetLinks);
-	}
-}
 
 class UncialEditorElement extends UncialElement<EditorHostProps> {
 	constructor() {
@@ -149,18 +52,11 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 		};
 	}
 
-	get blocks(): EditorProps['blocks'] {
-		return this.props.blocks;
+	get model(): EditorProps['model'] {
+		return this.props.model;
 	}
-	set blocks(value: EditorProps['blocks']) {
-		this.setProp('blocks', value);
-	}
-
-	get schema(): EditorProps['schema'] {
-		return this.props.schema;
-	}
-	set schema(value: EditorProps['schema']) {
-		this.setProp('schema', value);
+	set model(value: EditorProps['model']) {
+		this.setProp('model', value);
 	}
 
 	get json(): EditorProps['json'] {
@@ -175,34 +71,6 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 	}
 	set meta(value: EditorProps['meta']) {
 		this.setProp('meta', value);
-	}
-
-	get metaFields(): EditorProps['metaFields'] {
-		return this.props.metaFields;
-	}
-	set metaFields(value: EditorProps['metaFields']) {
-		this.setProp('metaFields', value);
-	}
-
-	get extensions(): EditorProps['extensions'] {
-		return this.props.extensions;
-	}
-	set extensions(value: EditorProps['extensions']) {
-		this.setProp('extensions', value);
-	}
-
-	get toolbarFeatures(): EditorProps['toolbarFeatures'] {
-		return this.props.toolbarFeatures;
-	}
-	set toolbarFeatures(value: EditorProps['toolbarFeatures']) {
-		this.setProp('toolbarFeatures', value);
-	}
-
-	get toolbarExtensions(): EditorProps['toolbarExtensions'] {
-		return this.props.toolbarExtensions;
-	}
-	set toolbarExtensions(value: EditorProps['toolbarExtensions']) {
-		this.setProp('toolbarExtensions', value);
 	}
 
 	get attributesController(): EditorProps['attributesController'] {
@@ -240,13 +108,6 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 		this.setProp('fileSource', value);
 	}
 
-	get attributeInputs(): EditorProps['attributeInputs'] {
-		return this.props.attributeInputs;
-	}
-	set attributeInputs(value: EditorProps['attributeInputs']) {
-		this.setProp('attributeInputs', value);
-	}
-
 	protected mountComponent(target: ShadowRoot): Record<string, unknown> {
 		return mount(UncialEditor, { target, props: this.props });
 	}
@@ -265,18 +126,11 @@ class UncialRendererElement extends UncialElement<RendererHostProps> {
 		this.setProp('content', value);
 	}
 
-	get blocks(): RendererProps['blocks'] {
-		return this.props.blocks;
+	get model(): RendererProps['model'] {
+		return this.props.model;
 	}
-	set blocks(value: RendererProps['blocks']) {
-		this.setProp('blocks', value);
-	}
-
-	get schema(): RendererProps['schema'] {
-		return this.props.schema;
-	}
-	set schema(value: RendererProps['schema']) {
-		this.setProp('schema', value);
+	set model(value: RendererProps['model']) {
+		this.setProp('model', value);
 	}
 
 	protected mountComponent(target: ShadowRoot): Record<string, unknown> {
@@ -294,4 +148,4 @@ if (typeof customElements !== 'undefined') {
 	}
 }
 
-export { UncialEditor, UncialEditorElement, UncialElement, UncialRenderer, UncialRendererElement };
+export { UncialEditorElement, UncialRendererElement };

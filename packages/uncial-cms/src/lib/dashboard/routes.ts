@@ -1,4 +1,5 @@
-import { GLOBAL_NAME, isGlobalsPath } from '../globals.js';
+import { GLOBAL_NAME } from '../globals.js';
+import { isGlobalsPath } from '../record-paths.js';
 
 export type DashboardSection = 'pages' | 'media' | 'globals';
 
@@ -15,6 +16,7 @@ export type DashboardRoute =
 	| { section: 'edit'; pagePath: string }
 	| { section: 'media' }
 	| { section: 'globals'; name?: string }
+	| { section: 'collections'; name: string; slug?: string }
 	| { section: 'app'; id: string };
 
 const PAGES: DashboardRoute = { section: 'pages' };
@@ -22,12 +24,26 @@ const PAGES: DashboardRoute = { section: 'pages' };
 function editRoute(path: string): DashboardRoute {
 	try {
 		const pagePath = decodeURIComponent(path);
-		if (isGlobalsPath(pagePath) || pagePath.split('/').some((part) => part === '.' || part === '..')) {
+		if (
+			isGlobalsPath(pagePath) ||
+			pagePath.split('/').some((part) => part === '.' || part === '..')
+		) {
 			return PAGES;
 		}
 		return { section: 'edit', pagePath };
 	} catch {
 		return PAGES;
+	}
+}
+
+function recordSlug(path: string): string | undefined {
+	try {
+		const slug = decodeURIComponent(path);
+		return slug.split('/').every((part) => part !== '' && part !== '.' && part !== '..')
+			? slug
+			: undefined;
+	} catch {
+		return undefined;
 	}
 }
 
@@ -56,6 +72,11 @@ export function routeFromHash(hash: string): DashboardRoute {
 	if (head === 'globals' && name && more.length === 0 && GLOBAL_NAME.test(name)) {
 		return { section: 'globals', name };
 	}
+	if (head === 'collections' && name && GLOBAL_NAME.test(name)) {
+		if (more.length === 0) return { section: 'collections', name };
+		const slug = recordSlug(more.join('/').replace(/\/+$/, ''));
+		return slug === undefined ? PAGES : { section: 'collections', name, slug };
+	}
 	if (head === 'app' && name && more.length === 0) {
 		try {
 			return { section: 'app', id: decodeURIComponent(name) };
@@ -73,6 +94,10 @@ export function hashForRoute(route: DashboardRoute): string {
 			return `#/edit/${route.pagePath.split('/').map(encodeURIComponent).join('/')}`;
 		case 'globals':
 			return route.name ? `#/globals/${route.name}` : '#/globals';
+		case 'collections':
+			return route.slug
+				? `#/collections/${route.name}/${route.slug.split('/').map(encodeURIComponent).join('/')}`
+				: `#/collections/${route.name}`;
 		case 'app':
 			return `#/app/${encodeURIComponent(route.id)}`;
 		case 'pages': {

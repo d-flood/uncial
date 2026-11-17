@@ -12,7 +12,7 @@ test('base-path build maps /uncial/cms-demo/about/edit/ to the same source path'
 
 	await page.goto('/uncial/cms-demo/about/edit/');
 
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.ProseMirror');
 	await expect(editor).toContainText('Hello from the demo repo');
 	await expect(page.getByRole('status')).toContainText(`Editing ${ABOUT_SOURCE} as octocat`);
 

@@ -1,23 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { createBlockRegistry, createSchema } from 'uncial/core';
-import { defineSvelteBlock } from 'uncial/runtime/svelte';
+import { defineBlock } from 'uncial';
 import type { ImageSource } from 'uncial/editor';
 import { defineSite } from '../define-site.js';
 import EditorSurface from './EditorSurface.svelte';
 import Photo from '../../fixtures/Photo.svelte';
 
-const photo = defineSvelteBlock({
-	id: 'photo',
-	label: 'Photo',
-	attributes: { src: { default: '', input: 'image' } },
-	component: Photo
-});
-const blocks = createBlockRegistry([photo]);
-const schema = createSchema(blocks, {
-	metaFields: { title: { default: 'Untitled page', required: true } }
-});
+const photo = {
+	block: defineBlock({
+		id: 'photo',
+		label: 'Photo',
+		attributes: { src: { default: '', input: 'image' } }
+	}),
+	default: Photo
+};
 
 const storedDocument = {
 	type: 'doc',
@@ -34,7 +31,7 @@ afterEach(() => {
 });
 
 describe('EditorSurface', () => {
-	it('backs input: image fields with the imageSource it is given', async () => {
+	it('backs input: image fields with the Site object’s Media source', async () => {
 		globalThis.fetch = vi.fn(
 			async () =>
 				new Response(JSON.stringify({ content: JSON.stringify(storedDocument), sha: 'sha-1' }), {
@@ -45,12 +42,17 @@ describe('EditorSurface', () => {
 		const imageSource: ImageSource = { browse };
 
 		render(EditorSurface, {
-			site: defineSite({ contentDir: 'content' }, { dev: true }),
+			site: defineSite(
+				{ contentDir: 'content' },
+				{
+					blocks: { photo },
+					meta: { title: { default: 'Untitled page', required: true } },
+					media: imageSource
+				},
+				{ dev: true }
+			),
 			sourcePath: 'content/photos.json',
-			pagePath: 'photos',
-			blocks,
-			schema,
-			imageSource
+			pagePath: 'photos'
 		});
 
 		await page.getByRole('button', { name: 'Photo', exact: true }).click();

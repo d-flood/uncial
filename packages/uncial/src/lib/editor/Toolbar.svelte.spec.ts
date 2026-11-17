@@ -1,76 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
-import { Editor as TiptapEditor } from '@tiptap/core';
+import { Editor as TiptapEditor, type JSONContent } from '@tiptap/core';
+import Editor from './Editor.svelte';
 import Toolbar from './Toolbar.svelte';
-import { createBlockAttributesController } from './attributesController.js';
+import { createContentModel, defaultToolbar } from '../model.js';
+import { smallCaps } from '../render/smallCapsMarkFixture.js';
+import { createAttributesController } from './attributesController.js';
 import { resolveRegistry } from '../core/registry.js';
 import { createEditorExtensions } from '../shared/tiptap.js';
-
-function createLinkEditingHarness() {
-	const host = document.createElement('div');
-	document.body.append(host);
-	const editor = new TiptapEditor({
-		element: host,
-		extensions: createEditorExtensions(),
-		content: {
-			type: 'doc',
-			content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Link me' }] }]
-		}
-	});
-	const controller = createBlockAttributesController();
-	controller.attach(editor, resolveRegistry([]));
-
-	render(Toolbar, {
-		editor,
-		onEditLink: () => controller.openLinkAttributes()
-	});
-
-	// Select the words so a link could be applied.
-	editor.commands.setTextSelection({ from: 1, to: 8 });
-
-	return {
-		editor,
-		controller,
-		cleanup: () => {
-			controller.detach();
-			editor.destroy();
-			host.remove();
-		}
-	};
-}
 
 const EXISTING_LINK_ATTRS = {
 	href: 'https://old.example/docs',
 	title: 'Old docs'
 };
 
-function createExistingLinkHarness() {
+function createHarness(linked: boolean) {
 	const host = document.createElement('div');
 	document.body.append(host);
+	const content = linked
+		? [
+				{ type: 'text', text: 'Read the ' },
+				{ type: 'text', text: 'docs', marks: [{ type: 'link', attrs: EXISTING_LINK_ATTRS }] },
+				{ type: 'text', text: ' today' }
+			]
+		: [{ type: 'text', text: 'Link me' }];
 	const editor = new TiptapEditor({
 		element: host,
 		extensions: createEditorExtensions(),
-		content: {
-			type: 'doc',
-			content: [
-				{
-					type: 'paragraph',
-					content: [
-						{ type: 'text', text: 'Read the ' },
-						{
-							type: 'text',
-							text: 'docs',
-							marks: [{ type: 'link', attrs: EXISTING_LINK_ATTRS }]
-						},
-						{ type: 'text', text: ' today' }
-					]
-				}
-			]
-		}
+		content: { type: 'doc', content: [{ type: 'paragraph', content }] }
 	});
-	const controller = createBlockAttributesController();
+	const controller = createAttributesController();
 	controller.attach(editor, resolveRegistry([]));
 
 	render(Toolbar, {
@@ -78,8 +39,8 @@ function createExistingLinkHarness() {
 		onEditLink: () => controller.openLinkAttributes()
 	});
 
-	// Place the caret inside the linked word "docs" (positions 10-14).
-	editor.commands.setTextSelection({ from: 11, to: 13 });
+	// Select the words, or put the caret inside the linked word "docs".
+	editor.commands.setTextSelection(linked ? { from: 11, to: 13 } : { from: 1, to: 8 });
 
 	return {
 		editor,
@@ -107,7 +68,7 @@ function getLinkedText(editor: TiptapEditor): { text?: string; attrs?: Record<st
 
 describe('Toolbar link editing', () => {
 	it('opens the link panel without applying a placeholder link, so cancel leaves no link', async () => {
-		const { editor, controller, cleanup } = createLinkEditingHarness();
+		const { editor, controller, cleanup } = createHarness(false);
 
 		await page.getByRole('button', { name: 'Link' }).click();
 
@@ -125,7 +86,7 @@ describe('Toolbar link editing', () => {
 	});
 
 	it('applies the drafted link, including title and class, only on panel commit', async () => {
-		const { editor, controller, cleanup } = createLinkEditingHarness();
+		const { editor, controller, cleanup } = createHarness(false);
 
 		await page.getByRole('button', { name: 'Link' }).click();
 
@@ -149,7 +110,7 @@ describe('Toolbar link editing', () => {
 	});
 
 	it('prefills the panel from an existing link and leaves it unchanged on cancel', async () => {
-		const { editor, controller, cleanup } = createExistingLinkHarness();
+		const { editor, controller, cleanup } = createHarness(true);
 
 		const before = getLinkedText(editor);
 		expect(before.text).toBe('docs');
@@ -177,7 +138,7 @@ describe('Toolbar link editing', () => {
 	});
 
 	it('updates the existing link mark when the panel commits a new href and title', async () => {
-		const { editor, controller, cleanup } = createExistingLinkHarness();
+		const { editor, controller, cleanup } = createHarness(true);
 
 		await page.getByRole('button', { name: 'Link' }).click();
 		expect(get(controller).link.attrs).toMatchObject(EXISTING_LINK_ATTRS);
@@ -201,5 +162,44 @@ describe('Toolbar link editing', () => {
 		expect(editor.getText()).toBe('Read the docs today');
 
 		cleanup();
+	});
+});
+
+describe('Toolbar from the Content model', () => {
+	it('toggles a defined Mark, and inserts and edits a table', async () => {
+		const tableIds = ['table', 'addRowAfter', 'deleteRow', 'addColumnAfter', 'deleteColumn'];
+		const model = createContentModel({
+			blocks: [],
+			marks: [smallCaps],
+			editor: { toolbar: [...defaultToolbar, 'smallCaps', ...tableIds] }
+		});
+		let json: JSONContent = {};
+		render(Editor, {
+			model,
+			json: {
+				type: 'doc',
+				content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Mark me' }] }]
+			},
+			onChange: (next: JSONContent) => (json = next)
+		});
+		const button = (name: string) => page.getByRole('button', { name, exact: true });
+		const cells = () => json.content?.[1]?.content?.map((row) => row.content?.length);
+
+		await page.getByText('Mark me').tripleClick();
+		await button('Small caps').click();
+		await expect
+			.poll(() => json.content?.[0]?.content?.[0]?.marks)
+			.toEqual([{ type: 'smallCaps' }]);
+
+		await userEvent.keyboard('{End}');
+		await expect.element(button('Add row')).toBeDisabled();
+		await button('Table').click();
+		await expect.poll(cells).toEqual([2, 2, 2]);
+		await button('Add row').click();
+		await button('Add column').click();
+		await expect.poll(cells).toEqual([3, 3, 3, 3]);
+		await button('Delete row').click();
+		await button('Delete column').click();
+		await expect.poll(cells).toEqual([2, 2, 2]);
 	});
 });

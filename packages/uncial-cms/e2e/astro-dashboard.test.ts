@@ -6,9 +6,7 @@ import { seedDemoSession } from './demo-helpers.js';
 const REPO = 'uncial-fixture/site';
 const CHECKOUT = new URL('astro-site/', import.meta.url).pathname;
 
-test('<uncial-dashboard> mounts in an Astro page and lists the fixture’s pages', async ({
-	page
-}) => {
+test('the injected Dashboard lists the pages and an Editor variant loads', async ({ page }) => {
 	await seedDemoSession(page, REPO);
 	const trees = `/repos/${REPO}/git/trees/`;
 	const contents = `/repos/${REPO}/contents/`;
@@ -50,4 +48,9 @@ test('<uncial-dashboard> mounts in an Astro page and lists the fixture’s pages
 	for (const label of ['(site root)', '/about/', '/guide/start/']) {
 		await expect(page.locator('li', { hasText: label })).toBeVisible();
 	}
+
+	await page.goto('/guide/start/edit/');
+	await expect(page).toHaveTitle('Uncial');
+	await page.getByRole('button', { name: 'Sign in with GitHub' }).click();
+	await expect(page.locator('[contenteditable="true"]')).toContainText('Start body');
 });

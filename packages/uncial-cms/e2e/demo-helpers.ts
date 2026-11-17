@@ -33,7 +33,15 @@ export const ABOUT_DOC = {
 	type: 'doc',
 	version: 1,
 	meta: { title: 'About this demo' },
-	content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello from the demo repo' }] }]
+	content: [
+		{
+			type: 'paragraph',
+			content: [
+				{ type: 'text', text: 'Hello', marks: [{ type: 'smallCaps' }] },
+				{ type: 'text', text: ' from the demo repo' }
+			]
+		}
+	]
 };
 
 export function toBase64(text: string): string {
@@ -93,7 +101,12 @@ export async function interceptDemoGitHub(
 			if (request.method() === 'GET') {
 				const raw = JSON.stringify(ABOUT_DOC);
 				await route.fulfill({
-					json: { content: toBase64(raw), encoding: 'base64', sha: 'sha-original', size: raw.length }
+					json: {
+						content: toBase64(raw),
+						encoding: 'base64',
+						sha: 'sha-original',
+						size: raw.length
+					}
 				});
 				return;
 			}
@@ -217,7 +230,10 @@ export async function interceptDemoGitHubWithStore(
 		if (request.method() === 'PUT') {
 			const body = request.postDataJSON() as Record<string, unknown>;
 			if (body.sha !== undefined && files.has(path) && body.sha !== shaOf(path)) {
-				await route.fulfill({ status: 409, json: { message: `${path} does not match ${body.sha}` } });
+				await route.fulfill({
+					status: 409,
+					json: { message: `${path} does not match ${body.sha}` }
+				});
 				return;
 			}
 			puts.push({ path, body });

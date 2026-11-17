@@ -1,8 +1,8 @@
 /**
- * Reader-side URLs for the renditions `uncial-cms/renditions/build` writes. It
+ * Reader-side URLs for the renditions `./build.js` writes. It
  * imports nothing from the editor, so a reader page can use it.
  */
-import type { ImageValue, RenditionSpec } from 'uncial/core';
+import type { ImageValue, RenditionSpec } from 'uncial';
 import { imageSrc, planRenditions } from './plan.js';
 
 export interface RenditionOptions {

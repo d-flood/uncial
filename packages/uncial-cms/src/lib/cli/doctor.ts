@@ -9,7 +9,7 @@
  * token of its own.
  */
 import { execFile } from 'node:child_process';
-import { DEFAULT_APP_SLUG } from '../define-site.js';
+import { DEFAULT_APP_SLUG } from '../constants.js';
 import type { CliOutput } from './assert-clean-pages.js';
 
 export interface GhResult {

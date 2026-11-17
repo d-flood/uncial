@@ -7,20 +7,15 @@ test('editor variant loads, edits, and commits to the mapped source path', async
 
 	await page.goto('/about/edit/');
 
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.ProseMirror');
 	await expect(editor).toContainText('Hello from the demo repo');
 	await expect(page.getByRole('status')).toContainText(`Editing ${ABOUT_SOURCE} as octocat`);
-
-	// The editor renders in a shadow root: the page's stylesheets must be
-	// mirrored inside it or the editor UI renders unstyled.
-	const shadowStylesheets = await page
-		.locator('uncial-editor')
-		.evaluate((el) => el.shadowRoot?.querySelectorAll('link[rel="stylesheet"]').length ?? 0);
-	expect(shadowStylesheets).toBeGreaterThan(0);
 
 	await editor.click();
 	await page.keyboard.press('End');
 	await page.keyboard.type(' — edited in e2e');
+	await editor.click({ clickCount: 3 });
+	await page.getByRole('button', { name: 'Small caps' }).click();
 
 	await page.getByRole('button', { name: 'Save' }).click();
 	// The save lands as a commit; the deploy-status line names the branch.
@@ -31,6 +26,7 @@ test('editor variant loads, edits, and commits to the mapped source path', async
 	expect(puts[0]!.body.branch).toBe('main');
 	const saved = JSON.parse(fromBase64(String(puts[0]!.body.content)));
 	expect(JSON.stringify(saved)).toContain('edited in e2e');
+	expect(saved.content[0].content).toMatchObject([{ marks: [{ type: 'smallCaps' }] }]);
 });
 
 test('deploy status polls pending → success and shows building… then live', async ({ page }) => {
@@ -38,7 +34,7 @@ test('deploy status polls pending → success and shows building… then live', 
 	await seedDemoSession(page);
 
 	await page.goto('/about/edit/');
-	await expect(page.locator('uncial-editor .ProseMirror')).toContainText('Hello from the demo repo');
+	await expect(page.locator('.ProseMirror')).toContainText('Hello from the demo repo');
 
 	await page.getByRole('button', { name: 'Save' }).click();
 
@@ -59,7 +55,7 @@ test('a 409 on save opens the conflict banner and never loses the edit', async (
 	await seedDemoSession(page);
 
 	await page.goto('/about/edit/');
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.ProseMirror');
 	await expect(editor).toContainText('Hello from the demo repo');
 
 	await editor.click();
@@ -92,7 +88,7 @@ test('conflict banner reload replaces the editor content after confirm', async (
 	page.on('dialog', (dialog) => void dialog.accept());
 
 	await page.goto('/about/edit/');
-	const editor = page.locator('uncial-editor .ProseMirror');
+	const editor = page.locator('.ProseMirror');
 	await expect(editor).toContainText('Hello from the demo repo');
 
 	await editor.click();
@@ -113,7 +109,8 @@ test('conflict banner reload replaces the editor content after confirm', async (
 test('content page renders without any editor chrome', async ({ page }) => {
 	await page.goto('/about/');
 	await expect(page.locator('h1')).toContainText('About this demo');
-	await expect(page.locator('uncial-editor')).toHaveCount(0);
+	await expect(page.locator('article [data-small-caps]')).toHaveText('git repository');
+	await expect(page.locator('.ProseMirror')).toHaveCount(0);
 });
 
 test('the Dashboard frame shows the baked repo config', async ({ page }) => {

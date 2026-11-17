@@ -1,11 +1,17 @@
 {
 	"type": "doc",
 	"version": 1,
+	"meta": {
+		"title": "Getting started",
+		"navGroup": "Introduction",
+		"navOrder": 1
+	},
 	"content": [
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "your-presentation-layer-is-the-editor"
 			},
 			"content": [
 				{
@@ -19,7 +25,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "If you've built a site on a headless CMS, you know the failure mode. The CMS generates its editing UI from your data model, so a page becomes a wall of stacked form fields. Nest a few blocks — a section containing columns containing cards containing rich text — and editing turns into an archaeology dig: endless vertical scrolling through collapsed panels that look nothing like the page they produce."
+					"text": "A headless CMS draws its editing UI from your data model, so a page becomes a stack of form fields that look nothing like the page. Uncial removes that fork. You write a Block once, as an ordinary Svelte component, and Uncial mounts it both in your site and inside the editor. The editor is the page, with editing chrome around it."
 				}
 			]
 		},
@@ -34,322 +40,9 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "This very page is a Content document managed by uncial-cms. Maintainers with repo access edit it in the WYSIWYG editor — this callout is a custom block authored right here."
+							"text": "This page is a Content document managed by uncial-cms. This callout is a custom Block."
 						}
 					]
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "You have two bad options from there:"
-				}
-			]
-		},
-		{
-			"type": "orderedList",
-			"attrs": {
-				"start": 1,
-				"type": null
-			},
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"marks": [
-										{
-											"type": "bold"
-										}
-									],
-									"text": "Live with the generated forms."
-								},
-								{
-									"type": "text",
-									"text": " Editors lose all sense of what they're building. \"Which of these five identical Section panels is the one above the fold?\" becomes a daily question."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"marks": [
-										{
-											"type": "bold"
-										}
-									],
-									"text": "Customize the admin."
-								},
-								{
-									"type": "text",
-									"text": " Now you maintain two frontends — the real one and the editing one — plus a translation layer that maps admin widgets to rendered output. Every new block means writing it twice and keeping the two in sync forever."
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Uncial removes the fork. You write a block once, as an ordinary frontend component — the same component your site renders in production. Uncial mounts that component inside the editor as a live, editable block, and mounts it again (SSR-capable) in your frontend. The editor is not a form that approximates the page; it is the page, with editing chrome around it."
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "When the editing surface renders the same components with the same document JSON as production, preview isn't a feature you bolt on with draft APIs and iframe round-trips — it's just what the editor looks like. What the editor sees is what the reader gets, because it's literally the same code. Concretely, one block definition gives you:"
-				}
-			]
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "a WYSIWYG editing experience where nested content looks nested, not stacked,"
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "an SSR-capable renderer for your public frontend,"
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "typed attribute editing UI derived from the component's props,"
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "and a plain ProseMirror-compatible JSON document your backend can store anywhere — including, via uncial-wagtail, a regular Wagtail page field."
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Add Uncial to a Svelte 5 app"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Install the package in your application. Uncial expects "
-				},
-				{
-					"type": "text",
-					"marks": [
-						{
-							"type": "code"
-						}
-					],
-					"text": "svelte@^5"
-				},
-				{
-					"type": "text",
-					"text": " as a peer dependency."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "bash"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "npm install uncial\npnpm add uncial\nbun add uncial"
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Define a custom block once"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "This is the core move: a block starts life as a plain Svelte component — no editor imports, no CMS awareness. "
-				},
-				{
-					"type": "text",
-					"marks": [
-						{
-							"type": "code"
-						}
-					],
-					"text": "defineSvelteBlock"
-				},
-				{
-					"type": "text",
-					"text": " then wraps it with a stable id, an editor label, and typed attribute defaults. That one definition powers both the WYSIWYG editor and the SSR-capable renderer, so there is no second \"admin widget\" to write and no translation layer to keep in sync."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<!-- src/lib/blocks/PromoCard.svelte -->\n<script lang=\"ts\">\n\tinterface Props {\n\t\ttitle?: string;\n\t\tbody?: string;\n\t}\n\n\tlet { title = 'Spring launch', body = 'Save 20% on featured plans.' }: Props = $props();\n</script>\n\n<article class=\"promo-card\">\n\t<h3>{title}</h3>\n\t<p>{body}</p>\n</article>"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/lib/blocks/promoCard.ts\nimport { defineSvelteBlock } from 'uncial';\nimport PromoCard from './PromoCard.svelte';\n\nexport const promoCard = defineSvelteBlock({\n\tid: 'promoCard',\n\tlabel: 'Promo Card',\n\tdescription: 'A reusable promotional card block',\n\tattributes: {\n\t\ttitle: '',\n\t\tbody: { default: '', input: 'textarea' }\n\t},\n\tcomponent: PromoCard\n});"
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Create the registry, schema, and controller"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The registry is the shared block catalog. The schema controls allowed blocks and marks. The attributes controller powers block and link editing UI."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/lib/uncial.ts\nimport { createBlockAttributesController, createBlockRegistry, createSchema } from 'uncial';\nimport { promoCard } from './blocks/promoCard';\n\nexport const blocks = createBlockRegistry([promoCard]);\nexport const schema = createSchema(blocks);\nexport const attributesController = createBlockAttributesController();"
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Edit and render the same JSON"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Editor and renderer share one document and one block registry. Bind your document to Editor with bind:json; pass the saved document to Renderer as content with the same blocks and schema. Because both sides render your actual components, the editor doubles as a live preview — there's no separate preview pipeline to build."
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<!-- src/routes/editor/+page.svelte -->\n<script lang=\"ts\">\n\timport 'uncial/styles';\n\timport { Editor, Renderer } from 'uncial';\n\timport { attributesController, blocks, schema } from './uncial';\n\n\tlet document = $state({\n\t\ttype: 'doc',\n\t\tcontent: [{ type: 'paragraph' }]\n\t});\n</script>\n\n<Editor {blocks} {schema} {attributesController} bind:json={document} />\n<Renderer content={document} {blocks} {schema} />"
 				}
 			]
 		},
@@ -358,16 +51,271 @@
 			"attrs": {
 				"src": "/uploads/basic-editor.png",
 				"alt": "The Uncial editor with a heading, paragraph, and a promo card block being edited in place",
-				"caption": "The Uncial editor: the block you edit is the same component your site renders."
+				"caption": "The block you edit is the same component your site renders."
 			}
 		},
 		{
-			"type": "paragraph"
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "scaffold-a-site"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Scaffold a site"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Inside an existing SvelteKit or Astro project, run:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "sh"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "pnpm add uncial uncial-cms\npnpm exec uncial-cms init"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "init",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " never overwrites a file. For SvelteKit it writes:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "plaintext"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "site.options.ts                       site options: content and static dirs\ncontent/index.json                    the home page\nsrc/lib/uncial/site.ts                the Site object: Blocks, Page templates, meta\nsrc/lib/uncial/blocks/Note.svelte     a Block\nsrc/lib/uncial/templates/Page.svelte  a Page template\nsrc/routes/+layout.ts                 prerendering and trailing slashes\nsrc/routes/[...path]/                 Content pages, and their Editor variants in edit/\nsrc/routes/uncial/+page.svelte        the Dashboard"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Astro gets the same site under "
+				},
+				{
+					"type": "text",
+					"text": "src/uncial/",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and one "
+				},
+				{
+					"type": "text",
+					"text": "src/pages/[...path].astro",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Add the config lines "
+				},
+				{
+					"type": "text",
+					"text": "init",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " prints, run "
+				},
+				{
+					"type": "text",
+					"text": "pnpm dev",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and open "
+				},
+				{
+					"type": "text",
+					"text": "/edit/",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "define-a-block"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Define a Block"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A Block declares its id, label and attributes in its own "
+				},
+				{
+					"type": "text",
+					"text": "<script module>",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". "
+				},
+				{
+					"type": "text",
+					"text": "BlockProps",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " types its props from them, and Field components make its text editable in place."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/lib/uncial/blocks/PromoCard.svelte -->\n<script module lang=\"ts\">\n\timport { defineBlock } from 'uncial';\n\n\texport const block = defineBlock({\n\t\tid: 'promoCard',\n\t\tlabel: 'Promo card',\n\t\tattributes: { title: 'Spring launch', body: { default: '', input: 'textarea' } }\n\t});\n</script>\n\n<script lang=\"ts\">\n\timport { Text } from 'uncial';\n</script>\n\n<article class=\"promo-card\">\n\t<h3><Text name=\"title\" /></h3>\n\t<p><Text name=\"body\" /></p>\n</article>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Stored documents name a Block by its "
+				},
+				{
+					"type": "text",
+					"text": "id",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", so renaming the file orphans nothing."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "edit-and-render-without-the-cms"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Edit and render without the CMS"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "uncial",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " alone is an editor and renderer for any backend. Glob your Blocks into a Content model and hand it to both:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<script lang=\"ts\">\n\timport 'uncial/styles';\n\timport { Renderer, createContentModel } from 'uncial';\n\timport { Editor } from 'uncial/editor';\n\n\tconst model = createContentModel({\n\t\tblocks: import.meta.glob('./blocks/*.svelte', { eager: true })\n\t});\n\tlet document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n</script>\n\n<Editor {model} bind:json={document} />\n<Renderer content={document} {model} />"
+				}
+			]
 		}
-	],
-	"meta": {
-		"title": "Getting started",
-		"navGroup": "Introduction",
-		"navOrder": 1
-	}
+	]
 }

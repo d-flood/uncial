@@ -111,13 +111,28 @@ describe('Pages query in the hash', () => {
 });
 
 describe('Dashboard route contracts', () => {
-	it.each(['About', 'news/old_page', 'articles/café', 'a b/what?#%'])('round-trips an existing page path %s', (pagePath) => {
-		const route = { section: 'edit' as const, pagePath };
-		expect(routeFromHash(new URL(hashForRoute(route), 'http://site.test').hash)).toEqual(route);
-	});
+	it.each(['About', 'news/old_page', 'articles/café', 'a b/what?#%'])(
+		'round-trips an existing page path %s',
+		(pagePath) => {
+			const route = { section: 'edit' as const, pagePath };
+			expect(routeFromHash(new URL(hashForRoute(route), 'http://site.test').hash)).toEqual(route);
+		}
+	);
 
-	it.each(['redirect rules', 'store/orders', 'résumé?#%'])('round-trips an App section id %s', (id) => {
-		const route = { section: 'app' as const, id };
-		expect(routeFromHash(new URL(hashForRoute(route), 'http://site.test').hash)).toEqual(route);
-	});
+	it.each(['new_york', 'Ohio', 'a b/what?#%'])(
+		'round-trips a Collection record slug %s',
+		(slug) => {
+			const route = { section: 'collections' as const, name: 'states', slug };
+			expect(routeFromHash(new URL(hashForRoute(route), 'http://site.test').hash)).toEqual(route);
+			expect(routeFromHash(`${hashForRoute(route)}/..`)).toEqual({ section: 'pages' });
+		}
+	);
+
+	it.each(['redirect rules', 'store/orders', 'résumé?#%'])(
+		'round-trips an App section id %s',
+		(id) => {
+			const route = { section: 'app' as const, id };
+			expect(routeFromHash(new URL(hashForRoute(route), 'http://site.test').hash)).toEqual(route);
+		}
+	);
 });

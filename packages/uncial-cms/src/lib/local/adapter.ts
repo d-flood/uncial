@@ -10,7 +10,7 @@ import type {
 import { LOCAL_API_PATH } from './constants.js';
 
 interface ApiError {
-	error?: string;
+	error?: string | { message?: string };
 	sha?: string;
 }
 
@@ -82,10 +82,12 @@ class LocalAdapter implements ForgeAdapter {
 		if (response.ok) return (await response.json()) as T;
 
 		const error = (await response.json().catch(() => ({}))) as ApiError;
-		if (response.status === 404) throw new NotFoundError(error.error ?? 'File not found.');
-		if (response.status === 409) throw new ConflictError(error.error);
-		if (response.status === 413 && error.sha) throw new FileTooLargeError(error.sha, error.error);
-		throw new Error(error.error ?? `Local request failed (${response.status}).`);
+		// SvelteKit answers an unrouted method with `{ error: { message } }`.
+		const message = typeof error.error === 'object' ? error.error.message : error.error;
+		if (response.status === 404) throw new NotFoundError(message ?? 'File not found.');
+		if (response.status === 409) throw new ConflictError(message);
+		if (response.status === 413 && error.sha) throw new FileTooLargeError(error.sha, message);
+		throw new Error(message ?? `Local request failed (${response.status}).`);
 	}
 }
 

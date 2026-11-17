@@ -2,11 +2,14 @@
 
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
-	import { defaultSessionProvider, forgeAdapter } from '../editor-session.js';
+	import type { AttributeInputs } from 'uncial';
+	import { readCollectionRecord, saveCollectionRecord } from '../collections.js';
+	import { forgeAdapter } from '../editor-session.js';
 	import { SignedOutError } from '../errors.js';
 	import { forgetBrokerGrant, relayBrokerCallback } from '../github/broker.js';
-	import { globalTitle } from '../globals.js';
+	import { readStoredGlobal, saveGlobal } from '../index-actions.js';
 	import { defaultMapPathToSource } from '../paths/index.js';
+	import { isCollectionSource } from '../record-paths.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import { clearCachedSession } from '../session.js';
 	import type {
@@ -15,11 +18,13 @@
 		SessionProvider,
 		UncialCmsSiteConfig
 	} from '../types.js';
+	import { clearActiveForge, setActiveForge } from '../upload-context.js';
+	import CollectionSection from './CollectionSection.svelte';
 	import FallbackEditor from './FallbackEditor.svelte';
-	import GlobalForm from './GlobalForm.svelte';
 	import GlobalsList from './GlobalsList.svelte';
 	import MediaSection from './MediaSection.svelte';
 	import PagesSection from './PagesSection.svelte';
+	import RecordForm from './RecordForm.svelte';
 	import {
 		hashForRoute,
 		routeFromHash,
@@ -30,22 +35,12 @@
 	import type { DashboardProps } from './types.js';
 
 	let {
-		config,
-		blocks,
-		schema,
-		globals,
+		site: siteObject,
 		editorHref,
 		can = () => true,
 		appSections = [],
 		signOutHref,
-		basePath = '',
 		theme = 'system',
-		sessionProvider,
-		mapPathToSource,
-		mapSourceToPath,
-		editorStylesheets,
-		staticDir,
-		attributeInputs,
 		sections = ['pages', 'media', 'globals']
 	}: DashboardProps = $props();
 
@@ -58,10 +53,24 @@
 		globals: 'Globals'
 	};
 
-	const site = $derived<UncialCmsSiteConfig | undefined>(
-		config && ('forge' in config ? config : config.config)
-	);
-	const globalSchemas = $derived(globals ?? (config && 'globals' in config ? config.globals : {}));
+	const site = $derived<UncialCmsSiteConfig | undefined>(siteObject?.config);
+	const basePath = $derived(siteObject?.base ?? '');
+	const globalDeclarations = $derived(siteObject?.globals ?? {});
+	const collections = $derived(siteObject?.collections ?? {});
+	let recordInputs = $state<AttributeInputs>();
+	$effect(() => {
+		const loaders = Object.entries(siteObject?.editor.attributeInputs ?? {});
+		if (!loaders.length) return;
+		let current = true;
+		void Promise.all(loaders.map(async ([kind, load]) => [kind, (await load()).default])).then(
+			(entries) => {
+				if (current) recordInputs = Object.fromEntries(entries);
+			}
+		);
+		return () => {
+			current = false;
+		};
+	});
 	const branchLabel = $derived(
 		site?.forge === 'github'
 			? site.branch
@@ -73,26 +82,39 @@
 		site?.forge === 'github' ? `${site.repo}@${site.branch}` : site ? branchLabel : ''
 	);
 	const sourceFor = $derived.by(() => {
-		if (mapPathToSource) return mapPathToSource;
 		if (site?.forge === 'server') return (path: string) => (path === '' ? '/' : `/${path}/`);
 		const contentDir = site?.contentDir ?? '';
 		return (path: string) => defaultMapPathToSource(path, contentDir);
 	});
-	const schemaFor = (pagePath: string) =>
-		typeof schema === 'function' ? (schema as (path: string) => unknown)(pagePath) : schema;
 
 	let connection = $state.raw<{ adapter: ForgeAdapter; session: ForgeSession }>();
 	let signedOut = $state<string>();
 	const user = $derived(connection?.session.user);
+	const recordSources = $derived.by(() => {
+		const upload = can('media-upload');
+		const { media, files } = siteObject;
+		return {
+			imageSource: { ...media, upload: upload ? media.upload : undefined },
+			fileSource: { ...files, upload: upload ? files.upload : undefined }
+		};
+	});
+	const canSaveRecord = (subject: string) =>
+		can('save-draft', subject) && (site?.forge !== 'server' || can('publish', subject));
 
 	let route = $state<DashboardRoute>({ section: 'pages' });
 	let pagesQuery = $state<PagesQuery>({});
 	const pagesHref = $derived(hashForRoute({ section: 'pages', query: pagesQuery }));
 	const openGlobal = $derived(
-		route.section === 'globals' && route.name && Object.hasOwn(globalSchemas, route.name)
-			? { name: route.name, schema: globalSchemas[route.name]! }
+		route.section === 'globals' && route.name && Object.hasOwn(globalDeclarations, route.name)
+			? { name: route.name, ...globalDeclarations[route.name]! }
 			: undefined
 	);
+	const openCollection = $derived(
+		route.section === 'collections'
+			? { ...collections[route.name]!, name: route.name, slug: route.slug }
+			: undefined
+	);
+	const collectionLabel = (name: string) => collections[name]?.label ?? name;
 	let hash = '';
 	let heading = $state<HTMLElement>();
 	let editor = $state<{ isDirty(): boolean }>();
@@ -105,6 +127,11 @@
 			label: LABELS[id],
 			href: id === 'pages' ? pagesHref : `#/${id}`
 		})),
+		...Object.keys(collections).map((name) => ({
+			id: `collections/${name}`,
+			label: collectionLabel(name),
+			href: hashForRoute({ section: 'collections', name })
+		})),
 		...appSections.map((app) => ({
 			id: `app/${app.id}`,
 			label: app.label,
@@ -113,7 +140,13 @@
 	]);
 	const showNav = $derived(navItems.length > 1 && signedOut === undefined && !relaying);
 	const activeId = $derived(
-		route.section === 'edit' ? 'pages' : route.section === 'app' ? `app/${route.id}` : route.section
+		route.section === 'edit'
+			? 'pages'
+			: route.section === 'app'
+				? `app/${route.id}`
+				: route.section === 'collections'
+					? `collections/${route.name}`
+					: route.section
 	);
 	const title = $derived(
 		relaying
@@ -125,15 +158,17 @@
 						? 'Editing site root'
 						: `Editing /${route.pagePath}/`
 					: openGlobal
-						? (globalTitle(openGlobal.schema) ?? openGlobal.name)
-						: (navItems.find((item) => item.id === activeId)?.label ?? LABELS.pages)
+						? (openGlobal.label ?? openGlobal.name)
+						: openCollection?.slug
+							? `${collectionLabel(openCollection.name)}: ${openCollection.slug}`
+							: (navItems.find((item) => item.id === activeId)?.label ?? LABELS.pages)
 	);
 
 	const reason = (error: unknown) =>
 		error instanceof Error ? error.message : 'Failed to sign in.';
 	const provideSession: SessionProvider = async (current) => {
 		try {
-			const session = await (sessionProvider ?? defaultSessionProvider(current))(current);
+			const session = await siteObject.sessionProvider(current);
 			if (current === site && connection) connection = { ...connection, session };
 			return session;
 		} catch (error) {
@@ -182,16 +217,34 @@
 		if (current && !relaying) untrack(() => void signIn(current));
 	});
 
+	// Record forms reach a git forge's media through this slot, which an editor clears on teardown.
+	$effect(() => {
+		if (!connection || !site || route.section === 'edit') return;
+		setActiveForge({ adapter: connection.adapter, author: connection.session.user, config: site });
+		return clearActiveForge;
+	});
+
 	function resolve(next: string): DashboardRoute {
 		const parsed = routeFromHash(next);
-		if (parsed.section === 'edit') return parsed;
+		if (parsed.section === 'edit') {
+			return site && isCollectionSource({ config: site, collections }, sourceFor(parsed.pagePath))
+				? { section: 'pages' }
+				: parsed;
+		}
 		if (parsed.section === 'app') {
 			return appSections.some((app) => app.id === parsed.id && !app.href)
 				? parsed
 				: { section: 'pages' };
 		}
+		if (parsed.section === 'collections') {
+			return Object.hasOwn(collections, parsed.name) ? parsed : { section: 'pages' };
+		}
 		if (!sections.includes(parsed.section)) return { section: 'pages' };
-		if (parsed.section === 'globals' && parsed.name && !Object.hasOwn(globalSchemas, parsed.name)) {
+		if (
+			parsed.section === 'globals' &&
+			parsed.name &&
+			!Object.hasOwn(globalDeclarations, parsed.name)
+		) {
 			return { section: 'globals' };
 		}
 		return parsed;
@@ -303,6 +356,10 @@
 				<a class="back" href={pagesHref}><span aria-hidden="true">←</span> Back to pages</a>
 			{:else if openGlobal && signedOut === undefined}
 				<a class="back" href="#/globals"><span aria-hidden="true">←</span> Back to globals</a>
+			{:else if openCollection?.slug && signedOut === undefined}
+				<a class="back" href={hashForRoute({ section: 'collections', name: openCollection.name })}
+					><span aria-hidden="true">←</span> Back to {collectionLabel(openCollection.name)}</a
+				>
 			{/if}
 			<h1 bind:this={heading} tabindex="-1">{title}</h1>
 
@@ -319,17 +376,11 @@
 							<FallbackEditor
 								bind:this={editor}
 								options={{
-									config: site,
+									site: siteObject,
 									sourcePath: sourceFor(route.pagePath),
 									pagePath: route.pagePath,
-									blocks,
-									schema: schemaFor(route.pagePath),
-									sessionProvider: provideSession,
-									editorStylesheets,
-									attributeInputs
+									sessionProvider: provideSession
 								}}
-								{basePath}
-								{staticDir}
 								{can}
 								onsignedout={endSession}
 							/>
@@ -348,10 +399,10 @@
 						config={site}
 						adapter={connection.adapter}
 						session={connection.session}
-						{blocks}
-						{schemaFor}
+						blocks={siteObject.blocks}
+						{collections}
+						schemaFor={() => siteObject.schemaFor()}
 						{sourceFor}
-						{mapSourceToPath}
 						{basePath}
 						{editorHref}
 						{branchLabel}
@@ -368,9 +419,8 @@
 						config={site}
 						adapter={connection.adapter}
 						session={connection.session}
-						{staticDir}
+						staticDir={siteObject.staticDir}
 						{basePath}
-						{mapSourceToPath}
 						{branchLabel}
 						{can}
 						onsignedout={endSession}
@@ -379,21 +429,64 @@
 			{:else if route.section === 'globals'}
 				{#if connection && site}
 					{#if openGlobal}
+						{@const deps = { adapter: connection.adapter, config: site }}
+						{@const author = connection.session.user}
 						{#key openGlobal}
-							<GlobalForm
+							<RecordForm
 								config={site}
 								adapter={connection.adapter}
-								session={connection.session}
 								name={openGlobal.name}
-								schema={openGlobal.schema}
+								meta={openGlobal.meta}
+								read={() => readStoredGlobal(deps, openGlobal)}
+								write={(value, sha) =>
+									saveGlobal({ ...deps, author }, { ...openGlobal, value, sha })}
+								editable={can('global-edit', openGlobal.name)}
+								attributeInputs={recordInputs}
+								{...recordSources}
+								{branchLabel}
+								onfocusheading={() => heading?.focus()}
+								onsignedout={endSession}
+							/>
+						{/key}
+					{:else}
+						<GlobalsList globals={globalDeclarations} />
+					{/if}
+				{/if}
+			{:else if openCollection}
+				{#if connection && site}
+					{@const deps = { adapter: connection.adapter, config: site }}
+					{@const author = connection.session.user}
+					{@const slug = openCollection.slug}
+					{#if slug}
+						{#key `${openCollection.name}/${slug}`}
+							<RecordForm
+								config={site}
+								adapter={connection.adapter}
+								name="{openCollection.name}/{slug}"
+								meta={openCollection.meta}
+								read={() => readCollectionRecord(deps, openCollection, slug)}
+								write={(meta, sha) =>
+									saveCollectionRecord({ ...deps, author }, openCollection, { slug, meta, sha })}
+								editable={canSaveRecord(`${openCollection.name}/${slug}`)}
+								attributeInputs={recordInputs}
+								{...recordSources}
+								{branchLabel}
+								onfocusheading={() => heading?.focus()}
+								onsignedout={endSession}
+							/>
+						{/key}
+					{:else}
+						{#key openCollection.name}
+							<CollectionSection
+								config={site}
+								adapter={connection.adapter}
+								collection={openCollection}
 								{branchLabel}
 								{can}
 								onfocusheading={() => heading?.focus()}
 								onsignedout={endSession}
 							/>
 						{/key}
-					{:else}
-						<GlobalsList globals={globalSchemas} />
 					{/if}
 				{/if}
 			{/if}

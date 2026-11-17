@@ -1,26 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createBlockRegistry, createSchema } from 'uncial/core';
-import { MAX_CONTENT_BYTES, MAX_IMAGE_BYTES } from './constants.js';
-import { defineSite } from './define-site.js';
-import { ConflictError, NotFoundError } from './errors.js';
-import {
-	createPage,
-	deletePage,
-	listPages,
-	saveGlobal,
-	uploadAsset,
-	uploadImageAsset
-} from './index-actions.js';
+import { describe, expect, it, vi } from 'vitest';
+import { createContentModel } from 'uncial';
+import { MAX_IMAGE_BYTES } from './constants.js';
+import { NotFoundError } from './errors.js';
+import { createPage, deletePage, listPages, uploadAsset } from './index-actions.js';
 import type { ForgeAdapter } from './types.js';
-import { clearActiveForge, setActiveForge } from './upload-context.js';
 
-const blocks = createBlockRegistry([]);
-const schema = createSchema(blocks, {
-	metaFields: { title: { default: 'Untitled page', required: true } }
+const model = createContentModel({
+	blocks: [],
+	meta: { title: { default: 'Untitled page', required: true } }
 });
+const blocks = model.blocks;
+const schema = model.schemaFor();
 const author = { name: 'Octo Cat', email: 'octocat@users.noreply.github.com' };
-const localSite = (mediaDir?: string) =>
-	defineSite({ contentDir: 'content', mediaDir }, { dev: true });
 
 function fakeAdapter(overrides: Partial<ForgeAdapter> = {}): ForgeAdapter {
 	return {
@@ -88,43 +79,6 @@ describe('deletePage', () => {
 			message: 'uncial-cms: delete about',
 			sha: 'sha-live'
 		});
-	});
-});
-
-describe('saveGlobal', () => {
-	const banner = createSchema(blocks, {
-		metaFields: { text: { default: '' }, enabled: { default: false } }
-	});
-	const deps = (adapter: ForgeAdapter) => ({ adapter, config: localSite().config, author });
-
-	it('commits the Global to <contentDir>/_globals/<name>.json at the sha it was read at', async () => {
-		const adapter = fakeAdapter();
-		await saveGlobal(deps(adapter), {
-			name: 'banner',
-			schema: banner,
-			value: { text: 'Hello' },
-			sha: 'sha-read'
-		});
-
-		const [path, content, writeOpts] = vi.mocked(adapter.writeFile).mock.calls[0]!;
-		expect(path).toBe('content/_globals/banner.json');
-		expect(writeOpts).toEqual({
-			message: 'uncial-cms: save global banner',
-			sha: 'sha-read',
-			author
-		});
-		expect(JSON.parse(content as string)).toMatchObject({
-			type: 'doc',
-			content: [],
-			meta: { text: 'Hello', enabled: false }
-		});
-	});
-
-	it('raises ConflictError when the sha is stale', async () => {
-		const adapter = fakeAdapter({ writeFile: vi.fn().mockRejectedValue(new ConflictError()) });
-		await expect(
-			saveGlobal(deps(adapter), { name: 'banner', schema: banner, value: {}, sha: 'sha-stale' })
-		).rejects.toBeInstanceOf(ConflictError);
 	});
 });
 
@@ -223,88 +177,6 @@ describe('uploadAsset', () => {
 	});
 });
 
-describe('uploadImageAsset', () => {
-	const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02]);
-	const file = { bytes: pngBytes, filename: 'shot.png', contentType: 'image/png' };
-
-	afterEach(() => clearActiveForge());
-
-	const activate = (adapter: ForgeAdapter, mediaDir?: string) =>
-		setActiveForge({ adapter, author, config: localSite(mediaDir).config });
-
-	it('uploads through the active editor forge, resolving its adapter + author', async () => {
-		const adapter = fakeAdapter();
-		activate(adapter);
-
-		const result = await uploadImageAsset(file, {
-			mediaDir: 'packages/uncial-docs/static/uploads'
-		});
-
-		expect(result.path).toMatch(/^packages\/uncial-docs\/static\/uploads\/[0-9a-f]+\.png$/);
-		expect(adapter.writeFile).toHaveBeenCalledTimes(1);
-		const [path, , writeOpts] = vi.mocked(adapter.writeFile).mock.calls[0]!;
-		expect(path).toBe(result.path);
-		expect(writeOpts.author).toEqual(author); // author came from the active forge
-	});
-
-	it('prefers an explicit mediaDir over the site and the active session', async () => {
-		const adapter = fakeAdapter();
-		activate(adapter, 'session/uploads');
-
-		const result = await uploadImageAsset(file, {
-			mediaDir: 'explicit/uploads',
-			site: localSite('site/uploads')
-		});
-
-		expect(result.path).toMatch(/^explicit\/uploads\//);
-	});
-
-	it("falls back to the site's mediaDir, then the active session's", async () => {
-		const adapter = fakeAdapter();
-		activate(adapter, 'session/uploads');
-
-		const fromSite = await uploadImageAsset(file, { site: localSite('site/uploads') });
-		const fromSession = await uploadImageAsset(file, {});
-
-		expect(fromSite.path).toMatch(/^site\/uploads\//);
-		expect(fromSession.path).toMatch(/^session\/uploads\//);
-	});
-
-	it('names the option to set when nothing supplies a mediaDir', async () => {
-		activate(fakeAdapter());
-
-		await expect(uploadImageAsset(file, {})).rejects.toThrow(/`mediaDir`/);
-	});
-
-	it('throws a clear error when no editor session is active', async () => {
-		await expect(uploadImageAsset(file, { mediaDir: 'media' })).rejects.toThrow(
-			/no active editor session/i
-		);
-	});
-
-	it('fits an oversize image before the pre-flight size check rejects it', async () => {
-		const adapter = fakeAdapter();
-		activate(adapter, 'media');
-		const huge = {
-			bytes: new Uint8Array(MAX_CONTENT_BYTES + 1),
-			filename: 'huge.png',
-			contentType: 'image/png'
-		};
-
-		const result = await uploadImageAsset(huge, {
-			fit: {
-				maxBytes: 64,
-				encoder: {
-					decode: async () => ({ width: 3000, height: 2000 }),
-					encode: async () => new Blob([new Uint8Array(32)], { type: 'image/webp' })
-				}
-			}
-		});
-
-		expect(result.path).toMatch(/^media\/[0-9a-f]+\.webp$/);
-	});
-});
-
 describe('listPages', () => {
 	it('recursively lists JSON sources and maps them to page paths', async () => {
 		const listDir = vi.fn(async (path: string) => {
@@ -332,18 +204,19 @@ describe('listPages', () => {
 		]);
 	});
 
-	it('never lists the Globals in content/_globals', async () => {
+	it('never lists the Globals in content/_globals or a Collection’s records', async () => {
 		const listDir = vi.fn(async (path: string) => {
 			if (path === 'content') {
 				return [
 					{ path: 'content/about.json', type: 'file' as const },
-					{ path: 'content/_globals', type: 'dir' as const }
+					{ path: 'content/_globals', type: 'dir' as const },
+					{ path: 'content/states', type: 'dir' as const }
 				];
 			}
-			return [{ path: 'content/_globals/menus.json', type: 'file' as const }];
+			return [{ path: `${path}/record.json`, type: 'file' as const }];
 		});
 
-		const pages = await listPages(fakeAdapter({ listDir }), 'content');
+		const pages = await listPages(fakeAdapter({ listDir }), 'content', ['content/states/']);
 
 		expect(pages).toEqual([{ pagePath: 'about', sourcePath: 'content/about.json' }]);
 	});

@@ -12,7 +12,8 @@ import {
 	type AnyExtension,
 	type Editor as TiptapEditor
 } from '@tiptap/core';
-import type { NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
+import type { EditorView, NodeView as ProseMirrorNodeView } from '@tiptap/pm/view';
+import { closeHistory } from '@tiptap/pm/history';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type {
 	AttributeSpec,
@@ -22,7 +23,9 @@ import type {
 	ContentSchema
 } from '../core/types.js';
 import { DEFAULT_MARKS, resolveRegistry } from '../core/registry.js';
-import type { BlockEditorMountHandle } from '../core/runtime.js';
+import type { BlockContext, BlockEditorMountHandle, BlockPage } from '../core/runtime.js';
+import type { ImageSource } from '../editor/imageSource.js';
+import { blockAttrs, blockSummary, emptyPage } from '../runtime/blockContext.js';
 import {
 	coerceAttributeValue,
 	normalizeBlockAttributes,
@@ -32,7 +35,11 @@ import type { PMNode } from './document.js';
 import type { RichTextFeature } from '../core/types.js';
 import { lowlight } from './syntaxHighlight.js';
 import { sanitizeHref } from '../render/sanitize.js';
-import { withImagePreviews, withoutImagePreviews, type ImagePreviews } from './imagePreviews.js';
+import { toDisplayValues, toStoredValues, type ImagePreviews } from './imagePreviews.js';
+import { withBase } from './mediaValues.js';
+import { resolveImageSrc, stripBase } from '../render/resolveImageSrc.js';
+import { SVELTE_RUNTIME_ID } from './runtimeId.js';
+import { mountSvelteBlock } from '../editor/svelteEditorMount.js';
 
 export type BlockActivationCallback = (pos: number) => void;
 
@@ -52,47 +59,48 @@ export function getBlockDefaultAttrs(block: BlockDefinition): Record<string, unk
 	return normalizeBlockAttributes(block, {});
 }
 
-function buildBlockEditorProps(
-	block: BlockDefinition,
-	node: ProseMirrorNode,
-	editor?: TiptapEditor,
-	onActivate?: BlockActivationCallback,
-	getPos?: () => number | undefined,
-	imagePreviews?: ImagePreviews
-): Record<string, unknown> {
-	const attrs = node.attrs ?? {};
+/** What the `Editor` around the document supplies to every Block context. */
+export interface BlockEnvironment {
+	page(): BlockPage;
+	media(): ImageSource | null;
+	/** The model's base, applied to root-relative media URLs and links. */
+	base?(): string;
+	/** The `Editor`'s own Svelte context. */
+	context?: Map<unknown, unknown>;
+	/** Called whenever `page()` or `media()` may answer differently. */
+	subscribe?(listener: () => void): () => void;
+}
+
+const defaultEnvironment: BlockEnvironment = { page: emptyPage, media: () => null };
+
+interface NodeViewHost {
+	block: BlockDefinition;
+	registry: BlockRegistry;
+	view: EditorView;
+	getPos?: () => number | undefined;
+	onActivate?: BlockActivationCallback;
+	imagePreviews?: ImagePreviews;
+	environment: BlockEnvironment;
+}
+
+function displayAttrs(host: NodeViewHost, node: ProseMirrorNode): Record<string, unknown> {
+	const { block, imagePreviews, environment } = host;
+	return toDisplayValues(
+		block.attributes,
+		node.attrs ?? {},
+		imagePreviews,
+		environment.base?.() ?? ''
+	);
+}
+
+function buildBlockEditorProps(host: NodeViewHost, node: ProseMirrorNode): Record<string, unknown> {
+	const { block, getPos, onActivate } = host;
 	return {
-		attrs: imagePreviews ? withImagePreviews(block, attrs, imagePreviews) : attrs,
+		attrs: displayAttrs(host, node),
 		content: (node.content?.toJSON() ?? []) as PMNode[],
 		blockId: block.id,
 		label: block.label,
 		draggable: block.behaviors.draggable ?? true,
-		// Addressed by position, not by selection: Tiptap's `updateAttributes`
-		// command writes to the node at the current selection, and nothing in a
-		// block's own component moves the selection onto it, so the write would
-		// land on whichever block the reader last selected.
-		//
-		// Deliberately no `.focus()` here: updates often originate from form
-		// controls inside the block component, and refocusing the editor view
-		// would steal focus from them on every keystroke.
-		updateAttributes: block.readOnly
-			? undefined
-			: (attrs: Record<string, unknown>) => {
-					if (!editor || !getPos) return;
-					// Same guard as `onActivate` below.
-					const pos = getPos();
-					if (pos === undefined) return;
-					// Read the node from the live document rather than the `node`
-					// captured when these props were built: that capture is stale as
-					// soon as any attribute has been written, and merging over it
-					// would drop earlier writes.
-					const current = editor.state.doc.nodeAt(pos);
-					if (!current) return;
-					const stored = imagePreviews ? withoutImagePreviews(block, attrs, imagePreviews) : attrs;
-					editor.view.dispatch(
-						editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...stored })
-					);
-				},
 		// ProseMirror's getPos can return undefined when the node is not currently
 		// in the document (e.g. mid-transaction); skip activation in that case
 		// rather than reporting a bogus position.
@@ -106,19 +114,79 @@ function buildBlockEditorProps(
 	};
 }
 
+function buildBlockContext(host: NodeViewHost, node: ProseMirrorNode): BlockContext {
+	const { block, registry, view, getPos, imagePreviews, environment } = host;
+	const pos = getPos?.();
+	let parent: BlockContext['parent'] = null;
+	let index = 0;
+	let siblings: BlockContext['siblings'] = [];
+	if (pos !== undefined && pos <= view.state.doc.content.size) {
+		const $pos = view.state.doc.resolve(pos);
+		index = $pos.index();
+		siblings = $pos.parent.children.map((child) =>
+			blockSummary(registry, { type: child.type.name, attrs: child.attrs })
+		);
+		for (let depth = $pos.depth; depth > 0; depth -= 1) {
+			const ancestor = $pos.node(depth);
+			const definition = registry.get(ancestor.type.name);
+			if (!definition) continue;
+			parent = blockSummary(registry, {
+				type: ancestor.type.name,
+				attrs: withBase(definition.attributes, ancestor.attrs, environment.base?.() ?? '')
+			});
+			break;
+		}
+	}
+	const attrs = node.attrs ?? {};
+	return {
+		id: typeof attrs.id === 'string' ? attrs.id : '',
+		type: block.id,
+		attrs: blockAttrs(registry, block.id, displayAttrs(host, node)),
+		editing: true,
+		// Addressed by position, not by selection: Tiptap's `updateAttributes`
+		// command writes to the node at the current selection, and nothing in a
+		// block's own component moves the selection onto it.
+		//
+		// Deliberately no `.focus()` here: updates often originate from form
+		// controls inside the block component, and refocusing the editor view
+		// would steal focus from them on every keystroke.
+		update: (patch) => {
+			if (block.readOnly) return;
+			const pos = getPos?.();
+			if (pos === undefined) return;
+			// Merge over the live node: the one these props were built from is stale after any write.
+			const current = view.state.doc.nodeAt(pos);
+			if (!current) return;
+			const stored = toStoredValues(
+				block.attributes,
+				patch,
+				imagePreviews,
+				environment.base?.() ?? ''
+			);
+			view.dispatch(
+				closeHistory(view.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...stored }))
+			);
+		},
+		parent,
+		index,
+		siblings,
+		page: environment.page(),
+		media: environment.media()
+	};
+}
+
 function mountBlockEditorComponent(
-	block: BlockDefinition,
+	host: NodeViewHost,
 	node: ProseMirrorNode,
 	container: HTMLElement,
 	contentDOM: HTMLElement | null,
-	mounted: MountedComponent | null,
-	editor?: TiptapEditor,
-	onActivate?: BlockActivationCallback,
-	getPos?: () => number | undefined,
-	imagePreviews?: ImagePreviews
+	mounted: MountedComponent | null
 ): MountedComponent {
 	mounted?.destroy();
-	const createEditorMount = block.components.editor.plugin.createEditorMount;
+	const { block } = host;
+	const { plugin, runtime } = block.components.editor;
+	const createEditorMount =
+		plugin.createEditorMount ?? (runtime === SVELTE_RUNTIME_ID ? mountSvelteBlock : undefined);
 	if (!createEditorMount) {
 		throw new Error(`Runtime "${block.runtime}" does not support editor node views`);
 	}
@@ -128,7 +196,9 @@ function mountBlockEditorComponent(
 		inline: block.behaviors.inline ?? false,
 		component: block.components.editor,
 		contentDOM,
-		props: buildBlockEditorProps(block, node, editor, onActivate, getPos, imagePreviews)
+		props: buildBlockEditorProps(host, node),
+		block: buildBlockContext(host, node),
+		context: host.environment.context
 	});
 }
 
@@ -141,18 +211,25 @@ function isInteractiveNodeViewEvent(event: Event): boolean {
 	const target = event.target;
 	if (!(target instanceof Element)) return false;
 	return Boolean(
-		target.closest('input, textarea, select, button:not([data-drag-handle]), a[href]')
+		target.closest(
+			'input, textarea, select, button:not([data-drag-handle]), a[href], [data-uncial-field]'
+		)
 	);
 }
 
+function contextSignature(context: BlockContext): string {
+	const { update: _update, media: _media, ...data } = context;
+	void _update;
+	void _media;
+	return JSON.stringify(data);
+}
+
 function createBlockNodeView(
-	block: BlockDefinition,
+	host: NodeViewHost,
 	node: ProseMirrorNode,
-	getPos?: () => number | undefined,
-	onActivate?: BlockActivationCallback,
-	editor?: TiptapEditor,
-	imagePreviews?: ImagePreviews
+	editor?: TiptapEditor
 ): ProseMirrorNodeView {
+	const { block, getPos } = host;
 	const dom = document.createElement(block.behaviors.inline ? 'span' : 'div');
 	dom.className = 'uncial-nodeview';
 	dom.dataset.uncialBlockId = block.id;
@@ -160,6 +237,7 @@ function createBlockNodeView(
 	const contentDOM = block.content
 		? document.createElement(block.behaviors.inline ? 'span' : 'div')
 		: null;
+	let currentNode = node;
 	let lastAttrs = JSON.stringify(node.attrs ?? {});
 
 	function syncBlockPosition(): void {
@@ -174,18 +252,49 @@ function createBlockNodeView(
 	}
 
 	let mounted: MountedComponent | null = null;
-	mounted = mountBlockEditorComponent(
-		block,
-		node,
-		dom,
-		contentDOM,
-		mounted,
-		editor,
-		onActivate,
-		getPos,
-		imagePreviews
-	);
+	mounted = mountBlockEditorComponent(host, node, dom, contentDOM, mounted);
+	let lastContext = buildBlockContext(host, node);
+	let lastSignature = contextSignature(lastContext);
 	syncBlockPosition();
+
+	/** Pushes props and Block context when the node, its place in the document, or the page changed. */
+	function refresh(): void {
+		const nextAttrs = JSON.stringify(currentNode.attrs ?? {});
+		const nextContext = buildBlockContext(host, currentNode);
+		const nextSignature = contextSignature(nextContext);
+		if (
+			nextAttrs === lastAttrs &&
+			nextSignature === lastSignature &&
+			nextContext.media === lastContext.media
+		) {
+			return;
+		}
+		lastAttrs = nextAttrs;
+		lastContext = nextContext;
+		lastSignature = nextSignature;
+		if (mounted?.update) {
+			// Update the mounted component's props in place so DOM state (focus,
+			// selection, scroll position) inside the block component survives.
+			//
+			// Queued, not applied here: this runs inside `view.dispatch`, itself
+			// inside the event handler that edited the attribute, and a prop
+			// written to a separately mounted component in that window does not
+			// reach it — the block would keep rendering its old attributes until
+			// something else re-rendered it. A microtask is outside that window
+			// and still lands before paint.
+			const nextProps = buildBlockEditorProps(host, currentNode);
+			queueMicrotask(() => mounted?.update?.(nextProps, nextContext));
+		} else {
+			// Fall back to a full remount for runtimes without update support.
+			mounted = mountBlockEditorComponent(host, currentNode, dom, contentDOM, mounted);
+		}
+	}
+
+	const onTransaction = ({ transaction }: { transaction: { docChanged: boolean } }) => {
+		if (transaction.docChanged) refresh();
+	};
+	editor?.on('transaction', onTransaction);
+	const unsubscribe = host.environment.subscribe?.(refresh);
 
 	return {
 		dom,
@@ -194,45 +303,8 @@ function createBlockNodeView(
 			if (nextNode.type.name !== block.id) return false;
 			dom.draggable = block.behaviors.draggable ?? true;
 			syncBlockPosition();
-			const nextAttrs = JSON.stringify(nextNode.attrs ?? {});
-			if (nextAttrs === lastAttrs) {
-				return true;
-			}
-
-			lastAttrs = nextAttrs;
-			if (mounted?.update) {
-				// Update the mounted component's props in place so DOM state (focus,
-				// selection, scroll position) inside the block component survives.
-				//
-				// Queued, not applied here: this runs inside `view.dispatch`, itself
-				// inside the event handler that edited the attribute, and a prop
-				// written to a separately mounted component in that window does not
-				// reach it — the block would keep rendering its old attributes until
-				// something else re-rendered it. A microtask is outside that window
-				// and still lands before paint.
-				const nextProps = buildBlockEditorProps(
-					block,
-					nextNode,
-					editor,
-					onActivate,
-					getPos,
-					imagePreviews
-				);
-				queueMicrotask(() => mounted?.update?.(nextProps));
-			} else {
-				// Fall back to a full remount for runtimes without update support.
-				mounted = mountBlockEditorComponent(
-					block,
-					nextNode,
-					dom,
-					contentDOM,
-					mounted,
-					editor,
-					onActivate,
-					getPos,
-					imagePreviews
-				);
-			}
+			currentNode = nextNode;
+			refresh();
 			return true;
 		},
 		stopEvent(event) {
@@ -250,6 +322,8 @@ function createBlockNodeView(
 			dom.classList.remove('ProseMirror-selectednode');
 		},
 		destroy() {
+			editor?.off('transaction', onTransaction);
+			unsubscribe?.();
 			mounted?.destroy();
 		}
 	};
@@ -280,6 +354,8 @@ function containerContentExpression(content: BlockContentDefinition): string {
 
 function createBlockNodeExtension(
 	block: BlockDefinition,
+	registry: BlockRegistry,
+	environment: BlockEnvironment,
 	onActivate?: BlockActivationCallback,
 	imagePreviews?: ImagePreviews
 ): AnyExtension {
@@ -303,10 +379,10 @@ function createBlockNodeExtension(
 						{
 							default: spec.default,
 							parseHTML: (element: HTMLElement) => {
-								const direct = element.getAttribute(name);
-								if (direct !== null) return coerceAttributeValue(spec, direct);
+								// Prefer the typed JSON copy; a direct HTML attribute is always a string.
 								const attrs = safeParseJSON(element.getAttribute('data-uncial-attrs'));
-								return coerceAttributeValue(spec, attrs[name]);
+								if (name in attrs) return coerceAttributeValue(spec, attrs[name]);
+								return coerceAttributeValue(spec, element.getAttribute(name));
 							},
 							renderHTML: (attributes: Record<string, unknown>) => {
 								const value = coerceAttributeValue(spec, attributes[name]);
@@ -323,8 +399,12 @@ function createBlockNodeExtension(
 			return [{ tag: block.html?.parseTag ?? `div[data-uncial-block="${block.id}"]` }];
 		},
 		addNodeView() {
-			return ({ node, getPos, editor }) =>
-				createBlockNodeView(block, node, getPos, onActivate, editor, imagePreviews);
+			return ({ node, view, getPos, editor }) =>
+				createBlockNodeView(
+					{ block, registry, view, getPos, onActivate, imagePreviews, environment },
+					node,
+					editor
+				);
 		},
 		renderHTML({ HTMLAttributes, node }) {
 			const normalizedAttrs = normalizeBlockAttributes(block, node.attrs ?? {});
@@ -345,14 +425,20 @@ function createBlockNodeExtension(
 	});
 }
 
-const LinkMark = Mark.create({
+const LinkMark = Mark.create<{ base: () => string }>({
 	name: 'link',
 	inclusive: false,
+	addOptions() {
+		return { base: () => '' };
+	},
 	addAttributes() {
 		return {
 			href: {
 				default: null,
-				parseHTML: (element: HTMLElement) => sanitizeHref(element.getAttribute('href'))
+				parseHTML: (element: HTMLElement) => {
+					const href = sanitizeHref(element.getAttribute('href'));
+					return href && stripBase(href, this.options.base());
+				}
 			},
 			target: { default: null },
 			rel: { default: null },
@@ -364,7 +450,8 @@ const LinkMark = Mark.create({
 		return [{ tag: 'a[href]' }];
 	},
 	renderHTML({ HTMLAttributes }) {
-		const href = sanitizeHref(HTMLAttributes.href);
+		const sanitized = sanitizeHref(HTMLAttributes.href);
+		const href = sanitized && resolveImageSrc(sanitized, this.options.base());
 		const rest = { ...HTMLAttributes };
 		delete rest.href;
 		return ['a', mergeAttributes(rest, href ? { href } : {}), 0];
@@ -426,6 +513,13 @@ function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension 
 					attributes: {
 						slug: { default: null, rendered: false }
 					}
+				},
+				{
+					// Holds the document's metadata so a metadata commit is one undo step.
+					types: ['doc'],
+					attributes: {
+						meta: { default: null, rendered: false }
+					}
 				}
 			];
 		}
@@ -447,8 +541,9 @@ function createDocumentIdentityExtension(registry: BlockRegistry): AnyExtension 
 const CombinableCode = Code.extend({ excludes: '' });
 
 function createBaseExtensions(
-	schema?: ContentSchema,
-	extensions: AnyExtension[] = []
+	schema: ContentSchema | undefined,
+	extensions: AnyExtension[],
+	base: () => string
 ): AnyExtension[] {
 	const marks = schema?.allowedMarks ?? new Set<string>(DEFAULT_MARKS);
 	const includeBold = marks.has('bold');
@@ -481,7 +576,7 @@ function createBaseExtensions(
 		TableHeader,
 		TableCell,
 		...(includeCode ? [CombinableCode] : []),
-		...(includeLink ? [LinkMark] : []),
+		...(includeLink ? [LinkMark.configure({ base })] : []),
 		...(includeMark('superscript') ? [Superscript] : []),
 		...(includeMark('subscript') ? [Subscript] : [])
 	];
@@ -513,17 +608,18 @@ export function createEditorExtensions(
 	schema?: ContentSchema,
 	onActivateBlock?: BlockActivationCallback,
 	extensions: AnyExtension[] = [],
-	imagePreviews?: ImagePreviews
+	imagePreviews?: ImagePreviews,
+	environment: BlockEnvironment = defaultEnvironment
 ): AnyExtension[] {
 	const registry = resolveRegistry(blocks);
 	const blockExtensions = registry.blocks
 		.filter((block: BlockDefinition) => !schema || schema.allowedBlocks.has(block.id))
 		.map((block: BlockDefinition) =>
-			createBlockNodeExtension(block, onActivateBlock, imagePreviews)
+			createBlockNodeExtension(block, registry, environment, onActivateBlock, imagePreviews)
 		);
 
 	return [
-		...createBaseExtensions(schema, extensions),
+		...createBaseExtensions(schema, extensions, () => environment.base?.() ?? ''),
 		createDocumentIdentityExtension(registry),
 		...blockExtensions,
 		...extensions

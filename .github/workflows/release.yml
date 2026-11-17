@@ -32,9 +32,6 @@ jobs:
         with:
           node-version: 24
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -53,9 +50,6 @@ jobs:
 
       - name: E2E tests (uncial)
         run: pnpm --filter uncial run test:e2e
-
-      - name: JS tests (uncial-wagtail)
-        run: pnpm --filter uncial-wagtail run test
 
       # uncial-cms/-auth unit suites are fully mocked and fast; the uncial-cms
       # Playwright e2e (three build servers) runs locally per its README.
@@ -81,34 +75,11 @@ jobs:
           BASE_PATH=/uncial/docs pnpm --filter uncial-docs run build
           pnpm --filter uncial-docs run assert:clean-pages
 
-      - name: Sync Python dependencies
-        run: uv sync --locked
-        working-directory: packages/uncial-wagtail
-
-      - name: Python tests (uncial-wagtail)
-        run: uv run --locked pytest
-        working-directory: packages/uncial-wagtail
-
-      - name: Python tests on minimum supported Python (uncial-wagtail, 3.11)
-        run: uv run --locked --python 3.11 pytest
-        working-directory: packages/uncial-wagtail
-
-      - name: Check committed Wagtail bundles
-        run: |
-          pnpm --filter uncial-wagtail run build:admin
-          pnpm --filter uncial-wagtail run build:demo-blocks
-          git diff --exit-code -- packages/uncial-wagtail/src/uncial_wagtail/static/uncial_wagtail/ packages/uncial-wagtail/demo/pages/static/pages/ || {
-            echo "::error::Committed Wagtail bundles are stale. Run 'pnpm --filter uncial-wagtail run build:admin' and 'pnpm --filter uncial-wagtail run build:demo-blocks' and commit the result."
-            exit 1
-          }
-
   publish-npm-github:
     name: Publish to npm & GitHub
     needs: validate
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    outputs:
-      published: ${{ steps.changesets.outputs.published }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,11 +95,6 @@ jobs:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      # The version script re-locks uv.lock after bumping pyproject.toml, so the
-      # version PR keeps `uv sync --locked` in validate green.
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -136,7 +102,6 @@ jobs:
         run: pnpm run prepack
 
       - name: Create Version PR or Publish
-        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm run version
@@ -144,53 +109,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
-
-  # Authenticates to PyPI with the job's OIDC token (a Trusted Publisher configured
-  # for this repo + workflow), so there is no API token to store or rotate.
-  publish-pypi:
-    name: Publish to PyPI
-    needs: publish-npm-github
-    if: github.event_name == 'push' && needs.publish-npm-github.outputs.published == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 11.15.1
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        run: pnpm --filter uncial-wagtail run build
-
-      - name: Build Python package
-        run: uv build
-        working-directory: packages/uncial-wagtail
-
-      # A changesets release that touches only the JS packages still reaches this
-      # job. The sdist carries package.json and CHANGELOG.md, which can change
-      # without a version bump, so skip by version rather than by file hash.
-      - name: Publish
-        run: |
-          version=$(uv version --short)
-          if curl -sf -o /dev/null "https://pypi.org/pypi/uncial-wagtail/$version/json"; then
-            echo "::notice::uncial-wagtail $version is already on PyPI; skipping."
-            exit 0
-          fi
-          uv publish --trusted-publishing always
-        working-directory: packages/uncial-wagtail

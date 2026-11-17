@@ -2,8 +2,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 
-// Resolve uncial's subpath exports from workspace source (same pattern as
-// uncial-wagtail): the published exports point at packages/uncial/dist, which
+// Resolve uncial's subpath exports from workspace source: the published
+// exports point at packages/uncial/dist, which
 // does not exist on a fresh checkout (CI builds the docs site, not the lib).
 const uncialSrc = (path: string) => new URL(`../uncial/src/lib/${path}`, import.meta.url).pathname;
 
@@ -14,11 +14,9 @@ export const uncialAliases = [
 	// the optional group also takes the './styles/*.css' form the package exports.
 	{ find: /^uncial\/styles\/(.+?)(?:\.css)?$/, replacement: uncialSrc('styles/$1.css') },
 	{ find: /^uncial\/styles$/, replacement: uncialSrc('styles/index.css') },
-	{ find: 'uncial/core', replacement: uncialSrc('core/index.ts') },
-	{ find: 'uncial/render', replacement: uncialSrc('render/index.ts') },
 	{ find: 'uncial/editor', replacement: uncialSrc('editor/index.ts') },
-	{ find: 'uncial/runtime/svelte', replacement: uncialSrc('runtime/svelte.ts') },
 	{ find: 'uncial/web-components', replacement: uncialSrc('web-components/index.ts') },
+	{ find: 'uncial/internal', replacement: uncialSrc('internal.ts') },
 	{ find: /^uncial$/, replacement: uncialSrc('index.ts') }
 ];
 

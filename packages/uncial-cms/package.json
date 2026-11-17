@@ -40,7 +40,12 @@
 	],
 	"type": "module",
 	"sideEffects": [
-		"./dist/dashboard/element.js"
+		"./dist/dashboard/element.js",
+		"./dist/editor-page-element.js",
+		"./dist/elements.js",
+		"./src/lib/dashboard/element.ts",
+		"./src/lib/editor-page-element.ts",
+		"./src/lib/elements.ts"
 	],
 	"types": "./dist/index.d.ts",
 	"exports": {
@@ -49,43 +54,15 @@
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
 		},
-		"./session": {
-			"types": "./dist/editor-session.d.ts",
-			"default": "./dist/editor-session.js"
-		},
-		"./dashboard": {
-			"types": "./dist/dashboard/element.d.ts",
-			"svelte": "./dist/dashboard/element.js",
-			"default": "./dist/dashboard/element.js"
+		"./elements": {
+			"types": "./dist/elements.d.ts",
+			"svelte": "./dist/elements.js",
+			"default": "./dist/elements.js"
 		},
 		"./svelte": {
 			"types": "./dist/svelte/index.d.ts",
 			"svelte": "./dist/svelte/index.js",
 			"default": "./dist/svelte/index.js"
-		},
-		"./github": {
-			"types": "./dist/github/index.d.ts",
-			"default": "./dist/github/index.js"
-		},
-		"./local": {
-			"types": "./dist/local/index.d.ts",
-			"default": "./dist/local/index.js"
-		},
-		"./nav": {
-			"types": "./dist/nav/index.d.ts",
-			"default": "./dist/nav/index.js"
-		},
-		"./paths": {
-			"types": "./dist/paths/index.d.ts",
-			"default": "./dist/paths/index.js"
-		},
-		"./renditions": {
-			"types": "./dist/renditions/index.d.ts",
-			"default": "./dist/renditions/index.js"
-		},
-		"./renditions/build": {
-			"types": "./dist/renditions/build.d.ts",
-			"default": "./dist/renditions/build.js"
 		},
 		"./vite": {
 			"types": "./dist/vite/index.d.ts",
@@ -111,6 +88,7 @@
 	},
 	"peerDependencies": {
 		"@aws-sdk/client-s3": "^3.0.0",
+		"@sveltejs/kit": "^2.0.0",
 		"postgres": "^3.4.0",
 		"sharp": ">=0.33.0",
 		"svelte": "^5.0.0",
@@ -118,6 +96,9 @@
 	},
 	"peerDependenciesMeta": {
 		"@aws-sdk/client-s3": {
+			"optional": true
+		},
+		"@sveltejs/kit": {
 			"optional": true
 		},
 		"postgres": {
@@ -136,6 +117,7 @@
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@tiptap/core": "^3.30.3",
 		"@vitest/browser-playwright": "^4.0.18",
 		"astro": "^5.18.2",
 		"playwright": "^1.58.2",

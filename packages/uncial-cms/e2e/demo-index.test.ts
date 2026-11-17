@@ -103,9 +103,7 @@ test('create → fallback edit → delete round-trip through the Dashboard', asy
 	await expect(confirm).toContainText(`${CONTENT_DIR}/team/new-page.json`);
 	await confirm.getByRole('button', { name: 'Delete' }).click();
 
-	await expect
-		.poll(() => deletes.length, { message: 'DELETE commit recorded' })
-		.toBe(1);
+	await expect.poll(() => deletes.length, { message: 'DELETE commit recorded' }).toBe(1);
 	expect(deletes[0]!.path).toBe(`${CONTENT_DIR}/team/new-page.json`);
 	expect(deletes[0]!.body.message).toBe('uncial-cms: delete team/new-page');
 	expect(deletes[0]!.body.sha).toBe('sha-2');
@@ -187,6 +185,7 @@ test('the old fallback link #/about/ opens #/edit/about and commits to the same 
 
 	expect(puts).toHaveLength(1);
 	expect(puts[0]!.path).toBe(ABOUT_SOURCE); // identical PUT path to /about/edit/
+	expect(fromBase64(String(puts[0]!.body.content))).toContain('"smallCaps"');
 	expect(puts[0]!.body.message).toBe('uncial-cms: edit about');
 });
 

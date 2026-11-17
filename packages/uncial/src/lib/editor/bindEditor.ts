@@ -4,12 +4,17 @@ import {
 	type AnyExtension,
 	type JSONContent
 } from '@tiptap/core';
+import { closeHistory } from '@tiptap/pm/history';
 import type { Schema } from '@tiptap/pm/model';
 import type { ActionReturn } from 'svelte/action';
+import { fromStore, writable } from 'svelte/store';
+import { parseMetaDraftValues } from '../core/meta.js';
 import { normalizeDocument } from '../core/normalize.js';
 import { validateDocument } from '../core/validate.js';
 import { resolveRegistry } from '../core/registry.js';
+import type { BlockPage } from '../core/runtime.js';
 import type {
+	AttributeInputs,
 	BlockDefinition,
 	BlockRegistry,
 	ContentSchema,
@@ -17,15 +22,49 @@ import type {
 } from '../core/types.js';
 import type { PMDoc } from '../shared/document.js';
 import { emptyDocument } from '../shared/content.js';
-import { createEditorExtensions } from '../shared/tiptap.js';
-import type { ImagePreviews } from '../shared/imagePreviews.js';
+import { createEditorExtensions, type BlockEnvironment } from '../shared/tiptap.js';
 import {
-	createBlockAttributesController,
+	createImagePreviews,
+	missingImagePlaceholder,
+	toDisplayValues,
+	type ImagePreviews
+} from '../shared/imagePreviews.js';
+import type { AttributeInputLoader, ContentModel, ExtensionLoader } from '../model.js';
+import {
+	createAttributesController,
 	createInitialState,
 	type BlockAttributesController
 } from './attributesController.js';
+import { createEditorEnvironment, withBaseLinks, withBaseThumbnails } from './editorEnvironment.js';
+import { createMetaController } from './metaController.js';
+import type { FileSource } from './fileSource.js';
+import type { ImageSource } from './imageSource.js';
 
-export interface BindEditorOptions {
+export const NO_EXTENSIONS: AnyExtension[] = [];
+
+export function extensionLoadersOf(model: ContentModel): ExtensionLoader[] {
+	return [...model.marks.map((mark) => mark.extension), ...model.editor.extensions];
+}
+
+export function loadExtensions(loaders: ExtensionLoader[]): Promise<AnyExtension[]> {
+	return Promise.all(
+		loaders.map(async (load) => {
+			const loaded = await load();
+			return 'default' in loaded ? loaded.default : loaded;
+		})
+	);
+}
+
+export async function loadAttributeInputs(
+	loaders: Record<string, AttributeInputLoader>
+): Promise<AttributeInputs> {
+	const entries = await Promise.all(
+		Object.entries(loaders).map(async ([kind, load]) => [kind, (await load()).default] as const)
+	);
+	return Object.fromEntries(entries);
+}
+
+export interface AttachEditorOptions {
 	blocks?: BlockRegistry | BlockDefinition[];
 	schema?: ContentSchema;
 	json?: JSONContent;
@@ -41,6 +80,8 @@ export interface BindEditorOptions {
 	autoOpenAttributes?: boolean;
 	/** Previews the canvas shows in place of just-uploaded `input: 'image'` values. */
 	imagePreviews?: ImagePreviews;
+	/** The page, Media source and Svelte context every Block context reads; keep it reference-stable. */
+	blockEnvironment?: BlockEnvironment;
 	onIssue?: (issue: ValidationIssue) => void;
 	onChange?: (json: JSONContent) => void;
 	onMetaChange?: (meta: Record<string, unknown>) => void;
@@ -113,11 +154,11 @@ function sanitizeForEditorSchema(
 	return { document: { ...editorDocument, content: surviving }, issues };
 }
 
-export function bindEditor(
+export function attachEditor(
 	node: HTMLElement,
-	initialOptions: BindEditorOptions = {}
-): ActionReturn<BindEditorOptions> {
-	const internalController = createBlockAttributesController();
+	initialOptions: AttachEditorOptions = {}
+): ActionReturn<AttachEditorOptions> {
+	const internalController = createAttributesController();
 	let options = initialOptions;
 	let registry = resolveRegistry(options.blocks ?? []);
 	let schema = options.schema;
@@ -138,11 +179,27 @@ export function bindEditor(
 	let lastSerialized = '';
 	let lastEmitted = '';
 
-	function normalize(document: JSONContent | null | undefined): PMDoc {
+	function normalize(
+		document: JSONContent | null | undefined,
+		meta: Record<string, unknown> | undefined = options.meta
+	): PMDoc {
 		return normalizeDocument(
-			{ ...((document ?? emptyDocument()) as Partial<PMDoc>), meta: options.meta },
+			{ ...((document ?? emptyDocument()) as Partial<PMDoc>), meta },
 			registry,
 			schema
+		);
+	}
+
+	/** Mirrors metadata the host set into the doc node, outside the undo history. */
+	function syncDocMeta(meta: Record<string, unknown> | undefined): void {
+		if (!editor) return;
+		const next = meta ?? null;
+		if (JSON.stringify(editor.state.doc.attrs.meta ?? null) === JSON.stringify(next)) return;
+		editor.view.dispatch(
+			editor.state.tr
+				.setDocAttribute('meta', next)
+				.setMeta('addToHistory', false)
+				.setMeta('preventUpdate', true)
 		);
 	}
 
@@ -253,7 +310,8 @@ export function bindEditor(
 			schema,
 			(pos) => controller.openAttributesAt(pos),
 			options.extensions ?? [],
-			options.imagePreviews
+			options.imagePreviews,
+			options.blockEnvironment
 		);
 		const initialContent = normalizeAndValidate(options.json ?? emptyDocument());
 		rememberReadOnlyAttrs(initialContent);
@@ -272,8 +330,9 @@ export function bindEditor(
 			extensions,
 			content: initialEditorContent,
 			onUpdate: ({ editor: tiptap }) => {
-				const raw = restoreReadOnlyAttrs(tiptap.getJSON());
-				const normalized = normalize(raw);
+				const { attrs, ...body } = tiptap.getJSON();
+				const raw = restoreReadOnlyAttrs(body);
+				const normalized = normalize(raw, attrs?.meta ?? options.meta);
 				rememberReadOnlyAttrs(normalized);
 				const serialized = JSON.stringify(normalized);
 				// Skip the (comparatively expensive) validate + emit pass when the
@@ -298,6 +357,7 @@ export function bindEditor(
 			}
 		});
 
+		syncDocMeta(initialContent.meta);
 		options.onEditor?.(editor);
 		controller.attach(editor, registry, schema);
 		controller.syncFromSelection('selection');
@@ -320,11 +380,12 @@ export function bindEditor(
 
 		sanitized.issues.forEach((issue) => options.onIssue?.(issue));
 		editor.commands.setContent(editorDocument, { emitUpdate: false });
+		syncDocMeta((nextDocument as PMDoc).meta);
 		lastSerialized = serialized;
 		controller.syncFromSelection('update');
 	}
 
-	function applyOptions(nextOptions: BindEditorOptions, forceRecreate = false): void {
+	function applyOptions(nextOptions: AttachEditorOptions, forceRecreate = false): void {
 		const previousBlocks = options.blocks;
 		const previousSchema = options.schema;
 		const previousExtensions = options.extensions;
@@ -360,6 +421,7 @@ export function bindEditor(
 
 		const normalized = normalize(options.json ?? emptyDocument());
 		rememberReadOnlyAttrs(normalized);
+		syncDocMeta(normalized.meta);
 		const serialized = JSON.stringify(normalized);
 		// Same guard as `onUpdate`, keyed on the full document (body + meta): when
 		// the external document normalizes to exactly what we last emitted (the
@@ -383,6 +445,141 @@ export function bindEditor(
 		destroy() {
 			unsubscribe();
 			destroyEditor();
+		}
+	};
+}
+
+export interface BindEditorOptions {
+	json?: JSONContent;
+	meta?: Record<string, unknown>;
+	onIssue?: (issue: ValidationIssue) => void;
+	onChange?: (json: JSONContent) => void;
+	onMetaChange?: (meta: Record<string, unknown>) => void;
+	onEditor?: (editor: TiptapEditor | null) => void;
+}
+
+/**
+ * For a host drawing its own editor layout: `use:editor.attach={options}` on the element to edit
+ * in, `<BlockAttributesPanel {...editor.attributes} />` and `<DocumentMetaPanel {...editor.meta} />`.
+ */
+export function bindEditor(
+	model: ContentModel,
+	sources: { imageSource?: ImageSource; fileSource?: FileSource } = {}
+) {
+	const base = () => model.base;
+	const imageSource = withBaseThumbnails(sources.imageSource, base);
+	const fileSource = withBaseLinks(sources.fileSource, base);
+	const imagePreviews = createImagePreviews((src) =>
+		sources.imageSource?.missing?.(src) ? missingImagePlaceholder(src) : undefined
+	);
+	const attributesController = createAttributesController();
+	const metaFields = fromStore(writable(model.schemaFor().metaFields));
+	const metaController = createMetaController(metaFields.current);
+	const attributeInputs = fromStore(writable<AttributeInputs>());
+	void loadAttributeInputs(model.editor.attributeInputs).then(
+		(inputs) => (attributeInputs.current = inputs)
+	);
+	const loaders = extensionLoadersOf(model);
+	const extensions = loaders.length ? loadExtensions(loaders) : Promise.resolve(NO_EXTENSIONS);
+	let editor: TiptapEditor | null = null;
+	let page: BlockPage = { path: '', template: '', meta: {} };
+	const environment = createEditorEnvironment({
+		base,
+		registry: () => model.blocks,
+		media: () => imageSource ?? null,
+		page: () => page,
+		imagePreviews,
+		metaController: () => metaController,
+		metaFields: () => metaFields.current,
+		onMetaCommit: ({ meta, validation }) => {
+			if (!validation.ok || !editor) return;
+			editor.view.dispatch(closeHistory(editor.state.tr.setDocAttribute('meta', meta)));
+		}
+	});
+	metaController.subscribe(({ draft }) => {
+		const fields = metaFields.current;
+		const meta = parseMetaDraftValues(fields, draft);
+		page = {
+			path: '',
+			template: model.templateFor(meta)?.id ?? '',
+			meta: toDisplayValues(fields, meta, imagePreviews, base())
+		};
+		environment.notify();
+	});
+
+	function attach(node: HTMLElement, initial: BindEditorOptions): ActionReturn<BindEditorOptions> {
+		let options = initial;
+		let handle: ActionReturn<AttachEditorOptions> | undefined;
+		let loaded: AnyExtension[] = NO_EXTENSIONS;
+		let destroyed = false;
+		let seededMeta = '';
+		const toAttach = (next: BindEditorOptions): AttachEditorOptions => {
+			const meta = JSON.stringify(next.meta ?? {});
+			if (meta !== seededMeta) {
+				seededMeta = meta;
+				const fields = model.schemaFor(next.meta).metaFields;
+				if (fields !== metaFields.current) {
+					metaFields.current = fields;
+					metaController.setMetaFields(fields);
+				}
+				metaController.reset(next.meta ?? {});
+			}
+			return {
+				...next,
+				blocks: model.blocks,
+				schema: model.schemaFor(next.meta),
+				extensions: loaded,
+				attributesController,
+				imagePreviews,
+				blockEnvironment: environment,
+				onEditor: (tiptap) => {
+					editor = tiptap;
+					next.onEditor?.(tiptap);
+				}
+			};
+		};
+
+		void extensions.then((list) => {
+			if (destroyed) return;
+			loaded = list;
+			handle = attachEditor(node, toAttach(options));
+		});
+
+		return {
+			update(next) {
+				options = next;
+				handle?.update?.(toAttach(next));
+			},
+			destroy() {
+				destroyed = true;
+				handle?.destroy?.();
+			}
+		};
+	}
+
+	return {
+		attach,
+		attributes: {
+			controller: attributesController,
+			blocks: model.blocks,
+			imageSource,
+			fileSource,
+			imagePreviews,
+			get attributeInputs() {
+				return attributeInputs.current;
+			}
+		},
+		meta: {
+			controller: metaController,
+			get fields() {
+				return metaFields.current;
+			},
+			imageSource,
+			fileSource,
+			imagePreviews,
+			get attributeInputs() {
+				return attributeInputs.current;
+			}
 		}
 	};
 }

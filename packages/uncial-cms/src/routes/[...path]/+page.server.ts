@@ -1,7 +1,4 @@
-import { createContentHandlers } from '$lib/sveltekit/index.js';
-import { blocks, localContentDir, schema, siteConfig } from '../site.js';
+import { contentRoutes } from '$lib/sveltekit/index.js';
+import { site } from '../site.js';
 
-const handlers = createContentHandlers({ config: siteConfig, blocks, schema, localContentDir });
-
-export const entries = handlers.entries;
-export const load = handlers.load;
+export const { entries, load } = contentRoutes(site);

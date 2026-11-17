@@ -3,7 +3,7 @@ import { defineSite } from './define-site.js';
 import { servedUrl } from './served-url.js';
 
 const siteWith = (mediaDir: string | undefined) =>
-	defineSite({ contentDir: 'content', mediaDir }, { dev: true });
+	defineSite({ contentDir: 'content', mediaDir }, { blocks: [] }, { dev: true });
 
 describe('servedUrl', () => {
 	it('drops the static prefix a committed asset is served without', () => {

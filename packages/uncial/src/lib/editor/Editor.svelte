@@ -1,28 +1,27 @@
 <script lang="ts">
 	import type { AnyExtension, Editor as TiptapEditor, JSONContent } from '@tiptap/core';
-	import { onDestroy } from 'svelte';
+	import { untrack } from 'svelte';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
-	import { resolveRegistry } from '../core/registry.js';
-	import type {
-		AttributeInputs,
-		AttributeSpec,
-		BlockDefinition,
-		BlockRegistry,
-		ContentSchema,
-		DocumentMetaSchema,
-		ValidationIssue
-	} from '../core/types.js';
+	import { parseMetaDraftValues } from '../core/meta.js';
+	import type { AttributeInputs, BlockDefinition, ValidationIssue } from '../core/types.js';
 	import { emptyDocument } from '../shared/content.js';
 	import {
-		createBlockAttributesController,
+		createAttributesController,
 		createInitialState,
 		type BlockAttributesController,
 		type BlockAttributesState
 	} from './attributesController.js';
-	import { bindEditor, type BindEditorOptions } from './bindEditor.js';
 	import {
-		createDocumentMetaController,
+		attachEditor,
+		extensionLoadersOf,
+		loadAttributeInputs,
+		loadExtensions,
+		NO_EXTENSIONS,
+		type AttachEditorOptions
+	} from './bindEditor.js';
+	import {
+		createMetaController,
 		type DocumentMetaController,
 		type DocumentMetaState
 	} from './metaController.js';
@@ -30,22 +29,31 @@
 	import DocumentMetaPanel from './DocumentMetaPanel.svelte';
 	import { dropdownFloat } from './dropdownFloat.js';
 	import Toolbar from './Toolbar.svelte';
-	import type { ChooseAttributeRequest } from './chooseAttribute.js';
 	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
-	import { createImagePreviews, missingImagePlaceholder } from '../shared/imagePreviews.js';
+	import {
+		createImagePreviews,
+		missingImagePlaceholder,
+		toDisplayValues
+	} from '../shared/imagePreviews.js';
 	import { dropdownDismiss } from './dropdownDismiss.js';
-	import type { ToolbarFeature, ToolbarFeatureSelection } from './toolbarFeatures.js';
+	import type { ContentModel } from '../model.js';
+	import { closeHistory } from '@tiptap/pm/history';
+	import { unwrapsAtSelection } from './containerChildOps.js';
+	import {
+		createEditorEnvironment,
+		withBaseLinks,
+		withBaseThumbnails
+	} from './editorEnvironment.js';
 
 	interface Props {
-		blocks?: BlockRegistry | BlockDefinition[];
-		schema?: ContentSchema;
+		model: ContentModel;
 		json?: JSONContent;
-		extensions?: AnyExtension[];
 		meta?: Record<string, unknown>;
-		metaFields?: DocumentMetaSchema | ReadonlyMap<string, AttributeSpec<unknown>>;
-		toolbarFeatures?: ToolbarFeatureSelection;
-		toolbarExtensions?: ToolbarFeature[];
+		/** The page path the model's Page template receives. */
+		path?: string;
+		/** Route data the model's Page template receives. */
+		data?: Record<string, unknown>;
 		attributesController?: BlockAttributesController | null;
 		metaController?: DocumentMetaController | null;
 		/**
@@ -71,14 +79,10 @@
 		 * page's CSS derives from the container is wrong under the editor.
 		 */
 		presentation?: 'card' | 'bare';
-		/** Forwarded to the built-in panel; see `BlockAttributesPanel`. */
-		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		/** Uploads, existing images and thumbnails for `input: 'image'` attributes. */
 		imageSource?: ImageSource;
 		/** Uploads and existing files for `input: 'file'` attributes and rich-text Document links. */
 		fileSource?: FileSource;
-		/** Components that edit host-defined `input` kinds in the attributes and metadata panels. */
-		attributeInputs?: AttributeInputs;
 		onIssue?: (issue: ValidationIssue) => void;
 		/**
 		 * The document after an edit, and the metadata after one.
@@ -94,35 +98,30 @@
 	}
 
 	let {
-		blocks = [],
-		schema = undefined,
+		model,
 		json = $bindable(emptyDocument()),
-		extensions = [],
 		meta = $bindable({}),
-		metaFields = undefined,
-		toolbarFeatures = undefined,
-		toolbarExtensions = [],
+		path = '',
+		data = {},
 		attributesController = null,
 		metaController = null,
 		attributesPanel = true,
 		presentation = 'card',
-		onChooseAttribute,
 		imageSource,
 		fileSource,
-		attributeInputs,
 		onIssue,
 		onChange,
 		onMetaChange
 	}: Props = $props();
 
-	let editorHost: HTMLDivElement;
+	let editorHost = $state<HTMLDivElement>();
 	let editor = $state<TiptapEditor | null>(null);
 	let interactedNodeView = $state<HTMLElement | null>(null);
 	let controllerState = $state<BlockAttributesState>(createInitialState());
 	let attrsTriggerEl = $state<HTMLElement | null>(null);
 	let metaTriggerEl = $state<HTMLElement | null>(null);
-	const internalController = createBlockAttributesController();
-	const internalMetaController = createDocumentMetaController();
+	const internalController = createAttributesController();
+	const internalMetaController = createMetaController();
 	// Per instance: two editors on one page must not see each other's uploads.
 	const imagePreviews = createImagePreviews((src) =>
 		imageSource?.missing?.(src) ? missingImagePlaceholder(src) : undefined
@@ -148,7 +147,41 @@
 	 */
 	let metaSeeded = $state(false);
 
-	const registry = $derived(resolveRegistry(blocks));
+	const blocks = $derived(model.blocks);
+	const schema = $derived(model.schemaFor(meta));
+	// The draft redraws the template at once; its schema waits for the commit, so a preview never
+	// normalizes the document against Blocks the drafted template disallows.
+	const template = $derived(model.templateFor({ ...meta, ...metaState.draft }));
+	let attributeInputs = $state<AttributeInputs>();
+	$effect(() => {
+		const loaders = model.editor.attributeInputs;
+		if (!Object.keys(loaders).length) return;
+		let current = true;
+		void loadAttributeInputs(loaders).then((inputs) => {
+			if (current) attributeInputs = inputs;
+		});
+		return () => {
+			current = false;
+		};
+	});
+
+	const extensionLoaders = $derived(extensionLoadersOf(model));
+	let loadedExtensions = $state.raw<AnyExtension[]>();
+	$effect(() => {
+		const loaders = extensionLoaders;
+		if (!loaders.length) return;
+		let current = true;
+		void loadExtensions(loaders).then((list) => {
+			if (current) loadedExtensions = list;
+		});
+		return () => {
+			current = false;
+		};
+	});
+	// Mounting before the Marks' extensions load would drop their marks from the document.
+	const editorExtensions = $derived(extensionLoaders.length ? loadedExtensions : NO_EXTENSIONS);
+
+	const registry = $derived(blocks);
 	const controller = $derived(attributesController ?? internalController);
 	const panelMode = $derived.by(() => {
 		if (attributesPanel === true) return 'docked';
@@ -161,22 +194,50 @@
 		panelMode === 'docked' ||
 			(panelMode === 'overlay' && (controllerState.open || controllerState.link.open))
 	);
-	const resolvedMetaFields = $derived.by(() => {
-		if (metaFields instanceof Map) return metaFields;
-		if (metaFields) return new Map(Object.entries(metaFields));
-		return schema?.metaFields ?? new Map<string, AttributeSpec<unknown>>();
-	});
+	const resolvedMetaFields = $derived(schema.metaFields);
 	const documentMetaController = $derived(metaController ?? internalMetaController);
 	const hasMetaFields = $derived(resolvedMetaFields.size > 0);
-	const editorBinding = $derived<BindEditorOptions>({
+	const base = () => model.base;
+	const resolvedImageSource = $derived(withBaseThumbnails(imageSource, base));
+	const resolvedFileSource = $derived(withBaseLinks(fileSource, base));
+	const liveMeta = $derived(
+		toDisplayValues(
+			resolvedMetaFields,
+			parseMetaDraftValues(resolvedMetaFields, metaState.draft),
+			imagePreviews,
+			base()
+		)
+	);
+	const blockPage = $derived({ path, template: template?.id ?? '', meta: liveMeta });
+	const blockEnvironment = createEditorEnvironment({
+		base,
+		registry: () => registry,
+		media: () => resolvedImageSource ?? null,
+		page: () => blockPage,
+		imagePreviews,
+		metaController: () => documentMetaController,
+		metaFields: () => resolvedMetaFields,
+		onMetaCommit: (result) => {
+			if (result.validation.ok) return commitMeta(result.meta);
+			// Waits out the blur that committed the Field, whose focus move would dismiss the panel.
+			requestAnimationFrame(() => metaTriggerEl?.closest('details')?.setAttribute('open', ''));
+		}
+	});
+	$effect(() => {
+		void blockPage;
+		void resolvedImageSource;
+		untrack(blockEnvironment.notify);
+	});
+	const editorBinding = $derived<AttachEditorOptions>({
 		blocks,
 		schema,
 		json,
 		meta,
-		extensions,
+		extensions: editorExtensions,
 		attributesController: controller,
 		autoOpenAttributes: panelMode !== 'overlay',
 		imagePreviews,
+		blockEnvironment,
 		onIssue,
 		onChange: (nextDocument) => {
 			setDocument(nextDocument);
@@ -194,9 +255,15 @@
 		registry.blocks.filter((block) =>
 			controllerState.allowedBlockIds.length
 				? controllerState.allowedBlockIds.includes(block.id)
-				: !schema || schema.allowedBlocks.has(block.id)
+				: schema.allowedBlocks.has(block.id)
 		)
 	);
+	const unwraps = $derived.by(() => {
+		// Every selection sync replaces `controllerState`, which re-reads the selection here.
+		void controllerState;
+		const selection = editor?.state.selection;
+		return (block: BlockDefinition) => Boolean(selection && unwrapsAtSelection(selection, block));
+	});
 	/**
 	 * Room for the block labels the gutter draws.
 	 *
@@ -248,10 +315,18 @@
 	}
 
 	function commitMeta(nextMeta: Record<string, unknown>): void {
+		metaTriggerEl?.closest('details')?.removeAttribute('open');
+		// Through the editor's history, so the commit is one undo step; `onMetaChange` reports it.
+		// A schema without meta fields drops metadata when normalizing, so it keeps the direct path.
+		if (editor && schema.metaFields.size) {
+			if (JSON.stringify(editor.state.doc.attrs.meta) !== JSON.stringify(nextMeta)) {
+				editor.view.dispatch(closeHistory(editor.state.tr.setDocAttribute('meta', nextMeta)));
+			}
+			return;
+		}
 		setMeta(nextMeta);
 		setDocument({ ...json, meta: nextMeta });
 		committedMetaSerialized = JSON.stringify(nextMeta);
-		metaTriggerEl?.closest('details')?.removeAttribute('open');
 	}
 
 	function syncActiveBlockIndicator(): void {
@@ -305,8 +380,6 @@
 		return unsubscribe;
 	});
 
-	onDestroy(() => imagePreviews.revokeAll());
-
 	$effect(() => {
 		documentMetaController.setMetaFields(resolvedMetaFields);
 	});
@@ -354,7 +427,8 @@
 	});
 
 	$effect(() => {
-		if (!editorHost) return;
+		const host = editorHost;
+		if (!host) return;
 
 		const syncFromDomSelection = () => {
 			requestAnimationFrame(() => {
@@ -369,27 +443,36 @@
 			syncFromDomSelection();
 		};
 
-		editorHost.addEventListener('mousedown', trackInteractedNodeView, true);
-		editorHost.addEventListener('mouseup', syncFromDomSelection);
-		editorHost.addEventListener('keyup', syncFromDomSelection);
-		editorHost.addEventListener('focusin', trackInteractedNodeView, true);
+		host.addEventListener('mousedown', trackInteractedNodeView, true);
+		host.addEventListener('mouseup', syncFromDomSelection);
+		host.addEventListener('keyup', syncFromDomSelection);
+		host.addEventListener('focusin', trackInteractedNodeView, true);
 
 		return () => {
-			editorHost.removeEventListener('mousedown', trackInteractedNodeView, true);
-			editorHost.removeEventListener('mouseup', syncFromDomSelection);
-			editorHost.removeEventListener('keyup', syncFromDomSelection);
-			editorHost.removeEventListener('focusin', trackInteractedNodeView, true);
+			host.removeEventListener('mousedown', trackInteractedNodeView, true);
+			host.removeEventListener('mouseup', syncFromDomSelection);
+			host.removeEventListener('keyup', syncFromDomSelection);
+			host.removeEventListener('focusin', trackInteractedNodeView, true);
 		};
 	});
 </script>
+
+{#snippet editingSurface()}
+	<div
+		class="uncial-content uncial-rich-content uncial-gutter-enabled"
+		style:--uncial-reserved-gutter-width={editorGutterWidth}
+		bind:this={editorHost}
+		use:attachEditor={editorBinding}
+	></div>
+{/snippet}
 
 <div class={['uncial-editor-shell', presentation === 'bare' && 'uncial-editor-shell--bare']}>
 	<div class="uncial-toolbar">
 		<Toolbar
 			{editor}
 			{schema}
-			{toolbarFeatures}
-			{toolbarExtensions}
+			toolbar={model.editor.toolbar}
+			marks={model.marks}
 			onEditLink={() => controller.openLinkAttributes()}
 		/>
 		{#if hasMetaFields || activeBlocks.length > 0}
@@ -414,9 +497,9 @@
 								fields={resolvedMetaFields}
 								onCommit={commitMeta}
 								{attributeInputs}
-								{imageSource}
+								imageSource={resolvedImageSource}
 								{imagePreviews}
-								{fileSource}
+								fileSource={resolvedFileSource}
 							/>
 						</div>
 					</details>
@@ -436,7 +519,7 @@
 							{#each activeBlocks as block (block.id)}
 								<li>
 									<button type="button" onclick={() => insertBlock(block.id)}>
-										{block.label}
+										{unwraps(block) ? `Unwrap ${block.label}` : block.label}
 									</button>
 								</li>
 							{/each}
@@ -447,12 +530,13 @@
 		{/if}
 	</div>
 	<div class="uncial-editor-body">
-		<div
-			class="uncial-content uncial-rich-content uncial-gutter-enabled"
-			style:--uncial-reserved-gutter-width={editorGutterWidth}
-			bind:this={editorHost}
-			use:bindEditor={editorBinding}
-		></div>
+		{#if editorExtensions}
+			{#if template}
+				<template.component meta={liveMeta} {path} {data} body={editingSurface} />
+			{:else}
+				{@render editingSurface()}
+			{/if}
+		{/if}
 	</div>
 	{#if panelVisible}
 		<aside
@@ -476,11 +560,10 @@
 			<BlockAttributesPanel
 				{controller}
 				{blocks}
-				{onChooseAttribute}
 				{attributeInputs}
-				{imageSource}
+				imageSource={resolvedImageSource}
 				{imagePreviews}
-				{fileSource}
+				fileSource={resolvedFileSource}
 			/>
 		</aside>
 	{/if}

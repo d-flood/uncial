@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core';
-import type { ContentSchema } from '../core/types.js';
+import type { BlockIcon, ContentSchema } from '../core/types.js';
+import type { MarkDeclaration, ToolbarItem } from '../model.js';
 
 export type ToolbarFeatureId =
 	| 'bold'
@@ -18,9 +19,12 @@ export type ToolbarFeatureId =
 	| 'orderedList'
 	| 'blockquote'
 	| 'codeBlock'
-	| 'horizontalRule';
-
-export type ToolbarFeatureSelection = '*' | '__all__' | readonly string[];
+	| 'horizontalRule'
+	| 'table'
+	| 'addRowAfter'
+	| 'deleteRow'
+	| 'addColumnAfter'
+	| 'deleteColumn';
 
 export interface ToolbarFeatureContext {
 	editor: Editor;
@@ -31,32 +35,14 @@ export interface ToolbarFeature {
 	id: string;
 	label: string;
 	tooltip?: string;
+	/** A string renders as text; a component renders with `size` and `weight` props. */
+	icon?: BlockIcon;
 	group?: 'mark' | 'heading' | 'block' | 'insert' | string;
 	isAllowed?: (context: ToolbarFeatureContext) => boolean;
 	isActive?: (context: ToolbarFeatureContext) => boolean;
 	canRun?: (context: ToolbarFeatureContext) => boolean;
 	run: (context: ToolbarFeatureContext) => void;
 }
-
-export const defaultToolbarFeatures: readonly ToolbarFeatureId[] = [
-	'bold',
-	'italic',
-	'strike',
-	'code',
-	'link',
-	'superscript',
-	'subscript',
-	'heading2',
-	'heading3',
-	'heading4',
-	'heading5',
-	'heading6',
-	'bulletList',
-	'orderedList',
-	'blockquote',
-	'codeBlock',
-	'horizontalRule'
-];
 
 function markAllowed(mark: string) {
 	return ({ schema }: ToolbarFeatureContext) => !schema || schema.allowedMarks.has(mark);
@@ -191,8 +177,47 @@ export const builtinToolbarFeatures: readonly ToolbarFeature[] = [
 		group: 'block',
 		canRun: ({ editor }) => editor.can().chain().focus().setHorizontalRule().run(),
 		run: ({ editor }) => editor.chain().focus().setHorizontalRule().run()
-	}
+	},
+	{
+		id: 'table',
+		label: 'Table',
+		tooltip: 'Insert table',
+		group: 'table',
+		canRun: ({ editor }) => editor.can().insertTable({ rows: 3, cols: 2, withHeaderRow: true }),
+		run: ({ editor }) =>
+			editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run()
+	},
+	tableFeature('addRowAfter', 'Add row'),
+	tableFeature('deleteRow', 'Delete row'),
+	tableFeature('addColumnAfter', 'Add column'),
+	tableFeature('deleteColumn', 'Delete column')
 ];
+
+function tableFeature(
+	id: 'addRowAfter' | 'deleteRow' | 'addColumnAfter' | 'deleteColumn',
+	label: string
+): ToolbarFeature {
+	return {
+		id,
+		label,
+		group: 'table',
+		canRun: ({ editor }) => editor.can()[id](),
+		run: ({ editor }) => editor.chain().focus()[id]().run()
+	};
+}
+
+function markFeature({ id, toolbar }: MarkDeclaration): ToolbarFeature {
+	return {
+		id,
+		label: toolbar?.label ?? id,
+		icon: toolbar?.icon,
+		group: 'mark',
+		isAllowed: markAllowed(id),
+		isActive: activeMark(id),
+		canRun: ({ editor }) => editor.can().chain().focus().toggleMark(id).run(),
+		run: ({ editor }) => editor.chain().focus().toggleMark(id).run()
+	};
+}
 
 /**
  * A single generic heading toggle (level 3) whose active state matches any
@@ -232,30 +257,31 @@ export const richTextAttributeToolbarFeatures: readonly ToolbarFeature[] = [
 	builtinFeature('horizontalRule')
 ];
 
-export function resolveToolbarFeatures({
+/** The model's one toolbar list: built-in ids, defined Mark ids and features, in display order. */
+export function resolveToolbar({
 	editor,
 	schema,
-	toolbarFeatures,
-	toolbarExtensions = []
+	toolbar,
+	marks = []
 }: {
 	editor: Editor | null | undefined;
 	schema?: ContentSchema;
-	toolbarFeatures?: ToolbarFeatureSelection;
-	toolbarExtensions?: readonly ToolbarFeature[];
+	toolbar: readonly ToolbarItem[];
+	marks?: readonly MarkDeclaration[];
 }): ToolbarFeature[] {
 	if (!editor) return [];
-
-	const overridden = new Set(toolbarExtensions.map((feature) => feature.id));
-	const descriptors = [
-		...builtinToolbarFeatures.filter((feature) => !overridden.has(feature.id)),
-		...toolbarExtensions
-	];
-	const selection = toolbarFeatures ?? defaultToolbarFeatures;
-	const selectedIds = selection === '*' || selection === '__all__' ? null : new Set(selection);
 	const context = { editor, schema };
-
-	return descriptors.filter((feature) => {
-		if (selectedIds && !selectedIds.has(feature.id)) return false;
-		return feature.isAllowed?.(context) ?? true;
+	return toolbar.flatMap((item) => {
+		let feature: ToolbarFeature | undefined;
+		if (typeof item !== 'string') {
+			feature = item;
+		} else {
+			const mark = marks.find((entry) => entry.id === item);
+			feature = mark
+				? markFeature(mark)
+				: builtinToolbarFeatures.find((entry) => entry.id === item);
+			if (!feature) console.warn(`Unknown toolbar id "${item}"`);
+		}
+		return feature && (feature.isAllowed?.(context) ?? true) ? [feature] : [];
 	});
 }

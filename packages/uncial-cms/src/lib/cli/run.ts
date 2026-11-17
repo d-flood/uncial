@@ -2,13 +2,22 @@
 import { assertCleanAstroPages } from './assert-clean-astro-pages.js';
 import { assertCleanPages } from './assert-clean-pages.js';
 import type { CliOutput } from './assert-clean-pages.js';
-import { DEFAULT_APP_SLUG } from '../define-site.js';
+import { DEFAULT_APP_SLUG } from '../constants.js';
 import { doctor } from './doctor.js';
 import type { GhInvoker } from './doctor.js';
+import { init } from './init.js';
 
-const USAGE = `uncial-cms — build gates and provisioning checks for a site that edits itself
+const USAGE = `uncial-cms — scaffolding, build gates and provisioning checks for a site that edits itself
 
 Usage:
+  uncial-cms init [--sveltekit | --astro] [--dir <path>]
+
+    Scaffold a local-only site into an existing SvelteKit or Astro project:
+    site options, site module, routes, one Block, one Page template and a
+    starter Content document. Existing files are skipped, never overwritten;
+    config lines to add are printed. The framework is detected from
+    package.json unless a flag names it. --dir defaults to ".".
+
   uncial-cms assert-clean-pages [buildDir] [--local-only | --astro]
 
     Assert that Content pages ship no uncial-cms JavaScript and that every
@@ -83,7 +92,7 @@ export async function run(
 		return 0;
 	}
 
-	if (command !== 'assert-clean-pages' && command !== 'doctor') {
+	if (command !== 'assert-clean-pages' && command !== 'doctor' && command !== 'init') {
 		io.err(`Unknown command "${command}".`);
 		io.err(USAGE);
 		return 2;
@@ -92,6 +101,22 @@ export async function run(
 	if (rest.includes('--help') || rest.includes('-h')) {
 		io.out(USAGE);
 		return 0;
+	}
+
+	if (command === 'init') {
+		const { values, flags, error } = parseFlags(rest, ['--dir'], ['--sveltekit', '--astro']);
+		const both = flags.has('--sveltekit') && flags.has('--astro');
+		if (error !== null || both) {
+			io.err(error ?? '--sveltekit and --astro cannot be combined.');
+			io.err(USAGE);
+			return 2;
+		}
+		const framework = flags.has('--astro')
+			? 'astro'
+			: flags.has('--sveltekit')
+				? 'sveltekit'
+				: undefined;
+		return init(values['--dir'] ?? '.', framework, io);
 	}
 
 	if (command === 'doctor') {

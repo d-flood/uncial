@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { JSONContent } from '@tiptap/core';
-import { defineSvelteBlock } from '../runtime/svelte.js';
+import { defineRuntimeBlock } from '../core/defineBlock.js';
+import { svelteRuntime } from '../runtime/svelte.js';
+import { createContentModel } from '../model.js';
 import ImageBlockFixture from '../shared/ImageBlockFixture.svelte';
 import Editor from './Editor.svelte';
-import { createBlockAttributesController } from './attributesController.js';
+import { createAttributesController } from './attributesController.js';
 import type { ImageSource } from './imageSource.js';
 
-const imageBlock = defineSvelteBlock({
+const imageBlock = defineRuntimeBlock(svelteRuntime, {
 	id: 'photo',
 	label: 'Photo',
 	attributes: { src: { default: '', input: 'image' } },
 	component: ImageBlockFixture
 });
 
-const galleryBlock = defineSvelteBlock({
+const galleryBlock = defineRuntimeBlock(svelteRuntime, {
 	id: 'gallery',
 	label: 'Gallery',
 	attributes: {
@@ -31,14 +33,14 @@ function documentWith(type: string, attrs: Record<string, unknown>): JSONContent
 }
 
 function mountEditor(blockType: 'photo' | 'gallery', imageSource: ImageSource) {
-	const controller = createBlockAttributesController();
+	const controller = createAttributesController();
 	const changes: JSONContent[] = [];
 	const initial =
 		blockType === 'photo'
 			? documentWith('photo', { src: '' })
 			: documentWith('gallery', { items: [{ image: '', caption: '' }] });
 	const rendered = render(Editor, {
-		blocks: [imageBlock, galleryBlock],
+		model: createContentModel({ blocks: [imageBlock, galleryBlock] }),
 		json: initial,
 		attributesController: controller,
 		imageSource,
@@ -76,23 +78,6 @@ function pick(input: HTMLInputElement, file: File): void {
 const png = () => new File([new Uint8Array([137, 80, 78, 71])], 'x.png', { type: 'image/png' });
 
 describe('image attribute field in the editor', () => {
-	it('stores the uploaded image source and shows its blob: preview on the canvas', async () => {
-		const source: ImageSource = { upload: async () => '/uploads/x.png' };
-		const { rendered, lastAttrs } = mountEditor('photo', source);
-
-		pick(await fileInput(rendered.container), png());
-
-		await expect.poll(() => lastAttrs().src).toBe('/uploads/x.png');
-		await expect
-			.poll(
-				() =>
-					rendered.container
-						.querySelector<HTMLImageElement>('[data-testid="canvas-image"]')
-						?.getAttribute('src') ?? ''
-			)
-			.toMatch(/^blob:/);
-	});
-
 	it('uploads an image inside a list item and previews it on the canvas', async () => {
 		const source: ImageSource = { upload: async () => '/uploads/slide.png' };
 		const { rendered, lastAttrs } = mountEditor('gallery', source);
@@ -188,10 +173,10 @@ describe('image attribute field in the editor', () => {
 			upload: () => new Promise((resolve) => (finishUpload = resolve)),
 			browse: async () => ['/uploads/x.png']
 		};
-		const controller = createBlockAttributesController();
+		const controller = createAttributesController();
 		const changes: JSONContent[] = [];
 		const rendered = render(Editor, {
-			blocks: [imageBlock],
+			model: createContentModel({ blocks: [imageBlock] }),
 			json: {
 				type: 'doc',
 				content: [

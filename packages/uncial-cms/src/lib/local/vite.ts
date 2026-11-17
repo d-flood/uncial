@@ -16,6 +16,8 @@ export interface LocalVitePluginOptions {
 	permittedRoots: Array<string | { path: string; local: string }>;
 	/** Vite `server.host`; defaults to loopback because the endpoint has no auth. */
 	host?: string | boolean;
+	/** Called after a write or delete under a permitted root succeeds. */
+	onWrite?: () => void;
 }
 
 /**
@@ -92,7 +94,7 @@ function resolveRoots({ root, permittedRoots }: LocalVitePluginOptions): Roots {
 	};
 }
 
-function contains(directory: string, target: string): boolean {
+export function contains(directory: string, target: string): boolean {
 	const from = relative(directory, target);
 	return from === '' || (!from.startsWith(`..${sep}`) && from !== '..' && !isAbsolute(from));
 }
@@ -311,13 +313,17 @@ export function createLocalVitePlugin(options: LocalVitePluginOptions): Plugin {
 					return;
 				}
 				const encodedPath = path.slice((isDirectory ? directoryPrefix : filePrefix).length);
-				void handler(request, response, roots, encodedPath).catch((error) => {
-					if (error instanceof HttpError) {
-						sendJson(response, error.status, { ...error.detail, error: error.message });
-						return;
-					}
-					next(error);
-				});
+				void handler(request, response, roots, encodedPath)
+					.then(() => {
+						if (request.method !== 'POST') options.onWrite?.();
+					})
+					.catch((error) => {
+						if (error instanceof HttpError) {
+							sendJson(response, error.status, { ...error.detail, error: error.message });
+							return;
+						}
+						next(error);
+					});
 			});
 		}
 	};

@@ -1,32 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { mountEditorPage, type MountEditorPageOptions } from '../mount.js';
-	import { cmsImageSource } from '../image-source.js';
+	import { mountEditor, type MountEditorOptions } from '../mount.js';
 	import { SignedOutError } from '../errors.js';
 	import type { DashboardAction } from './types.js';
 
 	let {
 		options,
-		basePath,
-		staticDir,
 		can,
 		onsignedout
 	}: {
-		options: MountEditorPageOptions;
-		basePath: string;
-		staticDir?: string;
+		options: MountEditorOptions;
 		can: (action: DashboardAction, subject?: unknown) => boolean;
 		onsignedout: (reason: string) => void;
 	} = $props();
 
 	let target: HTMLDivElement;
-	let handle: ReturnType<typeof mountEditorPage> | undefined;
+	let handle: ReturnType<typeof mountEditor> | undefined;
 
 	onMount(() => {
-		const source = cmsImageSource(options.config, { base: basePath, staticDir });
-		handle = mountEditorPage(target, {
+		const images = options.site.media;
+		const files = options.site.files;
+		const upload = can('media-upload');
+		handle = mountEditor(target, {
 			...options,
-			imageSource: { ...source, upload: can('media-upload') ? source.upload : undefined },
+			imageSource: { ...images, upload: upload ? images.upload : undefined },
+			fileSource: { ...files, upload: upload ? files.upload : undefined },
 			onerror: (error) => {
 				if (error instanceof SignedOutError) onsignedout(error.message);
 			}

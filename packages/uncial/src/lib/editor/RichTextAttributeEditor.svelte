@@ -14,7 +14,11 @@
 	import TextStrikethroughIcon from 'phosphor-svelte/lib/TextStrikethroughIcon';
 	import { untrack } from 'svelte';
 	import type { PMDoc } from '../shared/document.js';
-	import { coerceRichTextDocument, resolveRichTextFeatures } from '../shared/richText.js';
+	import {
+		coerceRichTextDocument,
+		filterRichTextNodes,
+		resolveRichTextFeatures
+	} from '../shared/richText.js';
 	import { createRichTextExtensions } from '../shared/tiptap.js';
 	import type { RichTextFeature, RichTextFeatureSelection } from '../core/types.js';
 	import { richTextAttributeToolbarFeatures, type ToolbarFeature } from './toolbarFeatures.js';
@@ -23,6 +27,8 @@
 		value?: unknown;
 		features?: RichTextFeatureSelection;
 		placeholder?: string;
+		/** Drawn as the reader sees it, with its toolbar shown only while focused. */
+		inline?: boolean;
 		onChange: (value: PMDoc) => void;
 	}
 
@@ -30,6 +36,7 @@
 		value = undefined,
 		features = undefined,
 		placeholder = 'Write rich text...',
+		inline = false,
 		onChange
 	}: Props = $props();
 
@@ -76,6 +83,11 @@
 		return editor ? { editor } : null;
 	});
 
+	function supported(value: unknown): PMDoc {
+		const coerced = coerceRichTextDocument(value);
+		return { ...coerced, content: filterRichTextNodes(coerced.content, resolvedFeatures) };
+	}
+
 	function emitChange(nextEditor: Editor): void {
 		const json = nextEditor.getJSON() as PMDoc;
 		lastJson = JSON.stringify(json);
@@ -109,7 +121,7 @@
 	$effect(() => {
 		if (!element) return;
 
-		const initialContent = untrack(() => coerceRichTextDocument(value));
+		const initialContent = untrack(() => supported(value));
 		lastJson = JSON.stringify(initialContent);
 		const nextEditor = new Editor({
 			element,
@@ -136,7 +148,7 @@
 
 	$effect(() => {
 		if (!editor) return;
-		const nextContent = coerceRichTextDocument(value);
+		const nextContent = supported(value);
 		const nextJson = JSON.stringify(nextContent);
 		if (nextJson === lastJson) return;
 		lastJson = nextJson;
@@ -144,7 +156,11 @@
 	});
 </script>
 
-<div class="uncial-richtext-wrapper">
+<!-- Makes the field its own editing host inside a container Block's editable content. -->
+<div
+	class={['uncial-richtext-wrapper', inline && 'uncial-richtext-wrapper--inline']}
+	contenteditable="false"
+>
 	<div class="uncial-richtext-toolbar">
 		{#each visibleFeatures as feature (feature.id)}
 			{@const context = toolbarContext}

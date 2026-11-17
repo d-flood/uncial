@@ -1,5 +1,5 @@
 /**
- * `uncial-cms/nav` — grouped, ordered site navigation from Content documents'
+ * `buildNav` — grouped, ordered site navigation from Content documents'
  * `navGroup`, `navOrder` and `navLabel` meta. Pure: safe in any bundle.
  */
 

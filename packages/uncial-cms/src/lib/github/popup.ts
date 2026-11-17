@@ -51,9 +51,7 @@ function waitForRelay(workerOrigin: string, popup: Window): Promise<RelayedAuth>
 export const popupSessionProvider: SessionProvider = async (config) => {
 	const githubConfig = config as GitHubSiteConfig;
 	if (!githubConfig.authWorkerUrl) {
-		throw new Error(
-			'config.authWorkerUrl is not set; configure the auth worker or use patSessionProvider.'
-		);
+		throw new Error('config.authWorkerUrl is not set; configure the auth worker.');
 	}
 	const workerBase = githubConfig.authWorkerUrl.replace(/\/+$/, '');
 	const workerOrigin = new URL(workerBase).origin;

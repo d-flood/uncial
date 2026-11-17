@@ -1,25 +1,9 @@
-// Demo site config, baked at build time (PRD D9). The demo edits this
-// repository itself: saves commit to packages/uncial-cms/content/ on main.
-import { createBlockRegistry, createSchema } from 'uncial/core';
-import type { UncialCmsSiteConfig } from '$lib/types.js';
-
-export const siteConfig: UncialCmsSiteConfig = {
-	forge: 'github',
-	repo: 'd-flood/uncial',
-	branch: 'main',
-	contentDir: 'packages/uncial-cms/content',
-	authWorkerUrl: 'https://uncial-cms-auth.dflood.workers.dev',
-	appSlug: 'uncial-cms',
-	mediaDir: 'packages/uncial-cms/static/uploads'
-};
-
-export const blocks = createBlockRegistry([]);
-
-export const schema = createSchema(blocks, {
-	metaFields: {
-		title: { default: 'Untitled page', required: true }
-	}
-});
+// The demo's Site object. It edits this repository itself: saves commit to
+// packages/uncial-cms/content/ and packages/uncial-cms/states/ on main.
+import { base } from '$app/paths';
+import { defineMark } from 'uncial';
+import { defineSite } from '$lib/index.js';
+import SmallCaps from './SmallCaps.svelte';
 
 const sitePath = (value: unknown) => typeof value === 'string' && value.startsWith('/');
 const link = {
@@ -30,10 +14,17 @@ const link = {
 	}
 };
 
-export const globals = {
-	footer: {
-		...createSchema(blocks, {
-			metaFields: {
+const siteOptions = {
+	contentDir: 'packages/uncial-cms/content',
+	// The same dir relative to the package root, where vite runs.
+	localContentDir: 'content',
+	staticDir: 'packages/uncial-cms/static',
+	mediaDir: 'packages/uncial-cms/static/uploads',
+	github: { repo: 'd-flood/uncial', branch: 'main' },
+	globals: {
+		footer: {
+			label: 'Site footer',
+			meta: {
 				note: { default: '' },
 				columns: {
 					default: [],
@@ -46,13 +37,27 @@ export const globals = {
 					}
 				}
 			}
-		}),
-		title: 'Site footer'
+		}
+	},
+	collections: {
+		states: {
+			dir: 'packages/uncial-cms/states',
+			label: 'States',
+			meta: { name: { default: '', required: true }, capital: { default: '' } }
+		}
 	}
 };
 
-// FS location of the content dir at build time, relative to the package root
-// (vite runs from there). config.contentDir is the same dir repo-root-relative.
-export const localContentDir = 'content';
-
-export const staticDir = 'packages/uncial-cms/static';
+export const site = defineSite(siteOptions, {
+	base,
+	blocks: [],
+	marks: [
+		defineMark({
+			id: 'smallCaps',
+			extension: () => import('./small-caps.js'),
+			component: SmallCaps,
+			toolbar: { label: 'Small caps' }
+		})
+	],
+	meta: { title: { default: 'Untitled page', required: true } }
+});

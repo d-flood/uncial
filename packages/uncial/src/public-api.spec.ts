@@ -1,65 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import {
-	CURRENT_DOCUMENT_VERSION,
-	Editor,
-	Renderer,
-	bindEditor,
-	createBlockAttributesController,
-	createDocumentMetaController,
-	createBlockRegistry,
-	createSchema,
-	defineSvelteBlock,
-	normalizeDocument,
-	normalizeMeta
-} from './lib/index.js';
-import type { Component } from 'svelte';
 
-const Dummy = (() => ({})) as unknown as Component<Record<string, unknown>>;
+const valueExports = async (entry: Promise<Record<string, unknown>>) =>
+	Object.keys(await entry).sort();
 
 describe('public api', () => {
-	it('exports a usable block workflow from the package root', () => {
-		const callout = defineSvelteBlock({
-			id: 'callout',
-			label: 'Callout',
-			attributes: {
-				title: '',
-				featured: false,
-				count: 0
-			},
-			component: Dummy
-		});
-
-		const registry = createBlockRegistry([callout]);
-		const schema = createSchema(registry);
-		const controller = createBlockAttributesController();
-		const normalized = normalizeDocument(
-			{
-				type: 'doc',
-				content: [{ type: 'callout', attrs: { title: 'Hello', featured: 'true', count: '2' } }]
-			},
-			registry,
-			schema
-		);
-
-		expect(controller).toHaveProperty('commit');
-		expect(normalized.version).toBe(CURRENT_DOCUMENT_VERSION);
-		expect(Editor).toBeTruthy();
-		expect(Renderer).toBeTruthy();
-		expect(bindEditor).toBeTypeOf('function');
-		expect(createDocumentMetaController).toBeTypeOf('function');
-		expect(normalizeMeta).toBeTypeOf('function');
-		expect(normalized.content?.[0]?.attrs).toMatchObject({
-			title: 'Hello',
-			featured: true,
-			count: 2
-		});
-		expect(normalized.content?.[0]?.attrs).toHaveProperty('id', expect.any(String));
-	});
-
-	it('exposes the web component entrypoint', async () => {
-		const webComponents = await import('./lib/web-components/index.js');
-
-		expect(webComponents.UncialEditor).toBeTruthy();
-		expect(webComponents.UncialRenderer).toBeTruthy();
+	it('exports exactly the documented names from each entry point', async () => {
+		expect(await valueExports(import('./lib/index.js'))).toEqual([
+			'Image',
+			'Page',
+			'Renderer',
+			'RichText',
+			'Text',
+			'createContentModel',
+			'defaultToolbar',
+			'defineBlock',
+			'defineMark',
+			'defineRuntimeBlock',
+			'defineTemplate',
+			'getBlock',
+			'normalizeDocument',
+			'resolveImageSrc',
+			'toHtml',
+			'toPlainText',
+			'validateDocument'
+		]);
+		expect(await valueExports(import('./lib/editor/index.js'))).toEqual([
+			'BlockAttributesPanel',
+			'DocumentMetaPanel',
+			'Editor',
+			'Toolbar',
+			'bindEditor'
+		]);
+		expect(await valueExports(import('./lib/web-components/index.js'))).toEqual([
+			'UncialEditorElement',
+			'UncialRendererElement'
+		]);
+		expect(await valueExports(import('./lib/internal.js'))).toEqual([
+			'AttributeFieldControl',
+			'UncialElement',
+			'createMetaController'
+		]);
 	});
 });

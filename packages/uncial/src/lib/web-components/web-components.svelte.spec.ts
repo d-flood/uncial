@@ -2,13 +2,20 @@ import { userEvent } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import './index.js';
 import type { UncialEditorElement, UncialRendererElement } from './index.js';
+import { createContentModel } from '../model.js';
+
+const model = createContentModel({ blocks: [] });
 
 function createEditorElement(): UncialEditorElement & HTMLElement {
-	return document.createElement('uncial-editor') as UncialEditorElement & HTMLElement;
+	const element = document.createElement('uncial-editor') as UncialEditorElement & HTMLElement;
+	element.model = model;
+	return element;
 }
 
 function createRendererElement(): UncialRendererElement & HTMLElement {
-	return document.createElement('uncial-renderer') as UncialRendererElement & HTMLElement;
+	const element = document.createElement('uncial-renderer') as UncialRendererElement & HTMLElement;
+	element.model = model;
+	return element;
 }
 
 async function mountEditor(element: UncialEditorElement & HTMLElement): Promise<HTMLElement> {
@@ -53,11 +60,6 @@ describe('web components', () => {
 			issues.push(event as CustomEvent);
 		});
 		Object.assign(element, {
-			schema: {
-				allowedBlocks: new Set(),
-				allowedMarks: new Set(),
-				metaFields: new Map()
-			},
 			content: {
 				type: 'doc',
 				content: [{ type: 'unknownBlock' }]
@@ -148,17 +150,17 @@ describe('web components', () => {
 		element.remove();
 	});
 
-	it('threads metaFields, emits uncial-meta-change, and reflects committed meta', async () => {
+	it('threads meta fields, emits uncial-meta-change, and reflects committed meta', async () => {
 		const element = createEditorElement();
 		const metaChanges: CustomEvent[] = [];
 		element.addEventListener('uncial-meta-change', (event) => {
 			metaChanges.push(event as CustomEvent);
 		});
-		element.metaFields = { title: { default: '' } };
+		element.model = createContentModel({ blocks: [], meta: { title: { default: '' } } });
 
 		await mountEditor(element);
 
-		// metaFields flows through to the editor, rendering the metadata dropdown.
+		// The model's meta fields flow through to the editor, rendering the metadata dropdown.
 		expect(
 			element.shadowRoot?.querySelector('summary[aria-label="Edit document metadata"]')
 		).toBeTruthy();
@@ -187,7 +189,7 @@ describe('web components', () => {
 
 	it('keeps a dropdown open when interacting inside it within the shadow root', async () => {
 		const element = createEditorElement();
-		element.metaFields = { title: { default: '' } };
+		element.model = createContentModel({ blocks: [], meta: { title: { default: '' } } });
 		await mountEditor(element);
 
 		const summary = element.shadowRoot?.querySelector<HTMLElement>(

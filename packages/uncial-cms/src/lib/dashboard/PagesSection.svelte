@@ -2,10 +2,12 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { Collections } from '../define-site.js';
 	import { SignedOutError } from '../errors.js';
 	import { draftBranch, type DraftForge } from '../github/drafts.js';
 	import { createPage, deletePage, listPages } from '../index-actions.js';
 	import { validatePagePath } from '../paths/index.js';
+	import { isCollectionSource } from '../record-paths.js';
 	import type { ServerForgeAdapter } from '../server-forge/adapter.js';
 	import { describeContentStatus } from '../server-forge/protocol.js';
 	import type { ForgeAdapter, ForgeSession, UncialCmsSiteConfig } from '../types.js';
@@ -25,9 +27,9 @@
 		adapter: ForgeAdapter;
 		session: ForgeSession;
 		blocks: unknown;
+		collections: Collections;
 		schemaFor: (pagePath: string) => unknown;
 		sourceFor: (pagePath: string) => string;
-		mapSourceToPath?: (source: string) => string;
 		basePath: string;
 		editorHref?: (pagePath: string) => string;
 		branchLabel: string;
@@ -43,9 +45,9 @@
 		adapter,
 		session,
 		blocks,
+		collections,
 		schemaFor,
 		sourceFor,
-		mapSourceToPath,
 		basePath,
 		editorHref,
 		branchLabel,
@@ -94,17 +96,22 @@
 	const editUrl = (pagePath: string) =>
 		editorHref?.(pagePath) || hashForRoute({ section: 'edit', pagePath });
 
+	const isPage = (source: string) => !isCollectionSource({ config, collections }, source);
+	const collectionDirs = $derived(Object.values(collections).map(({ dir }) => dir));
+
 	async function refresh() {
 		try {
 			pages =
 				config.forge === 'server'
-					? (await (adapter as ServerForgeAdapter).list()).map((record) => ({
-							pagePath: mapSourceToPath?.(record.path) ?? record.path.replace(/^\/+|\/+$/g, ''),
-							sourcePath: record.path,
-							title: record.title,
-							kind: record.kind,
-							status: record.status
-						}))
+					? (await (adapter as ServerForgeAdapter).list())
+							.filter((record) => isPage(record.path))
+							.map((record) => ({
+								pagePath: record.path.replace(/^\/+|\/+$/g, ''),
+								sourcePath: record.path,
+								title: record.title,
+								kind: record.kind,
+								status: record.status
+							}))
 					: await listForgePages(config.contentDir);
 			listError = '';
 		} catch (error) {
@@ -119,7 +126,7 @@
 				: []
 		);
 		return Promise.all(
-			(await listPages(adapter, contentDir, mapSourceToPath)).map(async (page) => {
+			(await listPages(adapter, contentDir, collectionDirs)).map(async (page) => {
 				const { content } = await adapter.readFile(page.sourcePath);
 				const { meta } = JSON.parse(content) as { meta?: { title?: unknown } };
 				return {
@@ -136,6 +143,10 @@
 		const result = validatePagePath(path);
 		if (!result.ok) {
 			createError = result.message;
+			return;
+		}
+		if (!isPage(sourceFor(result.path))) {
+			createError = `/${result.path}/ is inside a Collection; create its records from that Collection.`;
 			return;
 		}
 		if (!can('create', result.path)) {

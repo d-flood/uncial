@@ -17,20 +17,13 @@ const config = {
 			'uncial/styles/chrome.css': '../uncial/src/lib/styles/chrome.css',
 			'uncial/styles/chrome': '../uncial/src/lib/styles/chrome.css',
 			'uncial/styles': '../uncial/src/lib/styles/index.css',
-			'uncial/core': '../uncial/src/lib/core/index.ts',
-			'uncial/render': '../uncial/src/lib/render/index.ts',
 			'uncial/editor': '../uncial/src/lib/editor/index.ts',
-			'uncial/runtime/svelte': '../uncial/src/lib/runtime/svelte.ts',
 			'uncial/web-components': '../uncial/src/lib/web-components/index.ts',
+			'uncial/internal': '../uncial/src/lib/internal.ts',
 			uncial: '../uncial/src/lib/index.ts',
 			'uncial-cms/sveltekit': '../uncial-cms/src/lib/sveltekit/index.ts',
 			'uncial-cms/svelte': '../uncial-cms/src/lib/svelte/index.ts',
-			'uncial-cms/dashboard': '../uncial-cms/src/lib/dashboard/element.ts',
-			'uncial-cms/session': '../uncial-cms/src/lib/editor-session.ts',
-			'uncial-cms/paths': '../uncial-cms/src/lib/paths/index.ts',
 			'uncial-cms/vite': '../uncial-cms/src/lib/vite/index.ts',
-			'uncial-cms/github': '../uncial-cms/src/lib/github/index.ts',
-			'uncial-cms/local': '../uncial-cms/src/lib/local/index.ts',
 			'uncial-cms': '../uncial-cms/src/lib/index.ts'
 		},
 		// Fully prerendered docs site; no fallback — every route is static.
@@ -42,13 +35,6 @@ const config = {
 		}),
 		paths: {
 			base: process.argv.includes('dev') ? '' : (process.env.BASE_PATH ?? '')
-		},
-		prerender: {
-			// In-page TOC anchors target heading ids that the reader page assigns on
-			// hydration (uncial's SSR renderer emits headings without ids, and reader
-			// pages carry no editor JS to change that at build time). The prerenderer
-			// can't see those ids in the static HTML, so don't fail the build on them.
-			handleMissingId: 'ignore'
 		}
 	}
 };

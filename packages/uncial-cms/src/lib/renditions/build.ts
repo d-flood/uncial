@@ -6,7 +6,7 @@ import { mkdir, rename, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type sharpType from 'sharp';
 import type { FormatEnum } from 'sharp';
-import type { AttributeSpec, BlockRegistry, ImageValue, RenditionSpec } from 'uncial/core';
+import type { AttributeSpec, BlockRegistry, ImageValue, RenditionSpec } from 'uncial';
 import { mediaPath, planRenditions, type PlannedRendition } from './plan.js';
 
 export interface RenditionJob {
@@ -84,6 +84,7 @@ export interface WriteRenditionsOptions {
 
 // Pages prerender concurrently and share images; one write per file at a time.
 const pending = new Map<string, Promise<boolean>>();
+const warned = new Set<string>();
 
 async function exists(path: string): Promise<boolean> {
 	try {
@@ -98,7 +99,7 @@ async function loadSharp(): Promise<typeof sharpType> {
 	try {
 		return (await import('sharp')).default;
 	} catch {
-		throw new Error('uncial-cms/renditions/build needs `sharp`: install it alongside uncial-cms.');
+		throw new Error('Writing renditions needs `sharp`: install it alongside uncial-cms.');
 	}
 }
 
@@ -141,7 +142,7 @@ async function writeOne(
 /**
  * Write every rendition `jobs` need into `<outDir>/r/`, skipping files already
  * there: a name hashes the source and every parameter, so it never goes stale.
- * Answers the paths written. A missing original is warned about and skipped.
+ * Answers the paths written. A missing original is warned about once and skipped.
  */
 export async function writeRenditions(
 	jobs: RenditionJob[],
@@ -155,6 +156,8 @@ export async function writeRenditions(
 		if (path === null) continue;
 		const source = join(opts.sourceDir, path);
 		if (!(await exists(source))) {
+			if (warned.has(source)) continue;
+			warned.add(source);
 			console.warn(`uncial-cms: no original for ${src} at ${source}; skipping its renditions.`);
 			continue;
 		}

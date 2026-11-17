@@ -2,16 +2,13 @@
 
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { resolveImageSrc } from 'uncial/render';
-	import { serverMediaSource, type MediaItem, type MediaSource } from '../media-source.js';
-	import type { Action } from '../server-forge/protocol.js';
+	import { resolveImageSrc } from 'uncial';
+	import type { MediaItem, MediaSource } from '../media-source.js';
 
 	type MediaAction = 'media-upload' | 'media-delete';
 
 	interface Props {
-		source?: MediaSource;
-		/** @deprecated Pass `source`; this builds the `server` forge's source over its `mediaApiBase`. */
-		apiBase?: string;
+		source: MediaSource;
 		can?: (action: MediaAction, item?: MediaItem) => boolean;
 		confirmDelete?: (item: MediaItem) => Promise<boolean>;
 		/** The site's base path, for previewing the base-less URLs a git forge's items carry. */
@@ -19,15 +16,9 @@
 		onerror?: (error: unknown) => void;
 	}
 
-	let { source, apiBase, can, confirmDelete, base = '', onerror }: Props = $props();
+	let { source, can, confirmDelete, base = '', onerror }: Props = $props();
 
-	let allowed = $state<Action[]>([]);
-	const media = $derived.by(() => {
-		if (source) return source;
-		if (!apiBase) throw new Error('MediaLibrary needs a `source`.');
-		return serverMediaSource(apiBase, (next) => (allowed = next));
-	});
-	const capabilities = $derived(media.capabilities);
+	const capabilities = $derived(source.capabilities);
 
 	let search = $state('');
 	let items = $state<MediaItem[] | undefined>(undefined);
@@ -37,9 +28,7 @@
 	let section = $state<HTMLElement>();
 	let request = 0;
 
-	// Under the deprecated `apiBase`, the server's own answer of what the user may do.
-	const may = (action: MediaAction, item?: MediaItem) =>
-		can ? can(action, item) : source !== undefined || allowed.includes(action);
+	const may = (action: MediaAction, item?: MediaItem) => can?.(action, item) ?? true;
 	const message = (reason: unknown) => {
 		onerror?.(reason);
 		return reason instanceof Error ? reason.message : String(reason);
@@ -53,7 +42,7 @@
 	async function load() {
 		const current = ++request;
 		try {
-			const next = await media.list(capabilities.search ? { search: search.trim() } : {});
+			const next = await source.list(capabilities.search ? { search: search.trim() } : {});
 			if (current === request) items = next;
 		} catch (reason) {
 			if (current === request) error = message(reason);
@@ -66,7 +55,7 @@
 		try {
 			for (const file of files) {
 				try {
-					await media.upload(file);
+					await source.upload(file);
 				} catch (reason) {
 					error = `${file.name}: ${message(reason)}`;
 				} finally {
@@ -82,7 +71,7 @@
 		error = '';
 		try {
 			if (!(await ask(item))) return;
-			await media.delete(item);
+			await source.delete(item);
 		} catch (reason) {
 			error = message(reason);
 			await load();

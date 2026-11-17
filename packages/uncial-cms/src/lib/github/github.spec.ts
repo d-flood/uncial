@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createGitHubAdapter } from './index.js';
+import { createGitHubAdapter } from './adapter.js';
 import { ConflictError } from '../errors.js';
 import type { ForgeSession, SessionProvider, UncialCmsSiteConfig } from '../types.js';
 

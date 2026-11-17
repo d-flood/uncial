@@ -10,7 +10,8 @@
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "one-library-every-forge"
 			},
 			"content": [
 				{
@@ -24,7 +25,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "The Dashboard's Media section and the editor's image picker show the same media, because both read it through a "
+					"text": "The Dashboard's Media section and the editor's image and file fields read media through one "
 				},
 				{
 					"type": "text",
@@ -37,7 +38,33 @@
 				},
 				{
 					"type": "text",
-					"text": ": one interface, with an implementation for git forges and one for the server forge. An image uploaded in the Media section is waiting in the picker's Choose existing list, and the other way round."
+					"text": ", so an upload in either place shows up in the other. The Site object derives it from the site options, "
+				},
+				{
+					"type": "text",
+					"text": "staticDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "base",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
 				}
 			]
 		},
@@ -71,7 +98,7 @@
 				},
 				{
 					"type": "text",
-					"text": " always has an "
+					"text": " has an "
 				},
 				{
 					"type": "text",
@@ -123,85 +150,7 @@
 				},
 				{
 					"type": "text",
-					"text": ". Depending on the source it may also carry a "
-				},
-				{
-					"type": "text",
-					"text": "size",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", "
-				},
-				{
-					"type": "text",
-					"text": "width",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and "
-				},
-				{
-					"type": "text",
-					"text": "height",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", a "
-				},
-				{
-					"type": "text",
-					"text": "title",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", "
-				},
-				{
-					"type": "text",
-					"text": "uploadedAt",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and "
-				},
-				{
-					"type": "text",
-					"text": "uploadedBy",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", and "
+					"text": ", and may carry size, dimensions, title, uploader and "
 				},
 				{
 					"type": "text",
@@ -214,7 +163,7 @@
 				},
 				{
 					"type": "text",
-					"text": ": the pages that use it. The "
+					"text": ". Its "
 				},
 				{
 					"type": "text",
@@ -227,41 +176,7 @@
 				},
 				{
 					"type": "text",
-					"text": " is what a Content document stores as an image's "
-				},
-				{
-					"type": "text",
-					"text": "src",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": "."
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Capabilities"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "A source's "
+					"text": " is what a document stores. The Media section shows only what "
 				},
 				{
 					"type": "text",
@@ -274,120 +189,15 @@
 				},
 				{
 					"type": "text",
-					"text": " say what it can do, and the Media section shows only that:"
-				}
-			]
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "metadata",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ": items carry a title, size and dimensions, which the grid shows."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "usage",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ": items list the Content documents that use them."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "delete",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ": items can be deleted."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "search",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ": the list can be searched, so the Media section shows a search box."
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The two sources differ in exactly these flags."
+					"text": " allow."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "git-forges-the-media-dir"
 			},
 			"content": [
 				{
@@ -401,7 +211,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "On the github and local forges, media is the files in the site's "
+					"text": "On the github and local forges, media is the files in "
 				},
 				{
 					"type": "text",
@@ -414,11 +224,11 @@
 				},
 				{
 					"type": "text",
-					"text": ", committed like any other file. The source lists, uploads and deletes them through the same forge as pages, so a site that has "
+					"text": ", committed like pages. Capabilities: "
 				},
 				{
 					"type": "text",
-					"text": "mediaDir",
+					"text": "{ metadata: false, usage: false, delete: true, search: false }",
 					"marks": [
 						{
 							"type": "code"
@@ -427,7 +237,7 @@
 				},
 				{
 					"type": "text",
-					"text": " in its site options needs nothing more."
+					"text": "."
 				}
 			]
 		},
@@ -451,7 +261,7 @@
 								},
 								{
 									"type": "text",
-									"text": " shrinks a large photo to WebP until it fits the forge's 1 MB limit, then commits it under a name made from a hash of its bytes. Uploading the same image twice reuses the file already there."
+									"text": " shrinks a large photo to WebP until it fits, and commits it under a hash of its bytes, so the same image uploaded twice is one file."
 								}
 							]
 						}
@@ -474,7 +284,7 @@
 								},
 								{
 									"type": "text",
-									"text": " is a commit that removes the file."
+									"text": " is a commit. The Media section first scans the documents for the file's URL and lists any page that uses it."
 								}
 							]
 						}
@@ -497,30 +307,7 @@
 								},
 								{
 									"type": "text",
-									"text": " A git source keeps no titles and no sidecar files. Alt text belongs on the image block that uses the file, where it can say what the image means on that page."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "No usage index.",
-									"marks": [
-										{
-											"type": "bold"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " Before a delete, the Media section reads the site's Content documents once, looking for the file's served URL. If any page uses it, the confirmation lists those pages and its button reads Delete anyway."
+									"text": " Alt text belongs on the Block that uses the image."
 								}
 							]
 						}
@@ -533,11 +320,33 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Its capabilities are "
+					"text": "A new upload is not served until the site redeploys, so the editor shows it from a local copy until then. The stored URL is always the real one."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "media-outside-the-static-dir"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Media outside the static dir"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "With "
 				},
 				{
 					"type": "text",
-					"text": "{ metadata: false, usage: false, delete: true, search: false }",
+					"text": "mediaDir",
 					"marks": [
 						{
 							"type": "code"
@@ -546,70 +355,114 @@
 				},
 				{
 					"type": "text",
-					"text": "."
+					"text": " outside the static dir and a "
+				},
+				{
+					"type": "text",
+					"text": "mediaUrlPrefix",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", the Vite plugin serves the media at "
+				},
+				{
+					"type": "text",
+					"text": "mediaUrlPrefix",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", under the base, in development and ships it in the build. "
+				},
+				{
+					"type": "text",
+					"text": "localMediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " overrides where "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " sits on disk."
 				}
 			]
 		},
 		{
-			"type": "callout",
+			"type": "codeBlock",
 			"attrs": {
-				"variant": "note"
+				"language": "ts"
 			},
 			"content": [
 				{
-					"type": "paragraph",
-					"content": [
+					"type": "text",
+					"text": "// vite.config.ts\nplugins: [...uncialCms(siteOptions, { site: 'src/lib/site.ts', host: '0.0.0.0' }), sveltekit()]"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Given "
+				},
+				{
+					"type": "text",
+					"text": "site",
+					"marks": [
 						{
-							"type": "text",
-							"text": "The Media section shows a git forge's files at the URLs the built site serves them from. When the build's static dir is not "
-						},
-						{
-							"type": "text",
-							"text": "static",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": ", pass the Dashboard the same "
-						},
-						{
-							"type": "text",
-							"text": "staticDir",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " you give "
-						},
-						{
-							"type": "text",
-							"text": "cmsImageSource",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": ", or its previews and its in-use check will miss."
+							"type": "code"
 						}
 					]
+				},
+				{
+					"type": "text",
+					"text": ", the module exporting the Site object, the plugin also writes the renditions that documents, Globals and Collection records declare: in development after each save, and into the build. It loads sharp only when something declares renditions. "
+				},
+				{
+					"type": "text",
+					"text": "host",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " lets the dev server accept connections from outside a container. The Astro integration takes the same options."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "the-server-forge-the-media-library"
 			},
 			"content": [
 				{
@@ -623,7 +476,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "On the server forge, media lives in the server's Media library, behind the "
+					"text": "On the server forge, media lives in the Media library behind the "
 				},
 				{
 					"type": "text",
@@ -636,7 +489,7 @@
 				},
 				{
 					"type": "text",
-					"text": " endpoint the site declares with "
+					"text": " given to "
 				},
 				{
 					"type": "text",
@@ -649,7 +502,7 @@
 				},
 				{
 					"type": "text",
-					"text": ". The source wraps those endpoints and has every capability. Each item shows its title, filename, dimensions and size, and the pages that use it, and the list can be searched. The server decides what may be deleted. Deleting an item that Content documents still use is refused with "
+					"text": ", with every capability: titles, dimensions, usage and search. Deleting an item still in use is refused with "
 				},
 				{
 					"type": "text",
@@ -662,19 +515,7 @@
 				},
 				{
 					"type": "text",
-					"text": ", and the Media section shows the server's message in an alert rather than deleting anything."
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Permissions"
+					"text": ", and the Media section shows the server's message."
 				}
 			]
 		},
@@ -683,20 +524,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "The Media section asks the Dashboard's "
-				},
-				{
-					"type": "text",
-					"text": "can",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " before it offers Upload, with "
+					"text": "The Media section asks "
 				},
 				{
 					"type": "text",
@@ -709,7 +537,7 @@
 				},
 				{
 					"type": "text",
-					"text": ", and before each Delete, with "
+					"text": " before Upload and "
 				},
 				{
 					"type": "text",
@@ -722,43 +550,15 @@
 				},
 				{
 					"type": "text",
-					"text": ". Without "
-				},
-				{
-					"type": "text",
-					"text": "can",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", both are offered. See "
-				},
-				{
-					"type": "text",
-					"text": "Permissions",
-					"marks": [
-						{
-							"type": "link",
-							"attrs": {
-								"href": "../dashboard/#permissions"
-							}
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": "."
+					"text": " before each Delete."
 				}
 			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "outside-the-dashboard"
 			},
 			"content": [
 				{
@@ -772,32 +572,6 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "mediaSourceFor(config, session, { staticDir })",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", from "
-				},
-				{
-					"type": "text",
-					"text": "uncial-cms",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", picks the source for a site config. The server forge needs only the config. A git forge reaches its media through a signed-in editing session, so it also needs that session's adapter and author. The "
-				},
-				{
-					"type": "text",
 					"text": "MediaLibrary",
 					"marks": [
 						{
@@ -807,7 +581,7 @@
 				},
 				{
 					"type": "text",
-					"text": " component from "
+					"text": " from "
 				},
 				{
 					"type": "text",
@@ -820,7 +594,7 @@
 				},
 				{
 					"type": "text",
-					"text": " is the Media section's grid on its own. Give it a source, "
+					"text": " is the Media section's grid on its own: "
 				},
 				{
 					"type": "text",
@@ -833,11 +607,11 @@
 				},
 				{
 					"type": "text",
-					"text": ", and it shows what that source's capabilities allow. It also takes "
+					"text": ". On the server forge, "
 				},
 				{
 					"type": "text",
-					"text": "can",
+					"text": "mediaSourceFor(site.config)",
 					"marks": [
 						{
 							"type": "code"
@@ -846,11 +620,11 @@
 				},
 				{
 					"type": "text",
-					"text": ", "
+					"text": " builds its source; a git forge's media is reached only through an editing session. The editor's picker reads an "
 				},
 				{
 					"type": "text",
-					"text": "confirmDelete",
+					"text": "ImageSource",
 					"marks": [
 						{
 							"type": "code"
@@ -859,11 +633,11 @@
 				},
 				{
 					"type": "text",
-					"text": " and "
+					"text": " from "
 				},
 				{
 					"type": "text",
-					"text": "base",
+					"text": "uncial/editor",
 					"marks": [
 						{
 							"type": "code"
@@ -872,11 +646,11 @@
 				},
 				{
 					"type": "text",
-					"text": ". The editor's image picker needs no wiring: "
+					"text": ", not a "
 				},
 				{
 					"type": "text",
-					"text": "EditorPage",
+					"text": "MediaSource",
 					"marks": [
 						{
 							"type": "code"
@@ -885,11 +659,11 @@
 				},
 				{
 					"type": "text",
-					"text": ", "
+					"text": ": to filter or add thumbnails, pass one as "
 				},
 				{
 					"type": "text",
-					"text": "mountEditorPage",
+					"text": "media",
 					"marks": [
 						{
 							"type": "code"
@@ -898,11 +672,11 @@
 				},
 				{
 					"type": "text",
-					"text": " and the Astro "
+					"text": ", or a "
 				},
 				{
 					"type": "text",
-					"text": "EditorSurface",
+					"text": "FileSource",
 					"marks": [
 						{
 							"type": "code"
@@ -911,11 +685,11 @@
 				},
 				{
 					"type": "text",
-					"text": " back every "
+					"text": " as "
 				},
 				{
 					"type": "text",
-					"text": "input: 'image'",
+					"text": "files",
 					"marks": [
 						{
 							"type": "code"
@@ -924,11 +698,11 @@
 				},
 				{
 					"type": "text",
-					"text": " field with "
+					"text": ", in the model options to "
 				},
 				{
 					"type": "text",
-					"text": "cmsImageSource",
+					"text": "defineSite",
 					"marks": [
 						{
 							"type": "code"
@@ -937,7 +711,59 @@
 				},
 				{
 					"type": "text",
-					"text": ", which reads through the same Media source on every forge."
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "A Block's own upload flow uses the Media source in its Block context, so no CMS code reaches a Content page:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "const block = getBlock();\n\nasync function upload(file: File) {\n\tconst src = await block.media?.upload?.(file);\n\tif (src) block.update({ src });\n}"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "upload",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " answers the value to store; "
+				},
+				{
+					"type": "text",
+					"text": "media",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " is null outside the editor."
 				}
 			]
 		}

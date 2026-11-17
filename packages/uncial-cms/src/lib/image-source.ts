@@ -1,36 +1,37 @@
 import type { FileSource, ImageSource } from 'uncial/editor';
-import { resolveImageSrc } from 'uncial/render';
-import { mediaSourceFor, type MediaSource } from './media-source.js';
+import { resolveImageSrc } from 'uncial';
+import type { MediaSource } from './media-source.js';
 import type { UncialCmsSiteConfig } from './types.js';
 import { getActiveForge } from './upload-context.js';
 
+async function mediaSource(
+	config: UncialCmsSiteConfig,
+	staticDir: string,
+	what: string
+): Promise<MediaSource> {
+	const { mediaSourceFor } = await import('./media-source.js');
+	if (config.forge === 'server') return mediaSourceFor(config);
+	const forge = getActiveForge();
+	if (!forge) {
+		throw new Error(
+			`No active editor session — open a page in the editor and sign in before choosing or uploading ${what}.`
+		);
+	}
+	return mediaSourceFor(config, forge, { staticDir });
+}
+
 export function cmsImageSource(
 	config: UncialCmsSiteConfig,
-	options: {
-		base?: string;
-		staticDir?: string;
-		list?: () => Promise<string[]>;
-		thumbnail?: (src: string) => string;
-	} = {}
+	options: { base?: string; staticDir?: string } = {}
 ): ImageSource {
-	const { base = '', staticDir = 'static', list } = options;
-	const thumbnail = options.thumbnail ?? ((src: string) => resolveImageSrc(src, base));
+	const { base = '', staticDir = 'static' } = options;
+	const thumbnail = (src: string) => resolveImageSrc(src, base);
 	if (config.forge === 'server' && !config.mediaApiBase) return { thumbnail };
-	const source = (): MediaSource => {
-		if (config.forge === 'server') return mediaSourceFor(config);
-		const forge = getActiveForge();
-		if (!forge) {
-			throw new Error(
-				'No active editor session — open a page in the editor and sign in before choosing or uploading an image.'
-			);
-		}
-		return mediaSourceFor(config, forge, { staticDir });
-	};
+	const source = () => mediaSource(config, staticDir, 'an image');
 	return {
-		upload: async (file) => (await source().upload(file)).url,
-		browse:
-			list ??
-			(async () => (await source().list({ contentType: 'image/*' })).map((item) => item.url)),
+		upload: async (file) => (await (await source()).upload(file)).url,
+		browse: async () =>
+			(await (await source()).list({ contentType: 'image/*' })).map((item) => item.url),
 		thumbnail
 	};
 }
@@ -47,19 +48,10 @@ export function cmsFileSource(
 	const { base = '', staticDir = 'static' } = options;
 	const href = (src: string) => resolveImageSrc(src, base);
 	if (config.forge === 'server' && !config.mediaApiBase) return { href };
-	const source = (): MediaSource => {
-		if (config.forge === 'server') return mediaSourceFor(config);
-		const forge = getActiveForge();
-		if (!forge) {
-			throw new Error(
-				'No active editor session — open a page in the editor and sign in before choosing or uploading a file.'
-			);
-		}
-		return mediaSourceFor(config, forge, { staticDir });
-	};
+	const source = () => mediaSource(config, staticDir, 'a file');
 	return {
 		upload: async (file) => {
-			const item = await source().upload(file);
+			const item = await (await source()).upload(file);
 			return {
 				src: item.url,
 				name: file.name,
@@ -68,7 +60,7 @@ export function cmsFileSource(
 			};
 		},
 		browse: async () =>
-			(await source().list())
+			(await (await source()).list())
 				.filter((item) => !item.contentType.startsWith('image/'))
 				.map((item) => ({
 					src: item.url,

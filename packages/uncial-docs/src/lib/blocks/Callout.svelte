@@ -1,18 +1,30 @@
+<script module lang="ts">
+	import { defineBlock } from 'uncial';
+
+	export const block = defineBlock({
+		id: 'callout',
+		label: 'Callout',
+		description: 'A note, warning, or tip admonition with a rich-text body.',
+		attributes: {
+			variant: {
+				default: 'note',
+				options: [
+					{ value: 'note', label: 'Note' },
+					{ value: 'warning', label: 'Warning' },
+					{ value: 'tip', label: 'Tip' }
+				]
+			}
+		},
+		content: { kind: 'flow' }
+	});
+</script>
+
 <script lang="ts">
-	// Docs Callout: a note/warning/tip admonition. Its body is a flow content
-	// region (rendered via `children`), so authors write ordinary rich text and
-	// nested blocks inside it. Used identically by the SSR renderer (reader pages)
-	// and the editor (editor variants) — one definition, both surfaces.
-	import type { Snippet } from 'svelte';
+	import type { BlockProps } from 'uncial';
 
 	type Variant = 'note' | 'warning' | 'tip';
 
-	interface Props {
-		variant?: string;
-		children?: Snippet;
-	}
-
-	let { variant = 'note', children }: Props = $props();
+	let { variant, children }: BlockProps<typeof block> = $props();
 
 	const key: Variant = $derived(variant === 'warning' || variant === 'tip' ? variant : 'note');
 

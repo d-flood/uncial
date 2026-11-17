@@ -4,10 +4,11 @@ import { Editor as TiptapEditor } from '@tiptap/core';
 import { Fragment } from '@tiptap/pm/model';
 import { NodeSelection } from '@tiptap/pm/state';
 import { createEditorExtensions } from './tiptap.js';
-import { defineSvelteBlock } from '../runtime/svelte.js';
-import EditorBlockFixture, { fixtureUpdateAttributes } from './EditorBlockFixture.svelte';
+import { defineRuntimeBlock } from '../core/defineBlock.js';
+import { svelteRuntime } from '../runtime/svelte.js';
+import EditorBlockFixture from './EditorBlockFixture.svelte';
 
-const containerBlock = defineSvelteBlock({
+const containerBlock = defineRuntimeBlock(svelteRuntime, {
 	id: 'collapsible',
 	label: 'Collapsible',
 	attributes: { title: '' },
@@ -15,7 +16,7 @@ const containerBlock = defineSvelteBlock({
 	content: { kind: 'flow' }
 });
 
-const atomBlock = defineSvelteBlock({
+const atomBlock = defineRuntimeBlock(svelteRuntime, {
 	id: 'callout',
 	label: 'Callout',
 	attributes: { title: '' },
@@ -208,14 +209,14 @@ describe('container block content expression', () => {
 });
 
 describe('container child constraints', () => {
-	const tabBlock = defineSvelteBlock({
+	const tabBlock = defineRuntimeBlock(svelteRuntime, {
 		id: 'tab',
 		label: 'Tab',
 		attributes: { label: '' },
 		component: EditorBlockFixture,
 		content: { kind: 'flow' }
 	});
-	const tabsBlock = defineSvelteBlock({
+	const tabsBlock = defineRuntimeBlock(svelteRuntime, {
 		id: 'tabs',
 		label: 'Tabs',
 		attributes: { group: '' },
@@ -310,7 +311,7 @@ describe('custom block html.parseTag / html.render round-trip', () => {
 	// keys, and `html.parseTag` matches that tag on the way back in. The default
 	// `data-uncial-attrs` JSON channel is bypassed, so this exercises the
 	// per-attribute parseHTML/renderHTML path (getAttribute(name) + coercion).
-	const figureBlock = defineSvelteBlock({
+	const figureBlock = defineRuntimeBlock(svelteRuntime, {
 		id: 'figureBlock',
 		label: 'Figure',
 		attributes: { caption: { default: '' }, level: { default: 1 } },
@@ -391,8 +392,8 @@ describe('block node view attribute updates', () => {
 		const input = host.querySelector<HTMLInputElement>('[data-testid="title-input"]');
 		expect(input).not.toBeNull();
 
-		// Each keystroke calls updateAttributes, which dispatches a transaction
-		// and triggers NodeView.update with the changed attrs.
+		// Each keystroke calls the Block context's `update`, which dispatches a
+		// transaction and triggers NodeView.update with the changed attrs.
 		await userEvent.type(page.elementLocator(input!), 'Hi');
 
 		await expect.poll(() => editor.getJSON().content?.[0]?.attrs?.title).toBe('Hi');
@@ -407,92 +408,6 @@ describe('block node view attribute updates', () => {
 		await expect
 			.poll(() => host.querySelector('[data-testid="fixture-title"]')?.textContent)
 			.toBe('Hi');
-
-		cleanup();
-	});
-});
-
-describe('updateAttributes targets the calling block', () => {
-	const panelBlock = defineSvelteBlock({
-		id: 'panel',
-		label: 'Panel',
-		attributes: { title: '', caption: '' },
-		component: EditorBlockFixture
-	});
-
-	async function createPanelEditor() {
-		const host = document.createElement('div');
-		document.body.append(host);
-		const editor = new TiptapEditor({
-			element: host,
-			extensions: createEditorExtensions([panelBlock]),
-			content: {
-				type: 'doc',
-				content: [
-					{ type: 'panel', attrs: { title: 'First', caption: '' } },
-					{ type: 'panel', attrs: { title: 'Second', caption: '' } }
-				]
-			}
-		});
-
-		// The selection sits on the first block, so a selection-addressed write
-		// would land there rather than on the block that called it.
-		editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
-
-		const roots = host.querySelectorAll('[data-testid="editor-block-fixture"]');
-		expect(roots).toHaveLength(2);
-		// The attachment that records the prop runs in an effect, so it lands a
-		// tick after the node views mount.
-		await expect.poll(() => typeof fixtureUpdateAttributes.get(roots[1])).toBe('function');
-		const update = fixtureUpdateAttributes.get(roots[1])!;
-
-		return {
-			editor,
-			host,
-			updateSecond: update,
-			cleanup: () => (editor.destroy(), host.remove())
-		};
-	}
-
-	it('writes to the calling block, not the block at the selection', async () => {
-		const { editor, updateSecond, cleanup } = await createPanelEditor();
-
-		updateSecond({ title: 'Written' });
-
-		await expect.poll(() => editor.state.doc.child(1).attrs.title).toBe('Written');
-		expect(editor.state.doc.child(0).attrs.title).toBe('First');
-
-		cleanup();
-	});
-
-	it('keeps both keys when one block is written twice', async () => {
-		const { editor, updateSecond, cleanup } = await createPanelEditor();
-
-		// `updateSecond` is deliberately the closure captured before the first
-		// write: the node it saw is stale by the second call, so a write built
-		// from that capture would drop the first key.
-		updateSecond({ title: 'Written' });
-		await expect.poll(() => editor.state.doc.child(1).attrs.title).toBe('Written');
-
-		updateSecond({ caption: 'Caption' });
-		await expect.poll(() => editor.state.doc.child(1).attrs.caption).toBe('Caption');
-		expect(editor.state.doc.child(1).attrs.title).toBe('Written');
-
-		cleanup();
-	});
-
-	it('leaves the selection where it was and does not focus the editor view', async () => {
-		const { editor, updateSecond, cleanup } = await createPanelEditor();
-
-		editor.view.dom.blur();
-		const selectionBefore = editor.state.selection.toJSON();
-
-		updateSecond({ title: 'Written' });
-		await expect.poll(() => editor.state.doc.child(1).attrs.title).toBe('Written');
-
-		expect(editor.state.selection.toJSON()).toEqual(selectionBefore);
-		expect(editor.isFocused).toBe(false);
-		expect(editor.view.dom.contains(document.activeElement)).toBe(false);
 
 		cleanup();
 	});

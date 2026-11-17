@@ -1,12 +1,16 @@
 {
 	"type": "doc",
-	"version": 2,
+	"version": 1,
+	"meta": {
+		"title": "A static site that edits itself",
+		"navGroup": "Guides",
+		"navOrder": 12
+	},
 	"content": [
 		{
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "7fdb7060-d2c3-4433-b0ae-4a427f873bae",
 				"slug": "what-you-get"
 			},
 			"content": [
@@ -21,12 +25,9 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "A static site whose pages are Content documents in its own git repository, and whose authors edit those pages in the built site itself. There is no CMS server, no database and no user table: the repository is the source of truth, a save is a commit, and the commit is the deploy."
+					"text": "A static site whose pages are Content documents in its own git repository, edited in the built site itself. There is no CMS server and no database: a save is a commit, and the commit is the deploy."
 				}
-			],
-			"attrs": {
-				"id": "6dec9524-7811-4c23-9bae-1058dd5b8d37"
-			}
+			]
 		},
 		{
 			"type": "bulletList",
@@ -39,7 +40,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Content pages — "
+									"text": "A Content page, "
 								},
 								{
 									"type": "text",
@@ -52,7 +53,7 @@
 								},
 								{
 									"type": "text",
-									"text": " — are prerendered from "
+									"text": ", is prerendered from "
 								},
 								{
 									"type": "text",
@@ -65,17 +66,11 @@
 								},
 								{
 									"type": "text",
-									"text": " and ship no editor JavaScript at all."
+									"text": " and ships no editor JavaScript."
 								}
-							],
-							"attrs": {
-								"id": "dfba235c-8d48-4dc5-854f-fef295959dce"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "a5b97cc2-9573-47c9-836d-4a87bbdd5d98"
-					}
+					]
 				},
 				{
 					"type": "listItem",
@@ -85,7 +80,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "An Editor variant — "
+									"text": "Its Editor variant, "
 								},
 								{
 									"type": "text",
@@ -98,17 +93,11 @@
 								},
 								{
 									"type": "text",
-									"text": " — is generated beside each one. It renders the same components inside your own layout, so an author edits the page at the measure, face and ground a reader sees."
+									"text": ", draws the same Page template around the live editor."
 								}
-							],
-							"attrs": {
-								"id": "52421b97-854b-4ccf-85ed-8dcbbe10ebbd"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "3fe703e9-c63a-4211-8579-680045c09d52"
-					}
+					]
 				},
 				{
 					"type": "listItem",
@@ -118,7 +107,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "The Dashboard — "
+									"text": "The Dashboard, "
 								},
 								{
 									"type": "text",
@@ -131,101 +120,11 @@
 								},
 								{
 									"type": "text",
-									"text": " — lists, creates and deletes the documents, and manages the site's media and Globals."
-								}
-							],
-							"attrs": {
-								"id": "1455261c-3b78-4ac2-bfd6-987663cde41a"
-							}
-						}
-					],
-					"attrs": {
-						"id": "ef5376d5-8f56-43c1-9cdd-57b874f917ee"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "The whole per-site remainder is a config module, three small route pairs, one JSON allowlist and a ten-line workflow."
-								}
-							],
-							"attrs": {
-								"id": "9a125692-8c60-4882-a3ba-5af27153f865"
-							}
-						}
-					],
-					"attrs": {
-						"id": "1c02deb8-dae5-4a0b-9f4f-cc1c5cf75651"
-					}
-				}
-			],
-			"attrs": {
-				"id": "04c8b01a-edd1-48cf-8c27-1198ed848fd2"
-			}
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "note",
-				"id": "9795bba6-e879-4f04-95f3-dbf36a988a9e"
-			},
-			"content": [
-				{
-					"type": "paragraph",
-					"content": [
-						{
-							"type": "text",
-							"text": "This page walks the GitHub Pages path end to end and then, in "
-						},
-						{
-							"type": "text",
-							"text": "The local-only variant",
-							"marks": [
-								{
-									"type": "bold"
+									"text": ", manages pages, media, Globals and Collections."
 								}
 							]
-						},
-						{
-							"type": "text",
-							"text": ", the shorter path for a site nobody edits over the network. The Uncial docs you are reading run exactly what follows."
 						}
-					],
-					"attrs": {
-						"id": "f94e1c8f-a50d-40bd-a964-de5ad3065de3"
-					}
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2,
-				"id": "d9f94c64-2b40-4951-a61b-3d76e4fcf839",
-				"slug": "install-the-packages"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Install the packages"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "sh",
-				"id": "e74d17df-0b2a-442d-9cbd-f9423e090adc"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "pnpm add uncial uncial-cms"
+					]
 				}
 			]
 		},
@@ -234,7 +133,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "uncial",
+					"text": "uncial-cms init",
 					"marks": [
 						{
 							"type": "code"
@@ -243,31 +142,14 @@
 				},
 				{
 					"type": "text",
-					"text": " is the editor and the SSR renderer; "
-				},
-				{
-					"type": "text",
-					"text": "uncial-cms",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " is the forge-backed runtime, the route factories, the Svelte component and the command. Nothing else is needed — in particular there is no monorepo to vendor and no submodule to track."
+					"text": " writes all of what follows. These docs run it."
 				}
-			],
-			"attrs": {
-				"id": "06fcf2c0-7caa-4d18-b408-c8076379d268"
-			}
+			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "48ff6975-6227-4d71-a9c8-20fc88277a0d",
 				"slug": "declare-the-site-once"
 			},
 			"content": [
@@ -282,7 +164,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "A site's CMS configuration is declared in one place and resolved for the current build. Put it in a module with no Svelte and no Kit in its import graph, because both the app and "
+					"text": "Site options are pure data, so "
 				},
 				{
 					"type": "text",
@@ -295,36 +177,19 @@
 				},
 				{
 					"type": "text",
-					"text": " read it:"
-				}
-			],
-			"attrs": {
-				"id": "8bef93ed-262d-44bb-a36d-d464195f0abd"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "41946135-a6c3-47a9-885d-09eeb93904c7"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// site.options.ts\nimport type { SiteOptions } from 'uncial-cms';\n\n// Everything under the static dir is copied to the site root at build time, so\n// `servedUrl` maps a committed asset path to its served URL by dropping it.\nexport const STATIC_DIR = 'static';\n\nexport const siteOptions: SiteOptions = {\n\tcontentDir: 'content',            // repo-root-relative, as the forge addresses it\n\tmediaDir: `${STATIC_DIR}/uploads`, // repo-root-relative; must sit under the static dir\n\tgithub: { repo: 'owner/name', branch: 'main' },\n\tautosaveMs: 400                    // honoured only when the resolved forge is local\n};"
+					"text": " can import them too:"
 				}
 			]
 		},
 		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "ts",
-				"id": "09fcf03b-128e-4fe2-86ca-f4365fbee1ea"
+				"language": "ts"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "// src/lib/site.ts\nimport { defineSite } from 'uncial-cms';\nimport { siteOptions } from '../../site.options.js';\n\nexport { STATIC_DIR } from '../../site.options.js';\n\nexport const site = defineSite(siteOptions);"
+					"text": "// site.options.ts\nimport type { SiteOptions } from 'uncial-cms';\n\nexport const siteOptions = {\n\tcontentDir: 'content',      // repo-root-relative\n\tstaticDir: 'static',        // the default\n\tmediaDir: 'static/uploads', // under the static dir\n\tgithub: { repo: 'owner/name', branch: 'main' },\n\tautosaveMs: 400             // local forge only\n} satisfies SiteOptions;"
 				}
 			]
 		},
@@ -342,11 +207,45 @@
 				},
 				{
 					"type": "text",
-					"text": " returns the "
+					"text": " adds the Content model and returns the Site object, which every route and component takes:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// src/lib/site.ts\nimport { base } from '$app/paths';\nimport { defineSite } from 'uncial-cms';\nimport { siteOptions } from '../../site.options.js';\n\nexport const site = defineSite(siteOptions, {\n\tbase,\n\tblocks: import.meta.glob('./blocks/*.svelte', { eager: true }),\n\ttemplates: import.meta.glob('./templates/*.svelte', { eager: true }),\n\tmeta: { title: { default: 'Untitled page', required: true } }\n});"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The Site object is server-safe. It resolves the forge for the build (the local checkout in development, GitHub in production) and derives sign-in and the Media and file sources from the options. Omit "
 				},
 				{
 					"type": "text",
-					"text": "site object",
+					"text": "github",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " for a "
+				},
+				{
+					"type": "text",
+					"text": "local-only",
 					"marks": [
 						{
 							"type": "bold"
@@ -355,46 +254,7 @@
 				},
 				{
 					"type": "text",
-					"text": ": the resolved "
-				},
-				{
-					"type": "text",
-					"text": "config",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", plus "
-				},
-				{
-					"type": "text",
-					"text": "localOnly",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", "
-				},
-				{
-					"type": "text",
-					"text": "autosaveMs",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and "
+					"text": " site. "
 				},
 				{
 					"type": "text",
@@ -407,130 +267,11 @@
 				},
 				{
 					"type": "text",
-					"text": ". The route factories, the editor component and the Dashboard all take it, so nothing downstream reads the options again."
-				}
-			],
-			"attrs": {
-				"id": "73692c78-ac9a-4c77-b717-40c777e2b5c5"
-			}
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "In a development build the resolved forge is the local checkout."
-								}
-							],
-							"attrs": {
-								"id": "3fb3a61a-d047-40a6-a058-18e359fea089"
-							}
-						}
-					],
-					"attrs": {
-						"id": "614dea1a-8700-4fa6-9ed1-2a54d7f302b1"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "In a production build it is GitHub when a "
-								},
-								{
-									"type": "text",
-									"text": "github",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " half is declared."
-								}
-							],
-							"attrs": {
-								"id": "da2ddfb5-382d-45c5-b6b3-8f48b25e5d8d"
-							}
-						}
-					],
-					"attrs": {
-						"id": "99f8877a-d1ea-40d5-bc2b-b2b8e324d146"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "Omit "
-								},
-								{
-									"type": "text",
-									"text": "github",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " entirely and the site is "
-								},
-								{
-									"type": "text",
-									"text": "local-only",
-									"marks": [
-										{
-											"type": "bold"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ": there is no forge to commit to, and the Editor variants disappear from the production build."
-								}
-							],
-							"attrs": {
-								"id": "bcb8913c-3faa-477a-805b-00eb5fc4bd75"
-							}
-						}
-					],
-					"attrs": {
-						"id": "a1a77fae-15dd-4047-896e-d8d2e5ad1b1c"
-					}
-				}
-			],
-			"attrs": {
-				"id": "167b6776-80e5-406e-b71c-dc865bfeaf58"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The GitHub half is a repository and a branch. "
+					"text": " names the content dir on disk when it differs from "
 				},
 				{
 					"type": "text",
-					"text": "authWorkerUrl",
+					"text": "contentDir",
 					"marks": [
 						{
 							"type": "code"
@@ -539,92 +280,7 @@
 				},
 				{
 					"type": "text",
-					"text": " and "
-				},
-				{
-					"type": "text",
-					"text": "appSlug",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " default to the canonical auth worker and the canonical "
-				},
-				{
-					"type": "text",
-					"text": "uncial-cms",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " GitHub App, so most sites never write them down. Self-hosting the worker or running your own App is a matter of setting the two fields."
-				}
-			],
-			"attrs": {
-				"id": "869ea81c-2d9a-4c17-bd7f-5ef612cd53e2"
-			}
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "tip",
-				"id": "dc22d851-ab07-4f9f-82ee-5b028b205a46"
-			},
-			"content": [
-				{
-					"type": "paragraph",
-					"content": [
-						{
-							"type": "text",
-							"text": "localContentDir",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " is the only other field most sites set: it is where the content dir sits on disk at build time, when that differs from the repo-root-relative "
-						},
-						{
-							"type": "text",
-							"text": "contentDir",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " — a monorepo package, typically. It defaults to "
-						},
-						{
-							"type": "text",
-							"text": "contentDir",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": "."
-						}
-					],
-					"attrs": {
-						"id": "8d1e1d21-df37-426d-b781-0b8ca0b2e0f7"
-					}
+					"text": ", as in a monorepo package."
 				}
 			]
 		},
@@ -632,7 +288,6 @@
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "b3442ee1-299f-421d-a53e-bb69d18847e8",
 				"slug": "wire-vite-and-kit"
 			},
 			"content": [
@@ -643,111 +298,33 @@
 			]
 		},
 		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "One plugin call installs the development editing endpoint and tells the build which forge it is targeting:"
-				}
-			],
-			"attrs": {
-				"id": "7a645b00-8937-4fcd-a1a3-2f9a3ce03472"
-			}
-		},
-		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "ts",
-				"id": "21967562-08e2-497c-befa-f6a5ecf3d6ad"
+				"language": "ts"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "// vite.config.ts\nimport { sveltekit } from '@sveltejs/kit/vite';\nimport { defineConfig } from 'vite';\nimport { uncialCms } from 'uncial-cms/vite';\nimport { siteOptions } from './site.options.js';\n\nexport default defineConfig({\n\tplugins: [...uncialCms(siteOptions), sveltekit()]\n});"
+					"text": "// vite.config.ts\nplugins: [...uncialCms(siteOptions), sveltekit()]"
 				}
 			]
 		},
 		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The site is fully prerendered, so "
-				},
-				{
-					"type": "text",
-					"text": "adapter-static",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " with no fallback is the whole adapter configuration. "
-				},
-				{
-					"type": "text",
-					"text": "BASE_PATH",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " is read here because the deploy workflow sets it for a project site:"
-				}
-			],
-			"attrs": {
-				"id": "745374ee-6991-4886-a344-f27791cd45aa"
-			}
-		},
-		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "js",
-				"id": "6fc6847d-7a76-48ae-966c-40d8b8a0cd45"
+				"language": "js"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "// svelte.config.js\nimport adapter from '@sveltejs/adapter-static';\n\n/** @type {import('@sveltejs/kit').Config} */\nexport default {\n\tkit: {\n\t\tadapter: adapter({ pages: 'build', assets: 'build' }),\n\t\tpaths: { base: process.argv.includes('dev') ? '' : (process.env.BASE_PATH ?? '') }\n\t}\n};"
+					"text": "// svelte.config.js\nkit: {\n\tadapter: adapter({ pages: 'build', assets: 'build' }),\n\tpaths: { base: process.argv.includes('dev') ? '' : (process.env.BASE_PATH ?? '') }\n}"
 				}
 			]
 		},
 		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Prerendering and trailing slashes are route options, not adapter options. Declare them once at the root layout so every generated page — content, editor and index — is written as "
-				},
-				{
-					"type": "text",
-					"text": "<path>/index.html",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ":"
-				}
-			],
-			"attrs": {
-				"id": "40fd35ba-bacd-485d-b3e9-c805894a713a"
-			}
-		},
-		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "ts",
-				"id": "e8f10611-cbdd-4319-94a8-332afc612199"
+				"language": "ts"
 			},
 			"content": [
 				{
@@ -760,13 +337,12 @@
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "b9a42507-0033-447e-9e48-0a118d982588",
-				"slug": "the-three-route-pairs"
+				"slug": "routes"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "The three route pairs"
+					"text": "Routes"
 				}
 			]
 		},
@@ -775,70 +351,31 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "The factories never register a route: you own the files, so the routes stay explicit and debuggable. Each pair is a "
-				},
-				{
-					"type": "text",
-					"text": "+page.server.ts",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " that runs at build time and a "
-				},
-				{
-					"type": "text",
-					"text": "+page.svelte",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " that renders."
+					"text": "Each route module is one line. You own the files; the factories never register a route."
 				}
-			],
-			"attrs": {
-				"id": "5b30f54f-2125-43ce-be8c-aa7884aae36c"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "1. The content catch-all.",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " Prerendered, and carrying no CMS code:"
-				}
-			],
-			"attrs": {
-				"id": "8b027fd8-0e22-4f60-bd7e-109d5a15a799"
-			}
+			]
 		},
 		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "ts",
-				"id": "3e2c61ca-e0f2-44e2-ba7c-6b18c70287ff"
+				"language": "ts"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "// src/routes/[...path]/+page.server.ts\nimport { createContentHandlers } from 'uncial-cms/sveltekit';\nimport { blocks, schema, site } from '../site.js';\n\nconst handlers = createContentHandlers({ site, blocks, schema });\n\nexport const entries = handlers.entries;\nexport const load = handlers.load;"
+					"text": "// src/routes/[...path]/+page.server.ts\nexport const { entries, load } = contentRoutes(site);\n\n// src/routes/[...path]/edit/+page.server.ts\nexport const { entries, load } = editorRoutes(site);"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/routes/[...path]/+page.svelte -->\n<Page {site} {data} />\n\n<!-- src/routes/[...path]/edit/+page.svelte -->\n<EditorPage {site} {data} />\n\n<!-- src/routes/uncial/+page.svelte -->\n<Dashboard {site} />"
 				}
 			]
 		},
@@ -847,11 +384,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "The payload is "
-				},
-				{
-					"type": "text",
-					"text": "{ document, meta, path }",
+					"text": "contentRoutes",
 					"marks": [
 						{
 							"type": "code"
@@ -860,11 +393,76 @@
 				},
 				{
 					"type": "text",
-					"text": " — the page path is returned, so nothing has to re-spread it — and the page renders it with Uncial's SSR "
+					"text": " and "
 				},
 				{
 					"type": "text",
-					"text": "Renderer",
+					"text": "editorRoutes",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " come from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/sveltekit",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "; the components from "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms/svelte",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". "
+				},
+				{
+					"type": "text",
+					"text": "load",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " 404s unknown paths, strips slashes, types "
+				},
+				{
+					"type": "text",
+					"text": "meta",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " from your fields, and caches listings outside development. Globals and Collections are never routed. To skip other files, pass "
+				},
+				{
+					"type": "text",
+					"text": "exclude: ({ path }) => …",
 					"marks": [
 						{
 							"type": "code"
@@ -875,141 +473,6 @@
 					"type": "text",
 					"text": "."
 				}
-			],
-			"attrs": {
-				"id": "147a935c-1dc4-4425-aba6-a88149ef2dea"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "2. The editor variant.",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " The server half bakes the mapping only; the document is always fetched live from the forge, never read out of the build:"
-				}
-			],
-			"attrs": {
-				"id": "18d7b5dc-330a-4ad2-9a9c-f9b8e522abfb"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "4a40f366-79ca-4544-bc63-c347bf6a476d"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/routes/[...path]/edit/+page.server.ts\nimport { createEditorHandlers } from 'uncial-cms/sveltekit';\nimport { blocks, schema, site } from '../../site.js';\n\nconst handlers = createEditorHandlers({ site, blocks, schema });\n\nexport const entries = handlers.entries;\nexport const load = handlers.load;"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Its payload is "
-				},
-				{
-					"type": "text",
-					"text": "{ sourcePath, pagePath }",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ". The client half puts "
-				},
-				{
-					"type": "text",
-					"text": "EditorPage",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " where the Renderer sits, inside the same shell the Content page draws:"
-				}
-			],
-			"attrs": {
-				"id": "015b183a-6b24-474d-8c1f-ba60be3aa78e"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte",
-				"id": "24151c7f-73a0-4321-80ce-c67f27720082"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<!-- src/routes/[...path]/edit/+page.svelte -->\n<script lang=\"ts\">\n\timport { EditorPage } from 'uncial-cms/svelte';\n\timport { blocks, schema, site } from '../../site.js';\n\n\tlet { data } = $props();\n</script>\n\n<main>\n\t<article class=\"uncial-rich-content\">\n\t\t<EditorPage {site} {blocks} {schema} sourcePath={data.sourcePath} pagePath={data.pagePath} />\n\t</article>\n</main>"
-				}
-			]
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "tip",
-				"id": "3141c0e0-327c-4f7a-986f-79f74d05e6ad"
-			},
-			"content": [
-				{
-					"type": "paragraph",
-					"content": [
-						{
-							"type": "text",
-							"text": "That is the whole of the parity work. The editor's content box is the article's box because it "
-						},
-						{
-							"type": "text",
-							"text": "is",
-							"marks": [
-								{
-									"type": "italic"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " the article's box: "
-						},
-						{
-							"type": "text",
-							"text": "EditorPage",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " renders in the light DOM, in your tree and your cascade, so every rule your site sets already applies and none of them has to be restated."
-						}
-					],
-					"attrs": {
-						"id": "830f02cd-908c-4abb-a8f5-5ffe7884ead8"
-					}
-				}
 			]
 		},
 		{
@@ -1026,202 +489,20 @@
 				},
 				{
 					"type": "text",
-					"text": " owns the rest of the editing surface too — the status line and its commit link, the blocking conflict banner, seeding the metadata panel from the loaded document, the Save button under a forge and autosave under the local one. It loads the editor stack dynamically, so nothing about it reaches a Content page."
-				}
-			],
-			"attrs": {
-				"id": "4bc4cf63-9ebb-44f3-9f4c-b7bb5dcb3ea9"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "3. The Dashboard.",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " One custom element, in one route pair:"
-				}
-			],
-			"attrs": {
-				"id": "acd511a1-d120-4a13-8e56-abf65fcd62c6"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "dc71057c-0621-49ae-b181-0c431b980312"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/routes/uncial/+page.server.ts\nimport { createIndexHandlers } from 'uncial-cms/sveltekit';\nimport { blocks, schema, site } from '../site.js';\n\nconst handlers = createIndexHandlers({ site, blocks, schema });\n\nexport const load = handlers.load;"
+					"text": " loads the editor stack lazily and owns the status line, the conflict banner, the Save button, and autosave on the local forge."
 				}
 			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte",
-				"id": "ebf23a23-4c10-471d-ba4e-3a11eedf4b85"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<!-- src/routes/uncial/+page.svelte -->\n<script lang=\"ts\">\n\timport { onMount } from 'svelte';\n\timport { base } from '$app/paths';\n\timport 'uncial-cms/dashboard';\n\timport { blocks, schema, site } from '../site.js';\n\n\tlet mounted = $state(false);\n\tonMount(() => (mounted = true));\n</script>\n\n{#if mounted}\n\t<uncial-dashboard config={site} {blocks} {schema} basePath={base}></uncial-dashboard>\n{/if}"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Pass "
-				},
-				{
-					"type": "text",
-					"text": "basePath",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " so the Dashboard's links to live pages resolve under a project site's base path. The path mapping itself always works in site-relative paths, with the base stripped. "
-				},
-				{
-					"type": "text",
-					"text": "The Dashboard",
-					"marks": [
-						{
-							"type": "link",
-							"attrs": {
-								"href": "../dashboard/"
-							}
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " covers its other options, and its Media, Globals and App sections."
-				}
-			],
-			"attrs": {
-				"id": "0eabec34-3159-4eca-a4e9-8a028efe6196"
-			}
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 3,
-				"id": "3c1b1cd8-6e0a-42be-9c2d-9d42e06dd185",
-				"slug": "excluding-non-page-files-and-a-schema-per-path"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Excluding non-page files, and a schema per path"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "A content directory usually holds files that are not pages. Both the content and the editor handlers take an "
-				},
-				{
-					"type": "text",
-					"text": "exclude",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " predicate, and "
-				},
-				{
-					"type": "text",
-					"text": "schema",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " accepts a resolver as readily as a single schema — so an essay can require metadata a landing page does not, without instantiating the factories twice:"
-				}
-			],
-			"attrs": {
-				"id": "05ca360e-6102-44dc-96a2-dbb761ba123f"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "0a39c299-6bcf-4f0c-a9c0-674ee1c397bb"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "const handlers = createContentHandlers({\n\tsite,\n\tblocks,\n\texclude: ({ path }) => path === 'site-settings',\n\tschema: (path) => (path.startsWith('essays/') ? essaySchema : pageSchema)\n});"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Pass the same resolver to "
-				},
-				{
-					"type": "text",
-					"text": "EditorPage",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and to the Content page's renderer, and one page path means one schema everywhere."
-				}
-			],
-			"attrs": {
-				"id": "a3c295b2-94b8-4ba1-bfcb-4254422d6871"
-			}
 		},
 		{
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "3334bf2c-1cb7-447f-884e-6c025f61f8d6",
-				"slug": "blocks-and-an-image-that-uploads"
+				"slug": "navigation"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Blocks, and an image that uploads"
+					"text": "Navigation"
 				}
 			]
 		},
@@ -1230,36 +511,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Blocks are ordinary Svelte components registered once and used by both the editor and the renderer. A site's registry and schema live beside its route files:"
-				}
-			],
-			"attrs": {
-				"id": "495142f1-673e-48ad-937d-6b58be58c224"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "e21b96ae-2cd2-42fa-a401-7aebf8051bc9"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "// src/routes/site.ts\nimport { createBlockRegistry, createSchema } from 'uncial/core';\nimport { defineSvelteBlock } from 'uncial/runtime/svelte';\nimport Callout from '$lib/blocks/Callout.svelte';\nimport ImageFigure from '$lib/blocks/ImageFigure.svelte';\n\nexport { site } from '$lib/site.js';\n\nconst callout = defineSvelteBlock({\n\tid: 'callout',\n\tlabel: 'Callout',\n\tattributes: {\n\t\tvariant: {\n\t\t\tdefault: 'note',\n\t\t\toptions: [\n\t\t\t\t{ value: 'note', label: 'Note' },\n\t\t\t\t{ value: 'warning', label: 'Warning' },\n\t\t\t\t{ value: 'tip', label: 'Tip' }\n\t\t\t]\n\t\t}\n\t},\n\tcomponent: Callout,\n\tcontent: { kind: 'flow' }\n});\n\nconst image = defineSvelteBlock({\n\tid: 'image',\n\tlabel: 'Image',\n\tattributes: {\n\t\tsrc: { default: '', input: 'image' },\n\t\talt: { default: '' },\n\t\tcaption: { default: '' }\n\t},\n\tcomponent: ImageFigure\n});\n\nexport const blocks = createBlockRegistry([callout, image]);\n\nexport const schema = createSchema(blocks, {\n\tmetaFields: { title: { default: 'Untitled page', required: true } }\n});"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Giving "
-				},
-				{
-					"type": "text",
-					"text": "src",
+					"text": "buildNav",
 					"marks": [
 						{
 							"type": "code"
@@ -1268,137 +520,11 @@
 				},
 				{
 					"type": "text",
-					"text": " the setting "
+					"text": " groups and orders pages by their "
 				},
 				{
 					"type": "text",
-					"text": "input: 'image'",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " is all the block needs. The attributes panel shows an image field with Upload and Choose existing buttons, and "
-				},
-				{
-					"type": "text",
-					"text": "EditorPage",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " connects it to your repository with "
-				},
-				{
-					"type": "text",
-					"text": "cmsImageSource(site.config)",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ". Upload commits the file under "
-				},
-				{
-					"type": "text",
-					"text": "mediaDir",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", first shrinking it to WebP if it is too big to commit, so a phone photo just works. Choose existing lists the images already in "
-				},
-				{
-					"type": "text",
-					"text": "mediaDir",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ". The block itself only renders its attributes:"
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte",
-				"id": "9ff8778d-2882-4f15-b526-7e543cfccbb3"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<!-- src/lib/blocks/ImageFigure.svelte -->\n<script lang=\"ts\">\n\timport { base } from '$app/paths';\n\timport { resolveImageSrc } from 'uncial/render';\n\n\tlet { src = '', alt = '', caption = '' } = $props();\n</script>\n\n<figure>\n\t{#if src}<img src={resolveImageSrc(src, base)} {alt} />{/if}\n\t{#if caption}<figcaption>{caption}</figcaption>{/if}\n</figure>"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The stored "
-				},
-				{
-					"type": "text",
-					"text": "src",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " is the URL the built site serves the file from, starting at the site root with no base path, so the same content works at any base. "
-				},
-				{
-					"type": "text",
-					"text": "resolveImageSrc",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " adds "
-				},
-				{
-					"type": "text",
-					"text": "base",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " in front and leaves "
-				},
-				{
-					"type": "text",
-					"text": "blob:",
+					"text": "navGroup",
 					"marks": [
 						{
 							"type": "code"
@@ -1411,7 +537,7 @@
 				},
 				{
 					"type": "text",
-					"text": "data:",
+					"text": "navOrder",
 					"marks": [
 						{
 							"type": "code"
@@ -1420,11 +546,11 @@
 				},
 				{
 					"type": "text",
-					"text": " and full URLs alone. If your site is built under a base path, or its static folder is not "
+					"text": " and "
 				},
 				{
 					"type": "text",
-					"text": "static",
+					"text": "navLabel",
 					"marks": [
 						{
 							"type": "code"
@@ -1433,11 +559,11 @@
 				},
 				{
 					"type": "text",
-					"text": ", pass "
+					"text": " meta (falling back to "
 				},
 				{
 					"type": "text",
-					"text": "cmsImageSource(site.config, { base, staticDir })",
+					"text": "title",
 					"marks": [
 						{
 							"type": "code"
@@ -1446,11 +572,11 @@
 				},
 				{
 					"type": "text",
-					"text": " to "
+					"text": "), and prefixes "
 				},
 				{
 					"type": "text",
-					"text": "EditorPage",
+					"text": "base",
 					"marks": [
 						{
 							"type": "code"
@@ -1459,63 +585,19 @@
 				},
 				{
 					"type": "text",
-					"text": "'s "
-				},
-				{
-					"type": "text",
-					"text": "imageSource",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " prop."
+					"text": ":"
 				}
 			]
 		},
 		{
-			"type": "callout",
+			"type": "codeBlock",
 			"attrs": {
-				"variant": "note"
+				"language": "ts"
 			},
 			"content": [
 				{
-					"type": "paragraph",
-					"content": [
-						{
-							"type": "text",
-							"text": "A new upload is not served until the site redeploys, so until then the editor shows it from a local "
-						},
-						{
-							"type": "text",
-							"text": "blob:",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " copy. The stored "
-						},
-						{
-							"type": "text",
-							"text": "src",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " is always the real URL, so live pages never see the copy."
-						}
-					]
+					"type": "text",
+					"text": "import { buildNav } from 'uncial-cms';\n\nconst nav = buildNav(contentRoutes(site).list(), { base });\n// [{ kind: 'link', href, label } | { kind: 'group', id, label, links }]"
 				}
 			]
 		},
@@ -1523,7 +605,74 @@
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "22612027-4e31-4019-88c2-f8c7cf7f67b9",
+				"slug": "astro"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Astro"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The integration injects the Editor variant and Dashboard routes inside your layout. The reader route is yours:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "// astro.config.mjs\nintegrations: [svelte(), uncialCms(siteOptions, { site: './src/site.ts', layout: './src/Layout.astro' })]"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "---\n// src/pages/[...path].astro\nimport { Page } from 'uncial';\nimport { contentRoutes, type ContentPage } from 'uncial-cms/astro';\nimport Layout from '../Layout.astro';\nimport { site } from '../site.ts';\n\nexport function getStaticPaths() {\n\treturn contentRoutes(site).getStaticPaths();\n}\nconst { path, document } = Astro.props as ContentPage;\n---\n<Layout><Page model={site} {document} {path} /></Layout>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Gate the build with "
+				},
+				{
+					"type": "text",
+					"text": "uncial-cms assert-clean-pages dist --astro",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
 				"slug": "authorize-the-editor-s-origin"
 			},
 			"content": [
@@ -1538,180 +687,122 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Signing in mints a GitHub App installation token scoped to your one repository, with contents read/write and about an hour's life. Three things have to be true before the auth worker will mint it."
-				}
-			],
-			"attrs": {
-				"id": "e935824a-0d82-4921-9db4-ffa163013bf4"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Commit the allowlist.",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " The worker reads "
-				},
-				{
-					"type": "text",
-					"text": ".uncial/cms.json",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " from the target repository's default branch and refuses any origin it does not name:"
-				}
-			],
-			"attrs": {
-				"id": "861749a2-5bde-4531-bd85-c94e29c0059e"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "json",
-				"id": "1e5690c2-0087-44b1-86fc-c80bd6ddd4e1"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "{ \"allowedOrigins\": [\"https://example.com\", \"http://localhost:5173\"] }"
+					"text": "Signing in mints a GitHub App installation token for your one repository, with contents read/write, for about an hour. Before the auth worker mints it:"
 				}
 			]
 		},
 		{
-			"type": "paragraph",
+			"type": "orderedList",
 			"content": [
 				{
-					"type": "text",
-					"text": "Install the App.",
-					"marks": [
+					"type": "listItem",
+					"content": [
 						{
-							"type": "bold"
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Commit "
+								},
+								{
+									"type": "text",
+									"text": ".uncial/cms.json",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " to the default branch, naming the origins that may edit: "
+								},
+								{
+									"type": "text",
+									"text": "{ \"allowedOrigins\": [\"https://example.com\", \"http://localhost:5173\"] }",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								}
+							]
 						}
 					]
 				},
 				{
-					"type": "text",
-					"text": " Install the "
-				},
-				{
-					"type": "text",
-					"text": "uncial-cms",
-					"marks": [
+					"type": "listItem",
+					"content": [
 						{
-							"type": "code"
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Install the "
+								},
+								{
+									"type": "text",
+									"text": "uncial-cms",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " GitHub App on the repository."
+								}
+							]
 						}
 					]
 				},
 				{
-					"type": "text",
-					"text": " GitHub App on the repository, granting it contents read/write there and nowhere else. The Index page links to the install screen for the configured "
-				},
-				{
-					"type": "text",
-					"text": "appSlug",
-					"marks": [
+					"type": "listItem",
+					"content": [
 						{
-							"type": "code"
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Run "
+								},
+								{
+									"type": "text",
+									"text": "pnpm exec uncial-cms doctor --origin https://example.com",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", which checks both, and Pages, through your "
+								},
+								{
+									"type": "text",
+									"text": "gh",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " CLI."
+								}
+							]
 						}
 					]
-				},
-				{
-					"type": "text",
-					"text": "."
-				}
-			],
-			"attrs": {
-				"id": "bd19e241-c1a7-44e8-afaa-a8a6947ac150"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Check the whole of it before the first sign-in.",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				}
-			],
-			"attrs": {
-				"id": "72360fbd-4972-485b-817a-afe033ada36d"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "sh",
-				"id": "c84faacc-f32b-4b80-af5f-10f97745438d"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "pnpm exec uncial-cms doctor --origin https://example.com"
 				}
 			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Through your authenticated "
-				},
-				{
-					"type": "text",
-					"text": "gh",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " CLI, "
-				},
-				{
-					"type": "text",
-					"text": "doctor",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " checks that the App is installed on the repository, that the allowlist is committed on the default branch and lists your origin, and that Pages is enabled and serving that origin. Each failure names the worker refusal it would have produced and what to do about it, so a missed step is not something you learn from a failed sign-in."
-				}
-			],
-			"attrs": {
-				"id": "660ce3cb-68db-4264-b799-1cceb27a35e8"
-			}
 		},
 		{
 			"type": "callout",
 			"attrs": {
-				"variant": "warning",
-				"id": "356aa627-83f4-4dc3-ba59-7b694a78e522"
+				"variant": "warning"
 			},
 			"content": [
 				{
@@ -1719,20 +810,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "The allowlist is keyed by "
-						},
-						{
-							"type": "text",
-							"text": "origin",
-							"marks": [
-								{
-									"type": "italic"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": ", not by site. On a shared-origin host — "
+							"text": "The allowlist is keyed by origin. On "
 						},
 						{
 							"type": "text",
@@ -1745,25 +823,57 @@
 						},
 						{
 							"type": "text",
-							"text": ", where every project page of an account shares one origin — allowlisting the origin authorizes every site served from it. That is fine when they are all yours. A "
-						},
-						{
-							"type": "text",
-							"text": "custom domain",
-							"marks": [
-								{
-									"type": "bold"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " gives each site its own origin and restores per-site granularity, which is why one is worth setting up before you invite anyone else to edit."
+							"text": ", every project site shares one origin, so allowlisting it authorizes all of them. A custom domain gives each site its own."
 						}
-					],
-					"attrs": {
-						"id": "46d28623-8191-4169-8a2f-778f638b3e81"
-					}
+					]
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "To self-host the worker or use your own App, set "
+				},
+				{
+					"type": "text",
+					"text": "github.auth: { kind: 'worker', url, appSlug }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". To sign in through a code-exchange broker that holds your App's secret, set "
+				},
+				{
+					"type": "text",
+					"text": "{ kind: 'broker', origin, clientId, appSlug }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and register "
+				},
+				{
+					"type": "text",
+					"text": "<base>/uncial/",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " as the App's callback URL."
 				}
 			]
 		},
@@ -1771,7 +881,6 @@
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "d577da09-5841-4493-8936-b69467671595",
 				"slug": "deploy"
 			},
 			"content": [
@@ -1786,23 +895,19 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Uncial publishes a reusable workflow that does check, unit tests, build, the zero-CMS-JS gate, upload and deploy to Pages. Your own workflow names the trigger, the permissions and the call:"
+					"text": "Call the reusable workflow, which checks, tests, builds, gates and deploys to Pages:"
 				}
-			],
-			"attrs": {
-				"id": "900ae626-9fea-4fd9-88c3-4a6d9f03988d"
-			}
+			]
 		},
 		{
 			"type": "codeBlock",
 			"attrs": {
-				"language": "yaml",
-				"id": "5f715342-7b42-415b-8cb6-ad2d5ccace89"
+				"language": "yaml"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "# .github/workflows/pages.yml\nname: Pages\non:\n  push: { branches: [main] }\n  workflow_dispatch:\npermissions: { contents: read, pages: write, id-token: write }\njobs:\n  site:\n    uses: d-flood/uncial/.github/workflows/static-site.yml@main\n    with:\n      base-path: /${{ github.event.repository.name }}"
+					"text": "# .github/workflows/pages.yml\non: { push: { branches: [main] }, workflow_dispatch: {} }\npermissions: { contents: read, pages: write, id-token: write }\njobs:\n  site:\n    uses: d-flood/uncial/.github/workflows/static-site.yml@main\n    with:\n      base-path: /${{ github.event.repository.name }}"
 				}
 			]
 		},
@@ -1811,7 +916,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Permissions are the caller's: a reusable workflow inherits the calling job's token scopes, so those three have to be declared in your file. "
+					"text": "Leave out "
 				},
 				{
 					"type": "text",
@@ -1824,71 +929,7 @@
 				},
 				{
 					"type": "text",
-					"text": " is exported to the build as "
-				},
-				{
-					"type": "text",
-					"text": "BASE_PATH",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " — a GitHub Pages "
-				},
-				{
-					"type": "text",
-					"text": "project",
-					"marks": [
-						{
-							"type": "italic"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " site is served under "
-				},
-				{
-					"type": "text",
-					"text": "/<repo>/",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": ", and that is where the value above comes from. A user or organization site, or a custom domain, is served at the root; leave "
-				},
-				{
-					"type": "text",
-					"text": "base-path",
-					"marks": [
-						{
-							"type": "code"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " out."
-				}
-			],
-			"attrs": {
-				"id": "b98a406c-1ac5-430c-8f18-c2e47e3cc8dc"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The other inputs are seams rather than everyday knobs: "
+					"text": " for a site served at the root. Other inputs: "
 				},
 				{
 					"type": "text",
@@ -1901,7 +942,7 @@
 				},
 				{
 					"type": "text",
-					"text": " for a monorepo, "
+					"text": ", "
 				},
 				{
 					"type": "text",
@@ -1927,7 +968,7 @@
 				},
 				{
 					"type": "text",
-					"text": " for the gate's other mode, "
+					"text": ", "
 				},
 				{
 					"type": "text",
@@ -1940,7 +981,7 @@
 				},
 				{
 					"type": "text",
-					"text": ", and "
+					"text": " and "
 				},
 				{
 					"type": "text",
@@ -1953,48 +994,11 @@
 				},
 				{
 					"type": "text",
-					"text": " for a caller that merges several builds into one Pages artifact. This repository's own docs deploy uses the last two, and is the workflow's live exercise."
-				}
-			],
-			"attrs": {
-				"id": "23d7fc29-ade5-4dad-9684-cfde411c0494"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "The gate the workflow runs is a command the package ships, and you can run it yourself:"
-				}
-			],
-			"attrs": {
-				"id": "26a3fab3-2b87-430e-9407-0eb933374eaf"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "sh",
-				"id": "db488b06-d290-4174-b68a-b15bde6b7295"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "pnpm exec uncial-cms assert-clean-pages build"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "It walks every "
+					"text": ". The gate is "
 				},
 				{
 					"type": "text",
-					"text": "index.html",
+					"text": "uncial-cms assert-clean-pages build",
 					"marks": [
 						{
 							"type": "code"
@@ -2003,18 +1007,14 @@
 				},
 				{
 					"type": "text",
-					"text": " in the build, resolves the static import closure of its scripts, and checks for the CMS runtime sentinel: absent from every Content page, present on every Editor variant, ignored on the Dashboard."
+					"text": ": no Content page may load the CMS runtime."
 				}
-			],
-			"attrs": {
-				"id": "ec7d9f68-8f53-48ac-bbbb-af560bfc5e08"
-			}
+			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "6583b16a-ce52-4fc1-b70d-adbf50981226",
 				"slug": "the-first-committed-edit"
 			},
 			"content": [
@@ -2035,7 +1035,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Open an Editor variant of a page you have — "
+									"text": "Open "
 								},
 								{
 									"type": "text",
@@ -2048,17 +1048,11 @@
 								},
 								{
 									"type": "text",
-									"text": "."
+									"text": " and sign in."
 								}
-							],
-							"attrs": {
-								"id": "0ba778f0-4739-4cc4-af83-c756d6f5c5bd"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "075e9b75-f497-4fbc-97d1-80e818366bec"
-					}
+					]
 				},
 				{
 					"type": "listItem",
@@ -2068,50 +1062,11 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Sign in. A popup runs the auth dance against the worker and returns a repo-scoped token; your OAuth token never reaches the browser. The status line reads "
-								},
-								{
-									"type": "text",
-									"text": "Editing content/about.json as <you>",
-									"marks": [
-										{
-											"type": "italic"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": "."
+									"text": "Edit the page in place."
 								}
-							],
-							"attrs": {
-								"id": "de2b1968-f6d5-4071-9f00-ec14c6adfc01"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "a7e3287c-cdd3-49cf-afd2-d69611499b54"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "Edit the page in place. It is the same components and the same layout a reader gets."
-								}
-							],
-							"attrs": {
-								"id": "1d7c747c-e1d7-428b-a157-798e67d8ac16"
-							}
-						}
-					],
-					"attrs": {
-						"id": "21f5716a-30bf-4c0b-957e-7f336f4bb444"
-					}
+					]
 				},
 				{
 					"type": "listItem",
@@ -2134,17 +1089,11 @@
 								},
 								{
 									"type": "text",
-									"text": ". The document is validated, serialized and committed with the blob sha it was loaded at."
+									"text": ". The document is validated and committed against the sha it was loaded at."
 								}
-							],
-							"attrs": {
-								"id": "dcc88103-b987-459d-a174-2647c2dcc784"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "bc2afdaa-1134-476c-8ab0-eff32537be0b"
-					}
+					]
 				},
 				{
 					"type": "listItem",
@@ -2154,105 +1103,187 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Watch the status line go "
-								},
-								{
-									"type": "text",
-									"text": "building… → live",
-									"marks": [
-										{
-											"type": "italic"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " as it polls the commit's status. The commit link goes to the commit itself. Your edit is now a line in the repository's history, and the deploy that publishes it is your ordinary deploy."
+									"text": "The status line goes from building to live as the deploy runs."
 								}
-							],
-							"attrs": {
-								"id": "0bf67982-9a22-4429-84b3-f287e24e3db0"
-							}
+							]
 						}
-					],
-					"attrs": {
-						"id": "9c573a47-6360-4190-952e-7315a9513e5d"
-					}
+					]
 				}
-			],
-			"attrs": {
-				"id": "eafdf7ea-e8c4-4276-ad8f-0ac1c8dc081e"
-			}
+			]
 		},
 		{
 			"type": "paragraph",
 			"content": [
 				{
 					"type": "text",
-					"text": "If someone else committed to that document while you were editing, the sha you hold is stale, the write is refused with a 409, and a "
-				},
-				{
-					"type": "text",
-					"text": "blocking",
-					"marks": [
-						{
-							"type": "italic"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " conflict banner appears rather than a silent overwrite. It offers three things: "
-				},
-				{
-					"type": "text",
-					"text": "download",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " your version as JSON so no work is lost, "
-				},
-				{
-					"type": "text",
-					"text": "reload",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " the latest from the forge and start again from it, or "
-				},
-				{
-					"type": "text",
-					"text": "dismiss",
-					"marks": [
-						{
-							"type": "bold"
-						}
-					]
-				},
-				{
-					"type": "text",
-					"text": " and keep looking at what you wrote. Nothing is written until you choose."
+					"text": "If someone else committed that document meanwhile, the save is refused and a conflict banner offers to download your version, reload the latest, or dismiss. Nothing is overwritten."
 				}
-			],
-			"attrs": {
-				"id": "2f69aa85-b816-455e-b343-657c756a849f"
-			}
+			]
 		},
 		{
 			"type": "heading",
 			"attrs": {
 				"level": 2,
-				"id": "afeb0ed9-b8b0-4f77-ba38-b9995cd98e4b",
+				"slug": "drafts-and-content-branches"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Drafts and content branches"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "With "
+				},
+				{
+					"type": "text",
+					"text": "github.drafts: true",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "EditorPage",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " offers "
+				},
+				{
+					"type": "text",
+					"text": "Save draft",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "Publish",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "Discard draft",
+					"marks": [
+						{
+							"type": "bold"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A Draft is a branch off "
+				},
+				{
+					"type": "text",
+					"text": "github.branch",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", so a site that deploys only that branch never deploys a Draft. Publish merges it back, or shows the conflict banner."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Content can live on another branch. "
+				},
+				{
+					"type": "text",
+					"text": "contentDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "mediaDir",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " are paths on "
+				},
+				{
+					"type": "text",
+					"text": "github.branch",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "; check that branch out where the build can read it and name the local copies:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "contentDir: 'pages',\nmediaDir: 'media',\nlocalContentDir: 'content/pages',\nlocalMediaDir: 'content/media',\nmediaUrlPrefix: '/media',\ngithub: { repo: 'owner/name', branch: 'content', drafts: true }"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
 				"slug": "the-local-only-variant"
 			},
 			"content": [
@@ -2267,7 +1298,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Some sites are edited only by the person holding the checkout. Omitting the "
+					"text": "Omit "
 				},
 				{
 					"type": "text",
@@ -2280,32 +1311,7 @@
 				},
 				{
 					"type": "text",
-					"text": " half is the whole of that configuration:"
-				}
-			],
-			"attrs": {
-				"id": "a870d735-f3b7-44cc-827d-0fe9b71e734d"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "ts",
-				"id": "c4993c52-8ce8-4dd4-a557-8d6cb9cfeb6a"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "export const siteOptions: SiteOptions = {\n\tcontentDir: 'content',\n\tautosaveMs: 400\n};"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "There is no forge, so there is nothing to authorize: no App, no allowlist, no worker, no "
+					"text": " and nobody edits over the network: no App, allowlist or "
 				},
 				{
 					"type": "text",
@@ -2318,11 +1324,11 @@
 				},
 				{
 					"type": "text",
-					"text": ". Everything else — the route pairs, the blocks, the schema, "
+					"text": ". "
 				},
 				{
 					"type": "text",
-					"text": "EditorPage",
+					"text": "pnpm dev",
 					"marks": [
 						{
 							"type": "code"
@@ -2331,181 +1337,11 @@
 				},
 				{
 					"type": "text",
-					"text": " — is unchanged."
-				}
-			],
-			"attrs": {
-				"id": "fb5d5f56-927e-4fc4-801e-659b457af680"
-			}
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "Run "
-								},
-								{
-									"type": "text",
-									"text": "pnpm dev",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " and open "
-								},
-								{
-									"type": "text",
-									"text": "/about/edit/",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": ". The local forge reads and writes the checkout through the development-only endpoint the Vite plugin installs."
-								}
-							],
-							"attrs": {
-								"id": "68987cdb-a203-4f6c-a5d1-9ecc31537978"
-							}
-						}
-					],
-					"attrs": {
-						"id": "79a853b3-a268-4eb2-bfd0-686c804cc934"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "There is no Save button. On a local checkout the file "
-								},
-								{
-									"type": "text",
-									"text": "is",
-									"marks": [
-										{
-											"type": "italic"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " the document, so "
-								},
-								{
-									"type": "text",
-									"text": "autosaveMs",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " writes it that many milliseconds after the last change and there is nothing a save step would reconcile. On a forge, where every keystroke would be a commit, the same field is ignored."
-								}
-							],
-							"attrs": {
-								"id": "6002e12c-3c79-475f-8bcc-83340fa3bb63"
-							}
-						}
-					],
-					"attrs": {
-						"id": "7d6be056-a327-4996-be00-37632b0b18a2"
-					}
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "The production build has no Editor variants: the editor routes prerender no entries, and "
-								},
-								{
-									"type": "text",
-									"text": "EditorPage",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " gates its dynamic imports on a build-time literal, so the editor stack is unreachable and Rollup drops it rather than merely leaving it unrouted."
-								}
-							],
-							"attrs": {
-								"id": "27564028-5b35-4d24-bb44-9505713be232"
-							}
-						}
-					],
-					"attrs": {
-						"id": "276fd386-4a89-4f63-8dbd-e283f1b61ebe"
-					}
-				}
-			],
-			"attrs": {
-				"id": "7e544168-e902-439d-a8f4-1dba5c95b2cd"
-			}
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Gate that claim in the build, in the mode that matches:"
-				}
-			],
-			"attrs": {
-				"id": "6f5894af-a9fd-4f97-86b7-7890a7103dbc"
-			}
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "sh",
-				"id": "b6c9dd80-90ff-427c-9dc0-688303021cf8"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "pnpm exec uncial-cms assert-clean-pages build --local-only"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "In this mode the command asserts that no Editor variant exists at all and that no page's import closure carries the sentinel or the editor stack — a stronger claim than the default mode's, and the right one for a build that should contain no editor to find. The reusable workflow runs it for you when you pass "
+					"text": " edits the checkout and autosaves after "
 				},
 				{
 					"type": "text",
-					"text": "local-only: true",
+					"text": "autosaveMs",
 					"marks": [
 						{
 							"type": "code"
@@ -2514,64 +1350,35 @@
 				},
 				{
 					"type": "text",
-					"text": "."
-				}
-			],
-			"attrs": {
-				"id": "9778c467-1426-4866-90e1-ca2bb63a3f86"
-			}
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "tip",
-				"id": "89ec1ad7-2047-4ace-bedc-d127e90172ee"
-			},
-			"content": [
+					"text": ". The production build has no Editor variants and no editor code; check it with "
+				},
 				{
-					"type": "paragraph",
-					"content": [
+					"type": "text",
+					"text": "uncial-cms assert-clean-pages build --local-only",
+					"marks": [
 						{
-							"type": "text",
-							"text": "A local-only site can grow a forge later without a migration: add the "
-						},
-						{
-							"type": "text",
-							"text": "github",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " half, commit an allowlist, install the App, run "
-						},
-						{
-							"type": "text",
-							"text": "doctor",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": ". Nothing else in the site changes."
+							"type": "code"
 						}
-					],
-					"attrs": {
-						"id": "5f246393-141f-4b9f-97d4-53a90c2fba64"
-					}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Add "
+				},
+				{
+					"type": "text",
+					"text": "github",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " later and nothing else changes."
 				}
 			]
 		}
-	],
-	"meta": {
-		"title": "A static site that edits itself",
-		"navGroup": "Guides",
-		"navOrder": 12
-	}
+	]
 }

@@ -1,17 +1,14 @@
 ---
-import { Renderer } from 'uncial/render';
-import { createContentRoutes, type ContentPage } from 'uncial-cms/astro';
-import { blocks, exclude, schema } from '../site.ts';
-import { siteOptions } from '../site-options.ts';
+import { Page } from 'uncial';
+import { contentRoutes, type ContentPage, type MetaOf } from 'uncial-cms/astro';
+import Base from '../layouts/Base.astro';
+import { site } from '../site.ts';
 
 export function getStaticPaths() {
-	return createContentRoutes({ siteOptions, blocks, schema, exclude }).getStaticPaths();
+	return contentRoutes(site).getStaticPaths();
 }
 
-const { document } = Astro.props as ContentPage;
+const { document, meta } = Astro.props as ContentPage<MetaOf<typeof site>>;
 ---
 
-<html lang="en">
-	<head><title>{String(document.meta?.title)}</title></head>
-	<body><Renderer content={document} {blocks} {schema} /></body>
-</html>
+<Base title={meta.title}><Page model={site} {document} /></Base>

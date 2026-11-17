@@ -3,7 +3,7 @@ export interface GitHubSiteConfig {
 	repo: string; // 'owner/name'
 	branch: string; // commit target
 	contentDir: string; // repo-root-relative, e.g. 'packages/uncial-cms/content'
-	authWorkerUrl: string; // unused by the PAT provider; required in the config shape
+	authWorkerUrl: string;
 	appSlug: string;
 	mediaDir?: string; // repo-root-relative dir uploaded images commit into; consumer-defined
 	mediaUrlPrefix?: string; // site-root URL path `mediaDir` is served under
@@ -27,7 +27,7 @@ export type UncialCmsSiteConfig = GitHubSiteConfig | LocalSiteConfig | ServerSit
 
 export interface ForgeSession {
 	token: string;
-	expiresAt: number | null; // null = unknown lifetime (PAT)
+	expiresAt: number | null; // null = unknown lifetime
 	repo: string;
 	user: { login: string; name: string; email: string }; // email: GitHub noreply form
 }

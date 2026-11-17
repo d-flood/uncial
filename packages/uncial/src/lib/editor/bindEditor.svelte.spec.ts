@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { render } from 'vitest-browser-svelte';
 import type { Editor as TiptapEditor, JSONContent } from '@tiptap/core';
-import { bindEditor, type BindEditorOptions } from './bindEditor.js';
+import { attachEditor, bindEditor, type AttachEditorOptions } from './bindEditor.js';
 import { createBlockRegistry, createSchema } from '../core/registry.js';
 import { CURRENT_DOCUMENT_VERSION } from '../core/migrations.js';
 import { normalizeDocument } from '../core/normalize.js';
-import type { ValidationIssue } from '../core/types.js';
-import { defineSvelteBlock } from '../runtime/svelte.js';
+import type { DocumentMetaSchema, ValidationIssue } from '../core/types.js';
+import { defineRuntimeBlock } from '../core/defineBlock.js';
+import { svelteRuntime } from '../runtime/svelte.js';
 import EditorBlockFixture from '../shared/EditorBlockFixture.svelte';
+import TemplateFixture from '../shared/TemplateFixture.svelte';
+import { createContentModel, defineTemplate } from '../model.js';
+import Editor from './Editor.svelte';
 
-const generatedTable = defineSvelteBlock({
+const generatedTable = defineRuntimeBlock(svelteRuntime, {
 	id: 'generatedTable',
 	label: 'Generated table',
 	readOnly: true,
@@ -21,18 +26,18 @@ interface BindHarness {
 	issues: ValidationIssue[];
 	changes: JSONContent[];
 	editor(): TiptapEditor;
-	update(next: BindEditorOptions): void;
+	update(next: AttachEditorOptions): void;
 	cleanup(): void;
 }
 
-function bindHarness(options: BindEditorOptions): BindHarness {
+function bindHarness(options: AttachEditorOptions): BindHarness {
 	const host = document.createElement('div');
 	document.body.append(host);
 	const issues: ValidationIssue[] = [];
 	const changes: JSONContent[] = [];
 	let boundEditor: TiptapEditor | null = null;
 
-	const instrument = (opts: BindEditorOptions): BindEditorOptions => ({
+	const instrument = (opts: AttachEditorOptions): AttachEditorOptions => ({
 		...opts,
 		onIssue: (issue) => issues.push(issue),
 		onChange: (next) => changes.push(next),
@@ -41,7 +46,7 @@ function bindHarness(options: BindEditorOptions): BindHarness {
 		}
 	});
 
-	const action = bindEditor(host, instrument(options));
+	const action = attachEditor(host, instrument(options));
 
 	return {
 		host,
@@ -68,7 +73,7 @@ function appendParagraph(editor: TiptapEditor, text: string): void {
 	});
 }
 
-describe('bindEditor content guard', () => {
+describe('attachEditor content guard', () => {
 	it('round-trips tables with inline code and links through normalization and serialization', async () => {
 		const registry = createBlockRegistry([]);
 		const schema = createSchema(registry);
@@ -331,11 +336,11 @@ describe('bindEditor content guard', () => {
 	});
 });
 
-describe('bindEditor editor recreation', () => {
+describe('attachEditor editor recreation', () => {
 	it('keeps the same Tiptap instance across an external update with stable references', async () => {
 		const blocks = createBlockRegistry([]);
 		const schema = createSchema(blocks);
-		const extensions: BindEditorOptions['extensions'] = [];
+		const extensions: AttachEditorOptions['extensions'] = [];
 		const harness = bindHarness({
 			blocks,
 			schema,
@@ -432,7 +437,7 @@ describe('bindEditor editor recreation', () => {
 	it('skips the validate pass when the host echoes an unchanged document back', async () => {
 		const blocks = createBlockRegistry([]);
 		const schema = createSchema(blocks);
-		const extensions: BindEditorOptions['extensions'] = [];
+		const extensions: AttachEditorOptions['extensions'] = [];
 		// A future-version doc emits exactly one UNSUPPORTED_VERSION warning per
 		// validate pass, so the issue count is a direct probe of how often the
 		// document is validated.
@@ -461,5 +466,82 @@ describe('bindEditor editor recreation', () => {
 		expect(countVersionWarnings()).toBe(1);
 
 		harness.cleanup();
+	});
+});
+
+const templateModule = (id: string, meta?: DocumentMetaSchema) => ({
+	default: TemplateFixture,
+	template: defineTemplate({ id, label: id, meta })
+});
+
+describe('bindEditor', () => {
+	it('gives Blocks the page and base, and the meta panel the template fields', async () => {
+		const model = createContentModel({
+			base: '/x',
+			blocks: [
+				defineRuntimeBlock(svelteRuntime, {
+					id: 'fixture',
+					label: 'Fixture',
+					attributes: { title: '', image: { default: '', input: 'image' } },
+					component: EditorBlockFixture
+				})
+			],
+			templates: {
+				'./Plain.svelte': templateModule('plain'),
+				'./Banner.svelte': templateModule('banner', { banner: { default: '' } })
+			}
+		});
+		const editor = bindEditor(model);
+		const meta = { template: 'banner', banner: 'Hello' };
+		const host = document.body.appendChild(document.createElement('div'));
+		const content = [{ type: 'fixture', attrs: { image: '/a.png' } }];
+		const action = editor.attach(host, { meta, json: { type: 'doc', meta, content } });
+		await expect.poll(() => host.textContent).toContain('"image":"/x/a.png"');
+		expect(host.textContent).toContain('"template":"banner"');
+		expect(editor.meta.controller.commit().meta).toEqual(meta);
+		action.destroy?.();
+		host.remove();
+	});
+});
+
+describe('Editor Page templates', () => {
+	it('draws the template the metadata panel selects, with its fields, without a reload', async () => {
+		const model = createContentModel({
+			blocks: [],
+			meta: { title: { default: 'Untitled' } },
+			templates: {
+				'./Plain.svelte': templateModule('plain'),
+				'./Banner.svelte': templateModule('banner', {
+					banner: { default: '', validate: (value) => value !== 'bad' }
+				})
+			}
+		});
+		const meta = { title: 'Home' };
+		const paragraph = { type: 'paragraph', content: [{ type: 'text', text: 'Body' }] };
+		const screen = render(Editor, {
+			model,
+			meta,
+			json: { type: 'doc', meta, content: [paragraph] }
+		});
+		const field = (name: string) => screen.getByLabelText(name, { exact: true });
+		const shell = screen.getByTestId('template-shell');
+		await expect.element(shell).toHaveTextContent('plain: Home');
+
+		await screen.getByLabelText('Edit document metadata').click();
+		await field('title').fill('Away');
+		await expect.element(shell).toHaveTextContent('plain: Away');
+
+		await field('template').selectOptions('banner');
+		await expect.element(shell).toHaveTextContent('banner: Away');
+		await screen.getByRole('button', { name: 'Save Metadata' }).click();
+		await screen.getByLabelText('Edit document metadata').click();
+		await expect.element(field('banner')).toBeVisible();
+		await expect.element(screen.getByText('Body')).toBeVisible();
+
+		await field('banner').fill('bad');
+		await screen.getByLabelText('Edit document metadata').click();
+		await screen.getByLabelText('Edit title').fill('Later');
+		await screen.getByText('Body').click();
+		await expect.element(field('banner')).toBeVisible();
 	});
 });

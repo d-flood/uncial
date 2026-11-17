@@ -1,12 +1,15 @@
 <script lang="ts">
 	// Test fixture: a block that renders exactly the image values it is handed.
+	import { getBlock } from '../runtime/blockContext.js';
+
 	interface Props {
 		src?: string;
 		items?: Array<{ image?: string; caption?: string }>;
-		updateAttributes?: (attrs: Record<string, unknown>) => void;
 	}
 
-	let { src = '', items = [], updateAttributes }: Props = $props();
+	let { src = '', items = [] }: Props = $props();
+
+	const block = getBlock();
 </script>
 
 <div data-testid="image-block-fixture">
@@ -21,8 +24,7 @@
 	<button
 		type="button"
 		data-testid="edit-captions"
-		onclick={() =>
-			updateAttributes?.({ items: items.map((item) => ({ ...item, caption: 'edited' })) })}
+		onclick={() => block.update({ items: items.map((item) => ({ ...item, caption: 'edited' })) })}
 	>
 		Edit captions
 	</button>

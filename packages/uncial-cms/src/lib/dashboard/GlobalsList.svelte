@@ -1,11 +1,10 @@
 <svelte:options css="injected" />
 
 <script lang="ts">
-	import type { ContentSchema } from 'uncial/core';
-	import { globalTitle } from '../globals.js';
+	import type { Globals } from '../define-site.js';
 	import { hashForRoute } from './routes.js';
 
-	let { globals }: { globals: Record<string, ContentSchema> } = $props();
+	let { globals }: { globals: Globals } = $props();
 
 	const entries = $derived(Object.entries(globals));
 </script>
@@ -14,11 +13,10 @@
 	<p class="note">This site declares no Globals.</p>
 {:else}
 	<ul class="globals">
-		{#each entries as [name, schema] (name)}
-			{@const title = globalTitle(schema)}
+		{#each entries as [name, { label }] (name)}
 			<li class="global">
 				<a class="global-name" href={hashForRoute({ section: 'globals', name })}>{name}</a>
-				{#if title}<span class="global-title">{title}</span>{/if}
+				{#if label}<span class="global-title">{label}</span>{/if}
 			</li>
 		{/each}
 	</ul>

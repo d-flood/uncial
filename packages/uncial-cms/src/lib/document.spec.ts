@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createBlockRegistry, createSchema, CURRENT_DOCUMENT_VERSION } from 'uncial/core';
+import { createContentModel } from 'uncial';
 import { parseDocument, serializeDocument } from './document.js';
-import {
-	parseDocument as parseDocumentFromRoot,
-	serializeDocument as serializeDocumentFromRoot
-} from './index.js';
 
-const registry = createBlockRegistry([]);
-const schema = createSchema(registry);
+const model = createContentModel({ blocks: [] });
+const registry = model.blocks;
+const schema = model.schemaFor();
+const CURRENT_DOCUMENT_VERSION = 2;
 
 describe('parseDocument', () => {
 	it('parses raw JSON and normalizes it into a versioned document', () => {
@@ -38,9 +36,9 @@ describe('serializeDocument', () => {
 			content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }]
 		});
 
-		const document = parseDocumentFromRoot(raw, registry, schema);
+		const document = parseDocument(raw, registry, schema);
 
-		expect(JSON.parse(serializeDocumentFromRoot(document, registry, schema))).toEqual(document);
+		expect(JSON.parse(serializeDocument(document, registry, schema))).toEqual(document);
 	});
 
 	it('round-trips a parsed document through normalize on save', () => {

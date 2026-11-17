@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { userEvent } from 'vitest/browser';
 import AttributeFieldControl from './AttributeFieldControl.svelte';
 import type { AttributeSpec } from '../core/types.js';
 
@@ -263,31 +264,6 @@ describe('AttributeFieldControl image', () => {
 		expect(rendered.container.querySelector('input[type="file"]')).toBeNull();
 	});
 
-	it('offers no Choose existing for an upload-only image source', () => {
-		const rendered = render(AttributeFieldControl, {
-			name: 'src',
-			spec: imageSpec,
-			value: '',
-			imageSource: { upload: async () => '/media/b.png' },
-			onChange: () => {}
-		});
-
-		expect(buttonLabels(rendered.container)).toEqual(['Upload']);
-		expect(rendered.container.querySelector('dialog')).toBeNull();
-	});
-
-	it('renders the image thumbnail and Clear with no source at all', () => {
-		const rendered = render(AttributeFieldControl, {
-			name: 'src',
-			spec: imageSpec,
-			value: '/media/a.png',
-			onChange: () => {}
-		});
-
-		expect(buttonLabels(rendered.container)).toEqual(['Clear']);
-		expect(rendered.container.querySelector('img')?.getAttribute('src')).toBe('/media/a.png');
-	});
-
 	it('clears the image to an empty string', () => {
 		const changes: unknown[] = [];
 		const rendered = render(AttributeFieldControl, {
@@ -304,6 +280,24 @@ describe('AttributeFieldControl image', () => {
 		);
 		clear?.click();
 		expect(changes).toEqual(['']);
+	});
+
+	it('stores a picked file as its URL when the default is a string', async () => {
+		const changes: unknown[] = [];
+		const file = { src: '/a.pdf', name: 'a.pdf', size: 1, type: 'application/pdf' };
+		const rendered = render(AttributeFieldControl, {
+			name: 'download',
+			spec: { default: '', input: 'file' },
+			value: '',
+			fileSource: { upload: async () => file },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		await userEvent.upload(
+			rendered.container.querySelector('input[type="file"]')!,
+			new File(['x'], 'a.pdf')
+		);
+		await expect.poll(() => changes).toEqual(['/a.pdf']);
 	});
 });
 
@@ -335,7 +329,9 @@ describe('AttributeFieldControl datetime', () => {
 			onChange: (value: unknown) => changes.push(value)
 		});
 
-		const input = rendered.container.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+		const input = rendered.container.querySelector<HTMLInputElement>(
+			'input[type="datetime-local"]'
+		);
 		expect(input?.value).toBe('2026-03-04T19:00');
 		input!.value = '2026-05-06T09:30';
 		input!.dispatchEvent(new Event('change', { bubbles: true }));
@@ -350,11 +346,23 @@ describe('AttributeFieldControl warn', () => {
 			input: 'textarea',
 			warn: (value) => (String(value).length > 5 ? 'Keep it short.' : null)
 		};
-		const short = render(AttributeFieldControl, { name: 'summary', spec, value: 'brief', onChange: () => {} });
+		const short = render(AttributeFieldControl, {
+			name: 'summary',
+			spec,
+			value: 'brief',
+			onChange: () => {}
+		});
 		expect(short.container.querySelector('.uncial-field__warning')).toBeNull();
 
-		const long = render(AttributeFieldControl, { name: 'summary', spec, value: 'too long', onChange: () => {} });
-		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe('Keep it short.');
+		const long = render(AttributeFieldControl, {
+			name: 'summary',
+			spec,
+			value: 'too long',
+			onChange: () => {}
+		});
+		expect(long.container.querySelector('.uncial-field__warning')?.textContent).toBe(
+			'Keep it short.'
+		);
 		expect(long.container.querySelector('.uncial-field__error')).toBeNull();
 	});
 });

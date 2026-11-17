@@ -10,12 +10,13 @@
 		{
 			"type": "heading",
 			"attrs": {
-				"level": 2
+				"level": 2,
+				"slug": "attributes"
 			},
 			"content": [
 				{
 					"type": "text",
-					"text": "Describe editable block data"
+					"text": "Attributes"
 				}
 			]
 		},
@@ -24,7 +25,33 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Attribute specs are how Uncial derives the editing UI you'd otherwise hand-build: each spec maps a component prop to a typed, validated control in the block attributes panel."
+					"text": "Each attribute is a prop of the Block and a field in its attributes panel. A bare value ("
+				},
+				{
+					"type": "text",
+					"text": "title: ''",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ") is shorthand for "
+				},
+				{
+					"type": "text",
+					"text": "{ default: '' }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A spec takes:"
 				}
 			]
 		},
@@ -48,7 +75,20 @@
 								},
 								{
 									"type": "text",
-									"text": " — Required fallback value. Shorthand values like title: \"\" become defaults."
+									"text": ": the fallback value. "
+								},
+								{
+									"type": "text",
+									"text": "null",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": " makes a number nullable; an object or array round-trips as JSON."
 								}
 							]
 						}
@@ -71,21 +111,11 @@
 								},
 								{
 									"type": "text",
-									"text": " — Editor control hint: text, textarea, number, checkbox, json, richtext, select, image, or hidden. Left out, it is guessed from the default value."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
+									"text": ": "
+								},
 								{
 									"type": "text",
-									"text": "required",
+									"text": "text",
 									"marks": [
 										{
 											"type": "code"
@@ -94,21 +124,11 @@
 								},
 								{
 									"type": "text",
-									"text": " — Marks an attribute as required during validation."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
+									"text": ", "
+								},
 								{
 									"type": "text",
-									"text": "validate",
+									"text": "textarea",
 									"marks": [
 										{
 											"type": "code"
@@ -117,21 +137,11 @@
 								},
 								{
 									"type": "text",
-									"text": " — Custom predicate for accepting or rejecting an attribute value."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
+									"text": ", "
+								},
 								{
 									"type": "text",
-									"text": "parse / serialize",
+									"text": "number",
 									"marks": [
 										{
 											"type": "code"
@@ -140,7 +150,98 @@
 								},
 								{
 									"type": "text",
-									"text": " — Coerce values at editor or persistence boundaries."
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "checkbox",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "select",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "json",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "richtext",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "image",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "file",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "hidden",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", or a kind of your own. Left out, it follows the default."
 								}
 							]
 						}
@@ -163,45 +264,174 @@
 								},
 								{
 									"type": "text",
-									"text": " — Allowed values for select-style attributes."
+									"text": ": the values of a "
+								},
+								{
+									"type": "text",
+									"text": "select",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", plain or "
+								},
+								{
+									"type": "text",
+									"text": "{ value, label }",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
 								}
 							]
 						}
 					]
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Let authors add images"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Give an attribute "
 				},
 				{
-					"type": "text",
-					"text": "input: 'image'",
-					"marks": [
+					"type": "listItem",
+					"content": [
 						{
-							"type": "code"
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "required",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "validate",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "parse",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "serialize",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ", "
+								},
+								{
+									"type": "text",
+									"text": "placeholder",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": "."
+								}
+							]
 						}
 					]
 				},
 				{
-					"type": "text",
-					"text": " and the attributes panel shows an image field for it. The attribute stores a plain URL string."
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "when(attrs)",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": shows the field only while it returns true. A hidden field keeps its value."
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "listItem",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "renditions",
+									"marks": [
+										{
+											"type": "code"
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ": for an image, the widths and crops a build makes (see "
+								},
+								{
+									"type": "text",
+									"text": "Rendering",
+									"marks": [
+										{
+											"type": "link",
+											"attrs": {
+												"href": "../rendering/"
+											}
+										}
+									]
+								},
+								{
+									"type": "text",
+									"text": ")."
+								}
+							]
+						}
+					]
 				}
 			]
 		},
@@ -213,7 +443,20 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "// src/lib/blocks/figure.ts\nimport { defineSvelteBlock } from 'uncial';\nimport Figure from './Figure.svelte';\n\nexport const figure = defineSvelteBlock({\n\tid: 'figure',\n\tlabel: 'Figure',\n\tattributes: {\n\t\tsrc: { default: '', input: 'image' },\n\t\talt: ''\n\t},\n\tcomponent: Figure\n});"
+					"text": "attributes: {\n\tlayout: { default: 'text', options: ['text', 'image'] },\n\timage: { default: null, input: 'image', when: (attrs) => attrs.layout === 'image' }\n}"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "field-components"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Field components"
 				}
 			]
 		},
@@ -222,11 +465,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Where images come from is up to you. Pass an "
-				},
-				{
-					"type": "text",
-					"text": "imageSource",
+					"text": "Text",
 					"marks": [
 						{
 							"type": "code"
@@ -235,7 +474,141 @@
 				},
 				{
 					"type": "text",
-					"text": " to "
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "RichText",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "Image",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " read the attribute they name. Readers get plain output; authors edit it in place, and each edit is one undo step. The attributes panel still lists every field."
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "svelte"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "<!-- src/lib/blocks/Figure.svelte -->\n<script module lang=\"ts\">\n\timport { defineBlock } from 'uncial';\n\n\texport const block = defineBlock({\n\t\tid: 'figure',\n\t\tlabel: 'Figure',\n\t\tattributes: { src: { default: null, input: 'image' }, caption: { default: '', input: 'richtext' } }\n\t});\n</script>\n\n<script lang=\"ts\">\n\timport { Image, RichText } from 'uncial';\n</script>\n\n<figure>\n\t<Image name=\"src\" />\n\t<figcaption><RichText name=\"caption\" /></figcaption>\n</figure>"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "An image attribute with a string default stores a URL. With any other default it stores "
+				},
+				{
+					"type": "text",
+					"text": "{ src, focal? }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and its field lets an author click a focal point. A "
+				},
+				{
+					"type": "text",
+					"text": "file",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " attribute stores "
+				},
+				{
+					"type": "text",
+					"text": "{ src, name, size, type }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". An emptied "
+				},
+				{
+					"type": "text",
+					"text": "RichText",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " renders nothing."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "images-without-the-cms"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Images without the CMS"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "On a site built with uncial-cms the Site object supplies the Media source. Using "
+				},
+				{
+					"type": "text",
+					"text": "uncial",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " alone, pass "
 				},
 				{
 					"type": "text",
@@ -248,106 +621,11 @@
 				},
 				{
 					"type": "text",
-					"text": " with any of these three functions, and the field shows a button for each one you provide:"
-				}
-			]
-		},
-		{
-			"type": "bulletList",
-			"content": [
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "upload(file)",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — save the file somewhere and return the URL to store. Adds an Upload button."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "browse()",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — return the URLs of images that already exist. Adds a Choose existing button that opens a picker."
-								}
-							]
-						}
-					]
-				},
-				{
-					"type": "listItem",
-					"content": [
-						{
-							"type": "paragraph",
-							"content": [
-								{
-									"type": "text",
-									"text": "thumbnail(src)",
-									"marks": [
-										{
-											"type": "code"
-										}
-									]
-								},
-								{
-									"type": "text",
-									"text": " — turn a stored URL into one the browser can show. Use it when the stored value is not directly displayable, such as an ID or a path without a base."
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "codeBlock",
-			"attrs": {
-				"language": "svelte"
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "<script lang=\"ts\">\n\timport { Editor, type ImageSource } from 'uncial';\n\timport { blocks, schema, attributesController } from './uncial';\n\n\tconst imageSource: ImageSource = {\n\t\tasync upload(file) {\n\t\t\tconst body = new FormData();\n\t\t\tbody.append('file', file);\n\t\t\tconst response = await fetch('/api/images', { method: 'POST', body });\n\t\t\treturn (await response.json()).url;\n\t\t},\n\t\tasync browse() {\n\t\t\treturn (await fetch('/api/images')).json();\n\t\t}\n\t};\n\n\tlet document = $state({ type: 'doc', content: [{ type: 'paragraph' }] });\n</script>\n\n<Editor {blocks} {schema} {attributesController} {imageSource} bind:json={document} />"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Right after an upload, the editor shows the image from a local "
+					"text": " an "
 				},
 				{
 					"type": "text",
-					"text": "blob:",
+					"text": "imageSource",
 					"marks": [
 						{
 							"type": "code"
@@ -356,11 +634,11 @@
 				},
 				{
 					"type": "text",
-					"text": " copy, so it appears at once even if your server is slow to serve it. The document still stores the URL that "
+					"text": ". Each function you provide adds a button: "
 				},
 				{
 					"type": "text",
-					"text": "upload",
+					"text": "upload(file)",
 					"marks": [
 						{
 							"type": "code"
@@ -369,104 +647,33 @@
 				},
 				{
 					"type": "text",
-					"text": " returned."
-				}
-			]
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "tip"
-			},
-			"content": [
-				{
-					"type": "paragraph",
-					"content": [
-						{
-							"type": "text",
-							"text": "On a site built with uncial-cms you do not write an image source: "
-						},
-						{
-							"type": "text",
-							"text": "EditorPage",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": " uses "
-						},
-						{
-							"type": "text",
-							"text": "cmsImageSource",
-							"marks": [
-								{
-									"type": "code"
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": ", which commits uploads to your repository. See "
-						},
-						{
-							"type": "text",
-							"text": "Blocks, and an image that uploads",
-							"marks": [
-								{
-									"type": "link",
-									"attrs": {
-										"href": "../static-site/#blocks-and-an-image-that-uploads"
-									}
-								}
-							]
-						},
-						{
-							"type": "text",
-							"text": "."
-						}
-					]
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
+					"text": " returns the URL to store, "
+				},
 				{
 					"type": "text",
-					"text": "Allow nested document flow"
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
-				{
-					"type": "text",
-					"text": "Nesting is where form-driven admins fall apart — and where in-place editing pays off most. Editors write nested content inside the rendered block, exactly where it will appear, not in a collapsed sub-form three scroll-screens away."
-				}
-			]
-		},
-		{
-			"type": "callout",
-			"attrs": {
-				"variant": "note"
-			},
-			"content": [
-				{
-					"type": "paragraph",
-					"content": [
+					"text": "browse()",
+					"marks": [
 						{
-							"type": "text",
-							"text": "Atomic blocks have no child content. Add content: { kind: 'flow' } when a block should own one default child region; the block component then receives its attribute props plus a children snippet for that region."
+							"type": "code"
 						}
 					]
+				},
+				{
+					"type": "text",
+					"text": " lists existing URLs, and "
+				},
+				{
+					"type": "text",
+					"text": "thumbnail(src)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " turns a stored value into one a browser can show."
 				}
 			]
 		},
@@ -478,7 +685,51 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "// src/lib/blocks/collapsible.ts\nimport { defineSvelteBlock } from 'uncial';\nimport Collapsible from './Collapsible.svelte';\n\nexport const collapsible = defineSvelteBlock({\n\tid: 'collapsible',\n\tlabel: 'Collapsible',\n\tattributes: {\n\t\ttitle: ''\n\t},\n\tcomponent: Collapsible,\n\tcontent: { kind: 'flow' }\n});"
+					"text": "const imageSource: ImageSource = {\n\tasync upload(file) {\n\t\tconst response = await fetch('/api/images', { method: 'POST', body: file });\n\t\treturn (await response.json()).url;\n\t}\n};\n// <Editor {model} {imageSource} bind:json={document} />"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "containers-and-block-context"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Containers and Block context"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "content: { kind: 'flow' }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " gives a Block one child region, rendered with "
+				},
+				{
+					"type": "text",
+					"text": "children",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Inserting it over a selection wraps the selection; the same control lifts it out."
 				}
 			]
 		},
@@ -490,19 +741,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "<!-- src/lib/blocks/Collapsible.svelte -->\n<script lang=\"ts\">\n\timport type { Snippet } from 'svelte';\n\n\tinterface Props {\n\t\ttitle?: string;\n\t\tchildren?: Snippet;\n\t}\n\n\tlet { title = '', children }: Props = $props();\n</script>\n\n<details class=\"collapse collapse-arrow border border-base-300 bg-base-100\">\n\t<summary class=\"collapse-title font-semibold\">{title}</summary>\n\t<div class=\"collapse-content\">\n\t\t{#if children}\n\t\t\t{@render children()}\n\t\t{/if}\n\t</div>\n</details>"
-				}
-			]
-		},
-		{
-			"type": "heading",
-			"attrs": {
-				"level": 2
-			},
-			"content": [
-				{
-					"type": "text",
-					"text": "Svelte ships first, core stays neutral"
+					"text": "<script module lang=\"ts\">\n\timport { defineBlock } from 'uncial';\n\n\texport const block = defineBlock({\n\t\tid: 'steps',\n\t\tlabel: 'Steps',\n\t\tattributes: {},\n\t\tcontent: { kind: 'flow' }\n\t});\n</script>\n\n<script lang=\"ts\">\n\timport type { BlockProps } from 'uncial';\n\n\tlet { children }: BlockProps<typeof block> = $props();\n</script>\n\n<ol class=\"steps\">{@render children?.()}</ol>"
 				}
 			]
 		},
@@ -511,16 +750,124 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "Svelte is the only bundled block runtime today. Non-Svelte block authoring is enabled through public runtime plugins that normalize native components and can provide editor node-view mounting. A registry may contain blocks from only one runtime in this release; mixed-runtime documents fail fast."
-				}
-			]
-		},
-		{
-			"type": "paragraph",
-			"content": [
+					"text": "A child reads where it sits with "
+				},
 				{
 					"type": "text",
-					"text": "Svelte blocks keep the direct Svelte renderer path, so custom block rendering remains SSR-capable. Future React or Vue support should be implemented with full-document runtime renderers that can use each framework's SSR APIs, not by mixing client-only component islands into the Svelte renderer."
+					"text": "getBlock()",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": "
+				},
+				{
+					"type": "text",
+					"text": "editing",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "parent",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "index",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "siblings",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "page",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", the same in the editor as for readers. It also offers "
+				},
+				{
+					"type": "text",
+					"text": "update(patch)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and the Media source while editing. Svelte context set by an ancestor Block does not reach its children in the editor, so read "
+				},
+				{
+					"type": "text",
+					"text": "parent",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " instead; context your app sets above "
+				},
+				{
+					"type": "text",
+					"text": "Editor",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " does reach them."
 				}
 			]
 		},
@@ -532,7 +879,176 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "import { defineRuntimeBlock } from 'uncial/core';\nimport { reactRuntime } from 'uncial-react-runtime';\n\nexport function defineReactBlock(config) {\n\treturn defineRuntimeBlock(reactRuntime, config);\n}"
+					"text": "const step = getBlock();\nconst numbered = $derived(step.parent?.type === 'steps');"
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "custom-attribute-inputs"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Custom attribute inputs"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "An "
+				},
+				{
+					"type": "text",
+					"text": "input",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " of your own gets your Svelte component as its field. Map the kind to a lazy import in the Content model:"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "editor: { attributeInputs: { 'item-page': () => import('./ItemPagePicker.svelte') } }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The component receives "
+				},
+				{
+					"type": "text",
+					"text": "AttributeInputProps",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": "
+				},
+				{
+					"type": "text",
+					"text": "name",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "spec",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", "
+				},
+				{
+					"type": "text",
+					"text": "value",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " and "
+				},
+				{
+					"type": "text",
+					"text": "update",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". Pass "
+				},
+				{
+					"type": "text",
+					"text": "update",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " plain JSON."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "other-runtimes"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Other runtimes"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Svelte is the bundled runtime. A runtime plugin declares Blocks for another framework with "
+				},
+				{
+					"type": "text",
+					"text": "defineRuntimeBlock(runtime, config)",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". A model holds Blocks from one runtime only."
 				}
 			]
 		}

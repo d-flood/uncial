@@ -1,15 +1,6 @@
-import {
-	createBlockAttributesController,
-	createBlockRegistry,
-	createDocumentMetaController,
-	createSchema,
-	defineSvelteBlock,
-	hasRichTextContent,
-	richTextDocument
-} from '$lib/index.js';
-import Callout from './demo/Callout.svelte';
-import Card from './demo/Card.svelte';
-import RowView from './demo/RowView.svelte';
+import { createContentModel } from '$lib/index.js';
+import { bindEditor } from '$lib/editor/index.js';
+import { richTextDocument } from '$lib/shared/richText.js';
 
 function isNonEmptyString(value: unknown): value is string {
 	return typeof value === 'string' && value.trim().length > 0;
@@ -31,76 +22,18 @@ export type DemoDocument = {
 };
 
 export function buildDemo() {
-	const card = defineSvelteBlock({
-		id: 'card',
-		label: 'Card',
-		description: 'Typed attributes with normalization and validation.',
-		attributes: {
-			title: {
-				default: 'Launch checklist',
-				required: true,
-				validate: isNonEmptyString
-			},
-			subtitle: 'A compact Svelte block',
-			body: {
-				default: richTextDocument(
-					'Use rich text for the part authors should edit, and typed attributes for the parts your component owns.'
-				),
-				input: 'richtext',
-				richText: { features: ['bold', 'italic', 'bulletList', 'orderedList'] },
-				validate: hasRichTextContent
-			}
-		},
-		component: Card
+	const model = createContentModel({
+		blocks: import.meta.glob('./demo/blocks/*.svelte', { eager: true }),
+		meta: {
+			title: { default: 'Uncial demo document', required: true, validate: isNonEmptyString },
+			author: { default: 'Demo Author' },
+			publishedAt: { default: '2026-05-13', placeholder: 'YYYY-MM-DD' },
+			tags: { default: ['demo', 'blocks'], input: 'json' }
+		}
 	});
-
-	const callout = defineSvelteBlock({
-		id: 'callout',
-		label: 'Callout',
-		description: 'Tone-tinted notice with a validated variant and rich text body.',
-		attributes: {
-			tone: {
-				default: 'info',
-				options: [
-					{ value: 'info', label: 'Info' },
-					{ value: 'success', label: 'Success' },
-					{ value: 'warning', label: 'Warning' },
-					{ value: 'danger', label: 'Danger' }
-				]
-			},
-			title: { default: 'Heads up', required: true, validate: isNonEmptyString },
-			body: {
-				default: richTextDocument(
-					'Callouts share the same rich text stack — bold and italic both work.'
-				),
-				input: 'richtext',
-				richText: { features: ['bold', 'italic'] },
-				validate: hasRichTextContent
-			},
-			showIcon: true
-		},
-		component: Callout
-	});
-
-	const row = defineSvelteBlock({
-		id: 'row',
-		label: 'Row',
-		description: 'Lay out any other blocks side by side.',
-		attributes: {},
-		component: RowView,
-		content: { kind: 'flow' }
-	});
-
-	const blocks = createBlockRegistry([card, callout, row]);
-	const metaFields = {
-		title: { default: 'Uncial demo document', required: true, validate: isNonEmptyString },
-		author: { default: 'Demo Author' },
-		publishedAt: { default: '2026-05-13', placeholder: 'YYYY-MM-DD' },
-		tags: { default: ['demo', 'blocks'], input: 'json' as const }
-	};
-	const schema = createSchema(blocks, { metaFields });
-	const attributesController = createBlockAttributesController();
-	const metaController = createDocumentMetaController(schema.metaFields);
+	const { attributes, meta } = bindEditor(model);
+	const attributesController = attributes.controller;
+	const metaController = meta.controller;
 
 	const initialDocument: DemoDocument = {
 		type: 'doc',
@@ -178,7 +111,7 @@ export function buildDemo() {
 										content: [
 											{
 												type: 'text',
-												text: 'createSchema(registry, options)',
+												text: 'defineBlock(declaration)',
 												marks: [{ type: 'code' }]
 											}
 										]
@@ -193,7 +126,7 @@ export function buildDemo() {
 										content: [
 											{
 												type: 'text',
-												text: '@uncial/core',
+												text: 'uncial',
 												marks: [{ type: 'link', attrs: { href: 'https://example.com/core' } }]
 											}
 										]
@@ -208,7 +141,7 @@ export function buildDemo() {
 										content: [
 											{
 												type: 'text',
-												text: 'Admits the blocks and marks a document may use.'
+												text: 'Declares a Block in its component file.'
 											}
 										]
 									}
@@ -254,7 +187,7 @@ export function buildDemo() {
 				content: [
 					{
 						type: 'text',
-						text: 'Register blocks, create a schema, bind the editor to JSON, and render the same document anywhere.'
+						text: 'Declare blocks in their components, glob them into a content model, bind the editor to JSON, and render the same document anywhere.'
 					}
 				]
 			},
@@ -264,29 +197,24 @@ export function buildDemo() {
 				content: [
 					{
 						type: 'text',
-						text: `import {
-  Editor,
-  Renderer,
-  createBlockRegistry,
-  createSchema,
-  defineSvelteBlock,
-  richTextDocument
-} from 'uncial';
-import PromoCard from './PromoCard.svelte';
+						text: `<!-- blocks/PromoCard.svelte -->
+<script module lang="ts">
+  import { defineBlock } from 'uncial';
+  export const block = defineBlock({
+    id: 'promoCard',
+    label: 'Promo Card',
+    attributes: {
+      title: '',
+      body: { default: 'Write the editable part here.', input: 'textarea' }
+    }
+  });
+</script>
 
-const promoCard = defineSvelteBlock({
-  id: 'promoCard',
-  label: 'Promo Card',
-  attributes: {
-    title: '',
-    body: { default: richTextDocument('Write the editable part here.'), input: 'richtext' }
-  },
-  component: PromoCard
-});
-
-const blocks = createBlockRegistry([promoCard]);
-const schema = createSchema(blocks);
-let doc = $state({ type: 'doc', content: [{ type: 'paragraph' }] });`
+// content.ts
+import { createContentModel } from 'uncial';
+export const model = createContentModel({
+  blocks: import.meta.glob('./blocks/*.svelte', { eager: true })
+});`
 					}
 				]
 			},
@@ -304,5 +232,5 @@ let doc = $state({ type: 'doc', content: [{ type: 'paragraph' }] });`
 		]
 	};
 
-	return { blocks, schema, attributesController, metaController, initialDocument };
+	return { model, attributesController, metaController, initialDocument };
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { parseAttributeDrafts } from '../core/attributes.js';
 	import { resolveRegistry } from '../core/registry.js';
 	import type {
 		AttributeInputs,
@@ -23,7 +24,6 @@
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import { dropdownFloat } from './dropdownFloat.js';
-	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
 	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
@@ -31,13 +31,6 @@
 	interface Props {
 		controller: BlockAttributesController;
 		blocks?: BlockRegistry | BlockDefinition[];
-		/**
-		 * Resolve a custom attribute value through host-provided UI. Preferred
-		 * over the deprecated `window`-level `uncial:choose-attribute` event,
-		 * which cross-talks between multiple editors on one page. When omitted,
-		 * the panel falls back to dispatching that window event for back-compat.
-		 */
-		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		/** Components that edit host-defined input kinds in place; see `AttributeFieldControl`. */
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
@@ -50,7 +43,6 @@
 	let {
 		controller,
 		blocks = [],
-		onChooseAttribute,
 		attributeInputs,
 		imageSource,
 		imagePreviews,
@@ -66,11 +58,13 @@
 			? (registry.get(controllerState.selectedBlockId) ?? null)
 			: null;
 	});
-	const selectedAttributeSpecs = $derived(
-		selectedBlock
-			? (Object.entries(selectedBlock.attributes) as Array<[string, AttributeSpec<unknown>]>)
-			: []
-	);
+	const selectedAttributeSpecs = $derived.by(() => {
+		if (!selectedBlock) return [];
+		const attrs = parseAttributeDrafts(selectedBlock, controllerState.draftAttrs);
+		return (
+			Object.entries(selectedBlock.attributes) as Array<[string, AttributeSpec<unknown>]>
+		).filter(([, spec]) => spec.when?.(attrs) ?? true);
+	});
 	const selectedBlockReadOnly = $derived(
 		Boolean(selectedBlock && 'readOnly' in selectedBlock && selectedBlock.readOnly)
 	);
@@ -122,28 +116,6 @@
 		if (controller.insertContainerChild(blockId)) {
 			childBlockQuery = '';
 		}
-	}
-
-	function chooseCustomAttribute(name: string, inputKind: string): void {
-		const request: ChooseAttributeRequest = {
-			inputKind,
-			name,
-			attrs: controllerState.draftAttrs,
-			setAttrs: (attrs: Record<string, unknown>) => {
-				for (const [key, value] of Object.entries(attrs)) {
-					controller.setDraftAttr(key, value);
-				}
-			}
-		};
-
-		if (onChooseAttribute) {
-			onChooseAttribute(request);
-			return;
-		}
-
-		// Deprecated fallback: a window-global channel that cross-talks between
-		// editors. Retained for one release for hosts not yet passing the prop.
-		window.dispatchEvent(new CustomEvent(CHOOSE_ATTRIBUTE_EVENT, { detail: request }));
 	}
 
 	function startChildDrag(event: PointerEvent, index: number): void {
@@ -215,7 +187,6 @@
 					value={controllerState.draftAttrs[name]}
 					error={controllerState.validationErrors[name]}
 					onChange={(value) => controller.setDraftAttr(name, value)}
-					onCustom={chooseCustomAttribute}
 					{attributeInputs}
 					{imageSource}
 					{imagePreviews}
