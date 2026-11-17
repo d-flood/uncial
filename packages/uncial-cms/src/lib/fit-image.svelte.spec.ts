@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CONTENT_BYTES } from './constants.js';
+import { MAX_IMAGE_BYTES } from './constants.js';
 import { fitImage } from './fit-image.js';
 
 /**
@@ -38,13 +38,13 @@ async function noisePng(width: number, height: number, name: string): Promise<Fi
 describe('fitImage', () => {
 	it('re-encodes an oversize image to WebP under the limit and the edge bound', async () => {
 		const file = await noisePng(3000, 2000, 'photo.png');
-		expect(file.size).toBeGreaterThan(MAX_CONTENT_BYTES);
+		expect(file.size).toBeGreaterThan(MAX_IMAGE_BYTES);
 
 		const result = await fitImage(file);
 
 		expect(result.contentType).toBe('image/webp');
 		expect(result.filename).toMatch(/\.webp$/);
-		expect(result.bytes.byteLength).toBeLessThanOrEqual(MAX_CONTENT_BYTES);
+		expect(result.bytes.byteLength).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
 		expect(Math.max(result.width, result.height)).toBeLessThanOrEqual(2000);
 	});
 

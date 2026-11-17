@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MAX_CONTENT_BYTES } from './constants.js';
+import { MAX_CONTENT_BYTES, MAX_IMAGE_BYTES } from './constants.js';
 import { defineSite } from './define-site.js';
 import { NotFoundError } from './errors.js';
 import type { ImageEncoder } from './fit-image.js';
@@ -9,7 +9,8 @@ import { clearActiveForge, setActiveForge } from './upload-context.js';
 
 // The browser encoder needs a canvas; the descent itself stays real.
 const encoder: ImageEncoder = {
-	decode: async (file) => (file.size > MAX_CONTENT_BYTES ? { width: 3000, height: 2000 } : { width: 8, height: 8 }),
+	decode: async (file) =>
+		file.size > MAX_CONTENT_BYTES ? { width: 3000, height: 2000 } : { width: 8, height: 8 },
 	encode: async () => new Blob([new Uint8Array(32)], { type: 'image/webp' })
 };
 vi.mock('./fit-image.js', async (importOriginal) => {
@@ -60,14 +61,14 @@ describe('cmsImageSource', () => {
 	it('commits an oversize input as WebP', async () => {
 		const adapter = fakeAdapter();
 		setActiveForge({ adapter, author, config });
-		const huge = new File([new Uint8Array(MAX_CONTENT_BYTES + 1)], 'huge.png', { type: 'image/png' });
+		const huge = new File([new Uint8Array(MAX_IMAGE_BYTES + 1)], 'huge.png', { type: 'image/png' });
 
 		const src = await source().upload!(huge);
 
 		expect(src).toMatch(/^\/uploads\/[0-9a-f]+\.webp$/);
 		const [path, content] = vi.mocked(adapter.writeFile).mock.calls[0]!;
 		expect(path).toBe(`packages/docs/static${src}`);
-		expect((content as Uint8Array).byteLength).toBeLessThanOrEqual(MAX_CONTENT_BYTES);
+		expect((content as Uint8Array).byteLength).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
 	});
 
 	it('propagates the no-session error unchanged', async () => {

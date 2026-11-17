@@ -11,6 +11,8 @@ export { createDocumentMetaController } from './metaController.js';
 export { CHOOSE_ATTRIBUTE_EVENT } from './chooseAttribute.js';
 export type { ChooseAttributeRequest } from './chooseAttribute.js';
 export type { ImageSource } from './imageSource.js';
+export type { FileSource } from './fileSource.js';
+export { default as FocalPointPicker } from './FocalPointPicker.svelte';
 export {
 	builtinToolbarFeatures,
 	defaultToolbarFeatures,

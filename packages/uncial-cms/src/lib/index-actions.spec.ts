@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema } from 'uncial/core';
-import { MAX_CONTENT_BYTES } from './constants.js';
+import { MAX_CONTENT_BYTES, MAX_IMAGE_BYTES } from './constants.js';
 import { defineSite } from './define-site.js';
 import { ConflictError, NotFoundError } from './errors.js';
 import {
@@ -19,7 +19,8 @@ const schema = createSchema(blocks, {
 	metaFields: { title: { default: 'Untitled page', required: true } }
 });
 const author = { name: 'Octo Cat', email: 'octocat@users.noreply.github.com' };
-const localSite = (mediaDir?: string) => defineSite({ contentDir: 'content', mediaDir }, { dev: true });
+const localSite = (mediaDir?: string) =>
+	defineSite({ contentDir: 'content', mediaDir }, { dev: true });
 
 function fakeAdapter(overrides: Partial<ForgeAdapter> = {}): ForgeAdapter {
 	return {
@@ -195,11 +196,11 @@ describe('uploadAsset', () => {
 		expect(adapter.writeFile).not.toHaveBeenCalled();
 	});
 
-	it('rejects bytes over MAX_CONTENT_BYTES with no adapter call', async () => {
+	it('rejects an image over MAX_IMAGE_BYTES with no adapter call', async () => {
 		const adapter = fakeAdapter();
-		const tooBig = { ...file, bytes: new Uint8Array(MAX_CONTENT_BYTES + 1) };
+		const tooBig = { ...file, bytes: new Uint8Array(MAX_IMAGE_BYTES + 1) };
 
-		await expect(uploadAsset({ adapter }, tooBig, opts)).rejects.toThrow(/1 MB/);
+		await expect(uploadAsset({ adapter }, tooBig, opts)).rejects.toThrow(/5 MB/);
 		expect(adapter.readFile).not.toHaveBeenCalled();
 		expect(adapter.writeFile).not.toHaveBeenCalled();
 	});
@@ -235,7 +236,9 @@ describe('uploadImageAsset', () => {
 		const adapter = fakeAdapter();
 		activate(adapter);
 
-		const result = await uploadImageAsset(file, { mediaDir: 'packages/uncial-docs/static/uploads' });
+		const result = await uploadImageAsset(file, {
+			mediaDir: 'packages/uncial-docs/static/uploads'
+		});
 
 		expect(result.path).toMatch(/^packages\/uncial-docs\/static\/uploads\/[0-9a-f]+\.png$/);
 		expect(adapter.writeFile).toHaveBeenCalledTimes(1);

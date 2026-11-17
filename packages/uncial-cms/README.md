@@ -3,7 +3,7 @@
 Git-forge-backed static CMS runtime for [Uncial](https://github.com/d-flood/uncial).
 Every content page is a JSON document in your site's git repository — the
 repository is the **single source of truth**. The build renders each content
-page *and* a matching editor variant; an editor visits `/about/edit/`, signs in
+page _and_ a matching editor variant; an editor visits `/about/edit/`, signs in
 with their GitHub account, and edits the page in place with the same components
 and layout. Saving commits the JSON back to the repo, which triggers your
 normal deploy. There is no CMS server, no database, and no user table.
@@ -23,7 +23,7 @@ itself. The docs are the live demo.
 - **Load:** the runtime fetches the JSON + its blob sha live from the forge
   (never the baked build output), normalizes it, and mounts `<uncial-editor>`.
 - **Save:** validate → serialize → commit with the recorded sha (optimistic
-  concurrency) → poll commit status and surface *building… / live*.
+  concurrency) → poll commit status and surface _building… / live_.
 - **Conflict:** a stale sha yields a 409 that surfaces a blocking banner —
   download your version, or reload the latest — never a silent overwrite.
 
@@ -48,11 +48,11 @@ The package also ships a `uncial-cms` command; see
 
 - `uncial-cms` — `defineSite`, the framework-agnostic browser runtime
   (`mountEditorPage`, `mountIndexPage`), `createPage`/`deletePage`/`listPages`,
-  `uploadAsset`/`uploadImageAsset`/`fitImage`/`servedUrl` (see
+  `uploadAsset`/`uploadImageAsset`/`fitImage`/`servedUrl`/`cmsFileSource` (see
   [Media](#media)), `parseDocument`/`serializeDocument`, the session providers
   (`popupSessionProvider`, `brokerSessionProvider`, `patSessionProvider`),
-  `MAX_CONTENT_BYTES`,
-  `ConflictError`, `NotFoundError`, and the shared types (`Site`,
+  `MAX_CONTENT_BYTES`, `MAX_IMAGE_BYTES`, `MAX_FILE_BYTES`,
+  `ConflictError`, `NotFoundError`, `FileTooLargeError`, and the shared types (`Site`,
   `SiteOptions`, `UncialCmsSiteConfig`, `ForgeSession`, `SessionProvider`,
   `ForgeAdapter`).
 - `uncial-cms/dashboard` — registers `<uncial-dashboard>`, the `/uncial/`
@@ -78,6 +78,10 @@ The package also ships a `uncial-cms` command; see
 - `uncial-cms/paths` — the pure path↔source mapping and the page-path
   validators, with no `node:` module and no `@sveltejs/kit` in the import
   graph, so a plain Node script or a browser bundle can import it.
+- `uncial-cms/renditions` — `rendition`, a reader page's `src` and `srcset`
+  for an image value under a rendition spec. See [Renditions](#renditions).
+- `uncial-cms/renditions/build` — `collectRenditions` and `writeRenditions`,
+  which write those renditions with sharp at build time. Node only.
 - `uncial-cms/github` — the GitHub `ForgeAdapter` (`createGitHubAdapter`) over
   the Contents API, plus the three GitHub session providers.
 - `uncial-cms/local` — the local filesystem `ForgeAdapter`
@@ -97,11 +101,11 @@ import type { SiteOptions } from 'uncial-cms';
 export const STATIC_DIR = 'static';
 
 export const siteOptions: SiteOptions = {
-	contentDir: 'content',             // repo-root-relative, as the forge addresses it
-	localContentDir: 'content',        // FS path at build time; defaults to contentDir
+	contentDir: 'content', // repo-root-relative, as the forge addresses it
+	localContentDir: 'content', // FS path at build time; defaults to contentDir
 	mediaDir: `${STATIC_DIR}/uploads`, // repo-root-relative; must sit under the static dir
 	github: { repo: 'owner/name', branch: 'main' },
-	autosaveMs: 400                    // honoured only when the resolved forge is local
+	autosaveMs: 400 // honoured only when the resolved forge is local
 };
 ```
 
@@ -141,11 +145,11 @@ local copies separately:
 
 ```ts
 export const siteOptions: SiteOptions = {
-	contentDir: 'pages',               // on the `content` branch
-	mediaDir: 'media',                 // on the `content` branch
-	localContentDir: 'content/pages',  // the worktree, from the build's cwd
+	contentDir: 'pages', // on the `content` branch
+	mediaDir: 'media', // on the `content` branch
+	localContentDir: 'content/pages', // the worktree, from the build's cwd
 	localMediaDir: 'content/media',
-	mediaUrlPrefix: '/media',          // where the site serves mediaDir
+	mediaUrlPrefix: '/media', // where the site serves mediaDir
 	github: { repo: 'owner/name', branch: 'content' }
 };
 ```
@@ -263,7 +267,7 @@ import { blocks, schema, site } from '../site.js';
 const handlers = createContentHandlers({ site, blocks, schema });
 
 export const entries = handlers.entries; // derived from the content dir
-export const load = handlers.load;       // { document, meta, path }
+export const load = handlers.load; // { document, meta, path }
 ```
 
 `handlers.list()` returns every page as `{ path, sourcePath, document }`, the
@@ -281,7 +285,7 @@ import { blocks, schema, site } from '../../site.js';
 const handlers = createEditorHandlers({ site, blocks, schema });
 
 export const entries = handlers.entries;
-export const load = handlers.load;       // { sourcePath, pagePath }
+export const load = handlers.load; // { sourcePath, pagePath }
 ```
 
 ```svelte
@@ -312,17 +316,17 @@ dynamically, and carries the runtime sentinel the CLI gate looks for.
 
 Its props:
 
-| Prop | Type | Notes |
-| --- | --- | --- |
-| `site` | `Site` | The object from `defineSite`. |
-| `sourcePath` | `string` | From the editor route's payload. |
-| `pagePath` | `string` | From the editor route's payload. |
-| `blocks` | `BlockRegistry` | |
-| `schema` | `ContentSchema \| (path: string) => ContentSchema` | |
-| `sessionProvider` | `SessionProvider` | Defaults to the provider the resolved forge implies. |
-| `attributesPanel` | `'docked' \| 'overlay' \| 'off'` | Default `'overlay'`: the panel costs the document no width. |
-| `presentation` | `'card' \| 'bare'` | Default `'bare'`: no surface of the editor's own. |
-| `attributeInputs` | `AttributeInputs` | Components for host-defined attribute inputs; see [Custom attribute inputs](#custom-attribute-inputs). |
+| Prop              | Type                                               | Notes                                                                                                  |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `site`            | `Site`                                             | The object from `defineSite`.                                                                          |
+| `sourcePath`      | `string`                                           | From the editor route's payload.                                                                       |
+| `pagePath`        | `string`                                           | From the editor route's payload.                                                                       |
+| `blocks`          | `BlockRegistry`                                    |                                                                                                        |
+| `schema`          | `ContentSchema \| (path: string) => ContentSchema` |                                                                                                        |
+| `sessionProvider` | `SessionProvider`                                  | Defaults to the provider the resolved forge implies.                                                   |
+| `attributesPanel` | `'docked' \| 'overlay' \| 'off'`                   | Default `'overlay'`: the panel costs the document no width.                                            |
+| `presentation`    | `'card' \| 'bare'`                                 | Default `'bare'`: no surface of the editor's own.                                                      |
+| `attributeInputs` | `AttributeInputs`                                  | Components for host-defined attribute inputs; see [Custom attribute inputs](#custom-attribute-inputs). |
 
 Pass `devOnly: true` to `createEditorHandlers` for a **GitHub** site that still
 wants editing in development only; a local-only site gets that behaviour without
@@ -404,7 +408,7 @@ import { buildNav } from 'uncial-cms/nav';
 const nav = buildNav(
 	handlers.list().filter(({ document }) => document.meta?.navOrder !== undefined),
 	{
-		base,                                                  // prepended to site-root hrefs
+		base, // prepended to site-root hrefs
 		links: [{ href: '/search/', label: 'Search', order: 50 }] // fixed links, placed like pages
 	}
 );
@@ -561,8 +565,8 @@ const controller = createEditorSession({
 	schema,
 	autosaveMs: site.autosaveMs,
 	ui: {
-		status: (view) => renderStatus(view),          // tone + message + optional commit link
-		setDocument: (doc) => seedEditorAndMeta(doc),  // seed metadata from the document, not the schema
+		status: (view) => renderStatus(view), // tone + message + optional commit link
+		setDocument: (doc) => seedEditorAndMeta(doc), // seed metadata from the document, not the schema
 		saveEnabled: (enabled) => setSaveEnabled(enabled),
 		conflictVisible: (visible) => setConflictVisible(visible)
 	}
@@ -618,7 +622,7 @@ It takes the same parity options `EditorPage` does — `attributesPanel:
 `editorStylesheets`, which defaults to mirroring the host page's stylesheets
 into the shadow root. Pass `autosaveMs` to drop the Save button and write the
 document that many milliseconds after the last change instead — the mode a local
-checkout wants, where the file *is* the document. Changes inside the window
+checkout wants, where the file _is_ the document. Changes inside the window
 coalesce into one write, and a change arriving mid-write queues a single
 follow-up:
 
@@ -736,7 +740,7 @@ jobs:
 
 Permissions are the caller's — a reusable workflow inherits the calling job's
 token scopes, so those three must be declared there. `base-path` is exported to
-the build as `BASE_PATH`; a Pages *project* site is served under `/<repo>/`,
+the build as `BASE_PATH`; a Pages _project_ site is served under `/<repo>/`,
 while a user, organization or custom-domain site is served at the root and needs
 no value. The other inputs are seams rather than everyday knobs:
 `package-filter` for a monorepo, `build-dir`, `local-only` for the gate's other
@@ -774,7 +778,7 @@ Residual risks accepted for v1 (see the spec's §6.5 for the full treatment):
   owner — the demo's case — but on a shared host a **custom domain restores
   per-site granularity**.
 - Phishing remains possible in principle; the repo-scoped token caps the damage
-  to repos the victim can push to *and* whose allowlist names the attacker
+  to repos the victim can push to _and_ whose allowlist names the attacker
   origin — i.e. near zero.
 
 ## Rich text: superscript, subscript and embeds
@@ -823,11 +827,20 @@ page: { default: { item: '', page: 1 }, input: 'item-page' }
 	let { value, update }: AttributeInputProps<{ item: string; page: number }> = $props();
 </script>
 
-<button type="button" onclick={() => update({ item: 'abc', page: 3 })}>{value.item || 'Choose'}</button>
+<button type="button" onclick={() => update({ item: 'abc', page: 3 })}
+	>{value.item || 'Choose'}</button
+>
 ```
 
 ```svelte
-<EditorPage {site} {blocks} {schema} {sourcePath} {pagePath} attributeInputs={{ 'item-page': ItemPagePicker }} />
+<EditorPage
+	{site}
+	{blocks}
+	{schema}
+	{sourcePath}
+	{pagePath}
+	attributeInputs={{ 'item-page': ItemPagePicker }}
+/>
 ```
 
 The component receives `name`, `spec`, the current `value` and `update`, and
@@ -880,10 +893,9 @@ const result = await uploadImageAsset(file, { site, fit: true });
 updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
 ```
 
-- **`fit`.** `true` (or a `FitOptions` object) re-encodes an oversize image to
-  WebP at a bounded longest edge, stepping quality and then dimensions down
-  until the bytes fit the forge limit — so a photograph off a phone commits
-  instead of failing the Contents API cap. An image already under the limit
+- **`fit`.** `true` (or a `FitOptions` object) re-encodes an image over
+  `MAX_IMAGE_BYTES` (5 MB) to WebP at a bounded longest edge, stepping quality
+  and then dimensions down until the bytes fit. An original under the limit
   passes through untouched. `fitImage` is exported for use on its own.
 - **`servedUrl(site, repoPath, staticDir?)`** maps a committed repo-root path
   under the static directory to the site-root-relative URL the built site serves
@@ -895,9 +907,11 @@ updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
 - **Content-addressed.** The committed name is a hash of the bytes plus the
   original extension (`<mediaDir>/<hash>.<ext>`), so re-uploading identical bytes
   reuses the existing file (idempotent create) and distinct images never collide.
-- **Size guard.** Files over `MAX_CONTENT_BYTES` (~1 MB, the GitHub Contents API
-  limit) reject with a clear, catchable error before any network call — there is
-  no git-blobs-API fallback in v1. With `fit`, the re-encode happens first.
+- **Size guard.** Images over `MAX_IMAGE_BYTES` (5 MB) and other files over
+  `MAX_FILE_BYTES` (20 MB) reject with a clear, catchable error before any network
+  call. With `fit`, the re-encode happens first. The GitHub adapter writes
+  anything over `MAX_CONTENT_BYTES` (~1 MB, the Contents API cap) through the Git
+  Data API: a blob, a tree, a commit, then a fast-forward of the branch.
 - **`mediaDir`** is repo-root-relative and comes from the site options; the
   returned `path` is repo-root-relative too. Until the next redeploy the
   committed copy is not served; an `input: 'image'` field bridges the gap with a
@@ -905,7 +919,61 @@ updateAttributes?.({ src: servedUrl(site, result.path, STATIC_DIR) });
 
 The `ForgeAdapter`'s `writeFile` accepts `string | Uint8Array`; binary content is
 base64-encoded and PUT to the Contents API with the same message/branch/sha
-contract as text writes (conflicts still surface as `ConflictError`).
+contract as text writes (conflicts still surface as `ConflictError`). A read of a
+file too large to return rejects with `FileTooLargeError`, which carries its sha.
+
+### Documents
+
+`EditorPage`, `mountEditorPage` and the Astro `EditorSurface` give `Editor` a
+`fileSource`, `cmsFileSource(config, { base, staticDir })` unless one is passed.
+It backs `input: 'file'` fields and the rich-text link panel's Document row:
+an upload commits the file under `mediaDir` at a content-addressed name and
+stores `{ src, name, size, type }` (a link stores `src` as its `href`), and
+Choose existing lists the media that are not images.
+
+### Renditions
+
+An `input: 'image'` attribute (or meta field) declares the renditions a build
+makes of its value:
+
+```ts
+image: {
+	default: null,
+	input: 'image',
+	renditions: { widths: [480, 960, 1600], crops: { square: { aspect: '1:1', width: 500 } } }
+}
+```
+
+At build, in Node, collect a document's jobs and write them with sharp (an
+optional peer dependency):
+
+```ts
+import { collectRenditions, writeRenditions } from 'uncial-cms/renditions/build';
+
+const jobs = collectRenditions(document, blocks, schema.metaFields);
+await writeRenditions(jobs, { mediaUrlPrefix: '/media', sourceDir: 'content/media', outDir });
+```
+
+Each file goes to `<outDir>/r/<hash>-<spec>.<ext>`, where `<spec>` is `w<width>`
+or the crop's name and the hash covers the source, the parameters and, for a
+crop, the focal point, so an existing file is never stale and is skipped. A
+crop is the largest region of its aspect centred on `focal` (the image centre
+without one) and kept inside the image, then scaled down to its `width`. Only
+raster images under `mediaUrlPrefix` get renditions, in the original's format,
+except that a PNG's are WebP.
+
+On the page, `rendition` from `uncial-cms/renditions` gives the matching URLs
+and ships no editor code:
+
+```ts
+import { rendition } from 'uncial-cms/renditions';
+
+rendition(image, spec, { mediaUrlPrefix: '/media' }); // { src, srcset }
+rendition(image, spec, { mediaUrlPrefix: '/media', crop: 'square' }); // { src }
+```
+
+Like a stored `src`, the URLs carry no base path; an image the build makes no
+renditions of comes back as `{ src }`.
 
 ## v1 limitations & roadmap
 
@@ -917,7 +985,7 @@ Deliberately out of scope for v1 (tracked as future design rounds):
 - **No PR workflows.** Save, or Publish with [Drafts](#drafts), commits to the
   configured branch. Editorial review is git **branch protection**, configured by
   the site owner.
-- **GitHub and local files only.** v1 ships the forge-adapter *interface*
+- **GitHub and local files only.** v1 ships the forge-adapter _interface_
   (validated on paper against GitLab's client-side PKCE), the GitHub
   implementation, and a development-only local filesystem implementation.
   **GitLab** / Gitea adapters are future work; nothing outside the adapter

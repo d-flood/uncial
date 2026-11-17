@@ -2,6 +2,7 @@
 	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
+	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
 	import type { DocumentMetaController, DocumentMetaState } from './metaController.js';
 
@@ -12,6 +13,7 @@
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
+		fileSource?: FileSource;
 	}
 
 	let {
@@ -20,7 +22,8 @@
 		onCommit,
 		attributeInputs,
 		imageSource,
-		imagePreviews
+		imagePreviews,
+		fileSource
 	}: Props = $props();
 
 	let controllerState = $state<DocumentMetaState>({
@@ -63,6 +66,7 @@
 			{attributeInputs}
 			{imageSource}
 			{imagePreviews}
+			{fileSource}
 		/>
 	{:else}
 		<p class="uncial-help-text">No metadata fields configured.</p>

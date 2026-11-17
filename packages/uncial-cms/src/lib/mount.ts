@@ -10,7 +10,7 @@ import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core'
 import type { UncialEditorElement } from 'uncial/web-components';
 import { type EditorPageUi, type StatusView } from './editor-controller.js';
 import { createEditorSession, defaultSessionProvider } from './editor-session.js';
-import { cmsImageSource } from './image-source.js';
+import { cmsFileSource, cmsImageSource } from './image-source.js';
 import { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 import type { SessionProvider, UncialCmsSiteConfig } from './types.js';
 import { clearActiveForge } from './upload-context.js';
@@ -51,6 +51,8 @@ export interface MountEditorPageOptions {
 	editorStylesheets?: string[];
 	/** Where `input: 'image'` fields get images; defaults to `cmsImageSource(config)`. */
 	imageSource?: UncialEditorElement['imageSource'];
+	/** Where `input: 'file'` fields and Document links get files; defaults to `cmsFileSource(config)`. */
+	fileSource?: UncialEditorElement['fileSource'];
 	/** Svelte components for host-defined attribute `input` kinds. */
 	attributeInputs?: UncialEditorElement['attributeInputs'];
 	onerror?: (error: unknown) => void;
@@ -134,6 +136,7 @@ export function mountEditorPage(
 	if (opts.attributesPanel !== undefined) editor.attributesPanel = opts.attributesPanel;
 	if (opts.presentation !== undefined) editor.presentation = opts.presentation;
 	editor.imageSource = opts.imageSource ?? cmsImageSource(config);
+	editor.fileSource = opts.fileSource ?? cmsFileSource(config);
 	editor.attributeInputs = opts.attributeInputs;
 	editor.blocks = blocks;
 	editor.schema = schema;

@@ -6,7 +6,7 @@ import { createServer, type ViteDevServer } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBlockRegistry, createSchema } from 'uncial/core';
 import { mediaSourceContract } from '../../fixtures/media-source-contract.js';
-import { MAX_CONTENT_BYTES } from '../constants.js';
+import { MAX_CONTENT_BYTES, MAX_FILE_BYTES } from '../constants.js';
 import { loadGlobal } from '../content-sources.js';
 import { defineSite } from '../define-site.js';
 import { ConflictError } from '../errors.js';
@@ -102,7 +102,10 @@ describe('createLocalVitePlugin', () => {
 		});
 
 		expect(response.headers.get('content-type')).toMatch(/^application\/json/);
-		expect(await response.json()).toMatchObject({ content: '{"title":"About"}', sha: expect.any(String) });
+		expect(await response.json()).toMatchObject({
+			content: '{"title":"About"}',
+			sha: expect.any(String)
+		});
 	});
 
 	it('rejects a repository path that lies outside every permitted root', async () => {
@@ -359,7 +362,11 @@ describe('the git Media source over the local adapter', () => {
 		const root = repository();
 		mkdirSync(join(root, MEDIA_DIR), { recursive: true });
 		vi.stubGlobal('location', { origin: await startServer(root, [CONTENT_DIR, MEDIA_DIR]) });
-		const config: UncialCmsSiteConfig = { forge: 'local', contentDir: CONTENT_DIR, mediaDir: MEDIA_DIR };
+		const config: UncialCmsSiteConfig = {
+			forge: 'local',
+			contentDir: CONTENT_DIR,
+			mediaDir: MEDIA_DIR
+		};
 		const adapter = createLocalAdapter();
 		const { user } = await adapter.authenticate(config, localSessionProvider);
 		return mediaSourceFor(
@@ -371,13 +378,13 @@ describe('the git Media source over the local adapter', () => {
 
 	mediaSourceContract({ metadata: false, usage: false, delete: true, search: false }, source);
 
-	it('rejects a file over 1 MB without writing it', async () => {
+	it('rejects a file over 20 MB without writing it', async () => {
 		const media = await source();
-		const scan = new File([new Uint8Array(MAX_CONTENT_BYTES + 1)], 'scan.pdf', {
+		const scan = new File([new Uint8Array(MAX_FILE_BYTES + 1)], 'scan.pdf', {
 			type: 'application/pdf'
 		});
 
-		await expect(media.upload(scan)).rejects.toThrow(/over the 1 MB limit/);
+		await expect(media.upload(scan)).rejects.toThrow(/over the 20 MB upload limit/);
 		expect(await media.list()).toEqual([]);
 	});
 });

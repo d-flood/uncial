@@ -27,7 +27,8 @@ const CONFIG_KEYS = [
 	'placeholder',
 	'options',
 	'list',
-	'richText'
+	'richText',
+	'renditions'
 ] as const;
 
 export function isAttributeSpecConfig<T>(value: AttributeConfig<T>): value is AttributeSpec<T> {
@@ -118,7 +119,8 @@ const BUILT_IN_INPUT_KINDS: ReadonlySet<string> = new Set([
 	'list',
 	'text',
 	'hidden',
-	'image'
+	'image',
+	'file'
 ]);
 
 /** False for a host-defined kind, which a host input component or chooser edits. */
@@ -257,6 +259,9 @@ export function toAttributeDraftValue(spec: AttributeSpec<unknown>, value: unkno
 	if (input === 'json') return JSON.stringify(normalized, null, 2);
 	// A list is edited as the array itself, one control per item.
 	if (input === 'list') return Array.isArray(normalized) ? normalized : [];
+	if ((input === 'image' || input === 'file') && typeof spec.default !== 'string') {
+		return normalized;
+	}
 	// A host input edits the stored JSON itself.
 	if (!isBuiltInInputKind(input) && typeof normalized === 'object' && normalized !== null) {
 		return normalized;

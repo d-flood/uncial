@@ -1,10 +1,9 @@
 /**
- * Re-encode an oversize image so it fits a size-capped forge. The Contents API
- * refuses anything over ~1 MB, which a photograph off a phone always is, so the
- * editor's upload path re-encodes to WebP within a bounded longest edge and
- * steps quality — then dimensions — down until the bytes fit.
+ * Re-encode an oversize image so it fits the upload limit. An original over
+ * `MAX_IMAGE_BYTES` is re-encoded to WebP within a bounded longest edge, stepping
+ * quality — then dimensions — down until the bytes fit.
  */
-import { MAX_CONTENT_BYTES } from './constants.js';
+import { MAX_IMAGE_BYTES } from './constants.js';
 import type { UploadAssetFile } from './index-actions.js';
 
 export interface EncodableImage {
@@ -20,9 +19,9 @@ export interface ImageEncoder {
 }
 
 export interface FitOptions {
-	/** Byte ceiling the result must come under; defaults to the Contents API cap. */
+	/** Byte ceiling the result must come under; defaults to `MAX_IMAGE_BYTES`. */
 	maxBytes?: number;
-	/** Longest-edge ceiling for the re-encoded image. */
+	/** Longest-edge ceiling for a re-encoded image; given, it also re-encodes a larger original. */
 	maxEdge?: number;
 }
 
@@ -65,22 +64,23 @@ function dimensionsWithin(width: number, height: number, longestEdge: number): [
 }
 
 /**
- * Prepare `file` for upload under `maxBytes`. Bytes that already fit inside
- * both ceilings pass through untouched, keeping their original filename and
- * content type; anything else comes back as WebP named `<stem>.webp`.
+ * Prepare `file` for upload under `maxBytes`. Bytes that already fit (and fit
+ * an explicit `maxEdge`) pass through untouched, keeping their original filename
+ * and content type; anything else comes back as WebP named `<stem>.webp`.
  */
 export async function fitImage(
 	file: Blob & { name?: string },
 	opts: FitOptions & { encoder?: ImageEncoder } = {}
 ): Promise<FittedImage> {
-	const maxBytes = opts.maxBytes ?? MAX_CONTENT_BYTES;
+	const maxBytes = opts.maxBytes ?? MAX_IMAGE_BYTES;
 	const maxEdge = opts.maxEdge ?? DEFAULT_MAX_EDGE;
 	const encoder = opts.encoder ?? browserEncoder;
 	const filename = file.name || 'image';
 	const image = await encoder.decode(file);
 
 	try {
-		if (file.size <= maxBytes && Math.max(image.width, image.height) <= maxEdge) {
+		const withinEdge = opts.maxEdge === undefined || Math.max(image.width, image.height) <= maxEdge;
+		if (file.size <= maxBytes && withinEdge) {
 			return {
 				bytes: new Uint8Array(await file.arrayBuffer()),
 				filename,

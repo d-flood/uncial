@@ -66,7 +66,9 @@ type Lookup = (value: string) => string | undefined;
 function substituteValue(spec: AttributeSpec<unknown>, value: unknown, lookup: Lookup): unknown {
 	const kind = inferAttributeInputKind(spec);
 	if (kind === 'image') {
-		return typeof value === 'string' ? (lookup(value) ?? value) : value;
+		if (typeof value === 'string') return lookup(value) ?? value;
+		const src = (value as { src?: unknown } | null)?.src;
+		return typeof src === 'string' ? { ...(value as object), src: lookup(src) ?? src } : value;
 	}
 	if (kind !== 'list' || !spec.list || !Array.isArray(value)) return value;
 

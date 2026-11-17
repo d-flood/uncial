@@ -1,6 +1,6 @@
-import { bytesToBase64, decodeBase64, encodeBase64 } from '../base64.js';
+import { bytesToBase64, decodeBase64 } from '../base64.js';
 import { MAX_CONTENT_BYTES } from '../constants.js';
-import { ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, FileTooLargeError, NotFoundError } from '../errors.js';
 import { clearCachedSession, readCachedSession, writeCachedSession } from '../session.js';
 import type {
 	ForgeSession,
@@ -21,7 +21,10 @@ class GitHubAdapter implements DraftForge {
 	#provider: SessionProvider | null = null;
 	#session: ForgeSession | null = null;
 
-	async authenticate(config: UncialCmsSiteConfig, provider: SessionProvider): Promise<ForgeSession> {
+	async authenticate(
+		config: UncialCmsSiteConfig,
+		provider: SessionProvider
+	): Promise<ForgeSession> {
 		if (config.forge !== 'github') {
 			throw new Error('GitHub adapter requires a GitHub site configuration.');
 		}
@@ -55,7 +58,8 @@ class GitHubAdapter implements DraftForge {
 			throw new Error(`Expected a file but found a directory: ${path}`);
 		}
 		if (file.encoding !== 'base64' || (file.size ?? 0) > MAX_CONTENT_BYTES) {
-			throw new Error(
+			throw new FileTooLargeError(
+				file.sha,
 				`Document ${path} exceeds the 1 MB limit of the GitHub Contents API and cannot be edited.`
 			);
 		}
@@ -77,11 +81,15 @@ class GitHubAdapter implements DraftForge {
 		content: string | Uint8Array,
 		opts: { message: string; sha?: string; author: { name: string; email: string } }
 	): Promise<{ sha: string; commitSha: string }> {
+		const bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content;
+		if (bytes.byteLength > MAX_CONTENT_BYTES)
+			return this.#writeViaGitData(branch, path, bytes, opts);
+
 		const response = await this.#request(this.#contentsUrl(path), {
 			method: 'PUT',
 			body: JSON.stringify({
 				message: opts.message,
-				content: typeof content === 'string' ? encodeBase64(content) : bytesToBase64(content),
+				content: bytesToBase64(bytes),
 				branch,
 				...(opts.sha === undefined ? {} : { sha: opts.sha }),
 				author: opts.author
@@ -92,6 +100,68 @@ class GitHubAdapter implements DraftForge {
 
 		const result = (await response.json()) as { content: { sha: string }; commit: { sha: string } };
 		return { sha: result.content.sha, commitSha: result.commit.sha };
+	}
+
+	/** Blob, tree, commit, then a fast-forward of `branch`, retried if it moved meanwhile. */
+	async #writeViaGitData(
+		branch: string,
+		path: string,
+		bytes: Uint8Array,
+		opts: { message: string; sha?: string; author: { name: string; email: string } }
+	): Promise<{ sha: string; commitSha: string }> {
+		const blob = await this.#post<{ sha: string }>('git/blobs', `upload ${path}`, {
+			content: bytesToBase64(bytes),
+			encoding: 'base64'
+		});
+		for (let attempt = 0; attempt < 3; attempt++) {
+			const head = await this.branchTip(branch);
+			if (head === null) {
+				throw new NotFoundError(`Branch not found in ${this.#config!.repo}: ${branch}`);
+			}
+			if (opts.sha !== undefined && (await this.#blobShaAt(head, path)) !== opts.sha) {
+				throw new ConflictError();
+			}
+			const response = await this.#request(`${this.#repoUrl()}/git/commits/${head}`);
+			await this.#assertOk(response, `read commit ${head}`);
+			const baseTree = ((await response.json()) as { tree: { sha: string } }).tree.sha;
+			const tree = await this.#post<{ sha: string }>('git/trees', `write ${path}`, {
+				base_tree: baseTree,
+				tree: [{ path, mode: '100644', type: 'blob', sha: blob.sha }]
+			});
+			const commit = await this.#post<{ sha: string }>('git/commits', `commit ${path}`, {
+				message: opts.message,
+				tree: tree.sha,
+				parents: [head],
+				author: opts.author
+			});
+			const update = await this.#request(this.#refUrl('refs', branch), {
+				method: 'PATCH',
+				body: JSON.stringify({ sha: commit.sha, force: false })
+			});
+			if (update.ok) return { sha: blob.sha, commitSha: commit.sha };
+			// 422: `branch` moved since `head` was read.
+			if (update.status !== 422) await this.#assertOk(update, `update ${branch}`);
+		}
+		throw new ConflictError(`${branch} kept moving while ${path} was committed.`);
+	}
+
+	async #blobShaAt(ref: string, path: string): Promise<string | null> {
+		try {
+			return (await this.readFileOn(ref, path)).sha;
+		} catch (error) {
+			if (error instanceof FileTooLargeError) return error.sha;
+			if (error instanceof NotFoundError) return null;
+			throw error;
+		}
+	}
+
+	async #post<T>(endpoint: string, action: string, body: unknown): Promise<T> {
+		const response = await this.#request(`${this.#repoUrl()}/${endpoint}`, {
+			method: 'POST',
+			body: JSON.stringify(body)
+		});
+		await this.#assertOk(response, action);
+		return (await response.json()) as T;
 	}
 
 	async deleteFile(path: string, opts: { message: string; sha: string }): Promise<void> {

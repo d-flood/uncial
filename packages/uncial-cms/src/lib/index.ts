@@ -15,7 +15,7 @@ export {
 	type Site,
 	type SiteOptions
 } from './define-site.js';
-export { ConflictError, MediaInUseError, NotFoundError } from './errors.js';
+export { ConflictError, FileTooLargeError, MediaInUseError, NotFoundError } from './errors.js';
 export { UNCIAL_CMS_RUNTIME_SENTINEL } from './sentinel.js';
 export { mountEditorPage, type MountEditorPageOptions } from './mount.js';
 /*
@@ -66,14 +66,10 @@ export {
 	type EncodableImage
 } from './fit-image.js';
 export { servedUrl } from './served-url.js';
-export { cmsImageSource } from './image-source.js';
+export { cmsFileSource, cmsImageSource } from './image-source.js';
 export { mediaSourceFor, type MediaItem, type MediaSource } from './media-source.js';
-export { MAX_CONTENT_BYTES } from './constants.js';
-export {
-	hashForPagePath,
-	pagePathFromHash,
-	validatePagePath
-} from './paths/index.js';
+export { MAX_CONTENT_BYTES, MAX_FILE_BYTES, MAX_IMAGE_BYTES } from './constants.js';
+export { hashForPagePath, pagePathFromHash, validatePagePath } from './paths/index.js';
 export { parseDocument, serializeDocument, type Blocks } from './document.js';
 export {
 	brokerSessionProvider,
@@ -81,9 +77,4 @@ export {
 	popupSessionProvider,
 	type BrokerSessionOptions
 } from './github/index.js';
-export type {
-	Action,
-	MediaItemView,
-	MediaListView,
-	VersionView
-} from './server-forge/protocol.js';
+export type { Action, MediaItemView, MediaListView, VersionView } from './server-forge/protocol.js';
