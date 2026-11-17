@@ -1,5 +1,11 @@
 # uncial-cms
 
+## 5.4.0
+
+### Minor Changes
+
+- 23c6ae4: GitHub sites can opt into Drafts with `github.drafts`: `EditorPage` saves Drafts to `uncial/drafts/*` branches, then publishes them into the content branch or discards them.
+
 ## 5.3.0
 
 ### Minor Changes
