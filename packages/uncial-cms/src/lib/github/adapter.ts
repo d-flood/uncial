@@ -3,12 +3,12 @@ import { MAX_CONTENT_BYTES } from '../constants.js';
 import { ConflictError, NotFoundError } from '../errors.js';
 import { clearCachedSession, readCachedSession, writeCachedSession } from '../session.js';
 import type {
-	ForgeAdapter,
 	ForgeSession,
 	GitHubSiteConfig,
 	SessionProvider,
 	UncialCmsSiteConfig
 } from '../types.js';
+import { DRAFT_BRANCH_PREFIX, type DraftForge } from './drafts.js';
 
 export const GITHUB_API_URL = 'https://api.github.com';
 
@@ -16,7 +16,7 @@ function encodeRepoPath(path: string): string {
 	return path.split('/').map(encodeURIComponent).join('/');
 }
 
-class GitHubAdapter implements ForgeAdapter {
+class GitHubAdapter implements DraftForge {
 	#config: GitHubSiteConfig | null = null;
 	#provider: SessionProvider | null = null;
 	#session: ForgeSession | null = null;
@@ -31,15 +31,17 @@ class GitHubAdapter implements ForgeAdapter {
 		return this.#session;
 	}
 
-	async readFile(path: string): Promise<{ content: string; sha: string }> {
+	readFile(path: string): Promise<{ content: string; sha: string }> {
+		return this.readFileOn(this.#config!.branch, path);
+	}
+
+	async readFileOn(branch: string, path: string): Promise<{ content: string; sha: string }> {
 		const response = await this.#request(
-			`${this.#contentsUrl(path)}?ref=${this.#config!.branch}`,
+			`${this.#contentsUrl(path)}?ref=${encodeURIComponent(branch)}`,
 			{ cache: 'no-cache' }
 		);
 		if (response.status === 404) {
-			throw new NotFoundError(
-				`File not found in ${this.#config!.repo}@${this.#config!.branch}: ${path}`
-			);
+			throw new NotFoundError(`File not found in ${this.#config!.repo}@${branch}: ${path}`);
 		}
 		await this.#assertOk(response, `read ${path}`);
 
@@ -61,7 +63,16 @@ class GitHubAdapter implements ForgeAdapter {
 		return { content: decodeBase64(file.content ?? ''), sha: file.sha };
 	}
 
-	async writeFile(
+	writeFile(
+		path: string,
+		content: string | Uint8Array,
+		opts: { message: string; sha?: string; author: { name: string; email: string } }
+	): Promise<{ sha: string; commitSha: string }> {
+		return this.writeFileOn(this.#config!.branch, path, content, opts);
+	}
+
+	async writeFileOn(
+		branch: string,
 		path: string,
 		content: string | Uint8Array,
 		opts: { message: string; sha?: string; author: { name: string; email: string } }
@@ -71,7 +82,7 @@ class GitHubAdapter implements ForgeAdapter {
 			body: JSON.stringify({
 				message: opts.message,
 				content: typeof content === 'string' ? encodeBase64(content) : bytesToBase64(content),
-				branch: this.#config!.branch,
+				branch,
 				...(opts.sha === undefined ? {} : { sha: opts.sha }),
 				author: opts.author
 			})
@@ -94,6 +105,99 @@ class GitHubAdapter implements ForgeAdapter {
 		});
 		if (response.status === 409) throw new ConflictError();
 		await this.#assertOk(response, `delete ${path}`);
+	}
+
+	async branchTip(branch: string): Promise<string | null> {
+		const response = await this.#request(this.#refUrl('ref', branch), { cache: 'no-cache' });
+		if (response.status === 404) return null;
+		await this.#assertOk(response, `read branch ${branch}`);
+		return ((await response.json()) as { object: { sha: string } }).object.sha;
+	}
+
+	async createDraftBranch(branch: string): Promise<boolean> {
+		const base = this.#config!.branch;
+		const sha = await this.branchTip(base);
+		if (sha === null) {
+			throw new NotFoundError(`Branch not found in ${this.#config!.repo}: ${base}`);
+		}
+		const response = await this.#request(`${this.#repoUrl()}/git/refs`, {
+			method: 'POST',
+			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha })
+		});
+		// 422: the branch already exists, perhaps made by another Editor; keep it.
+		if (response.status === 422) return false;
+		await this.#assertOk(response, `create branch ${branch}`);
+		return true;
+	}
+
+	async deleteBranch(branch: string): Promise<void> {
+		const response = await this.#request(this.#refUrl('refs', branch), { method: 'DELETE' });
+		if (response.status === 404 || response.status === 422) return;
+		await this.#assertOk(response, `delete branch ${branch}`);
+	}
+
+	async listDraftBranches(): Promise<string[]> {
+		const response = await this.#request(
+			`${this.#refUrl('matching-refs', DRAFT_BRANCH_PREFIX)}?per_page=100`,
+			{ cache: 'no-cache' }
+		);
+		await this.#assertOk(response, 'list Draft branches');
+		const refs = (await response.json()) as Array<{ ref: string }>;
+		return refs.map(({ ref }) => ref.replace(/^refs\/heads\//, ''));
+	}
+
+	async publishBranch(
+		branch: string,
+		opts: { path: string; message: string }
+	): Promise<string | null> {
+		const base = this.#config!.branch;
+		const head = await this.branchTip(branch);
+		if (head === null) return null;
+		const comparison = await this.#compare(base, head);
+		if (comparison.status === 'identical' || comparison.status === 'behind') return null;
+		if (comparison.status === 'ahead') {
+			const response = await this.#request(this.#refUrl('refs', base), {
+				method: 'PATCH',
+				body: JSON.stringify({ sha: head, force: false })
+			});
+			if (response.ok) return head;
+			// 422: `base` moved since the comparison, so merge instead.
+			if (response.status !== 422) await this.#assertOk(response, `fast-forward ${base}`);
+		}
+
+		const sinceDraft = await this.#compare(comparison.mergeBase, base);
+		if (sinceDraft.files.includes(opts.path)) throw new ConflictError();
+		const response = await this.#request(`${this.#repoUrl()}/merges`, {
+			method: 'POST',
+			body: JSON.stringify({ base, head, commit_message: opts.message })
+		});
+		if (response.status === 409) throw new ConflictError();
+		if (response.status === 204) return null;
+		await this.#assertOk(response, `merge ${branch} into ${base}`);
+		return ((await response.json()) as { sha: string }).sha;
+	}
+
+	async #compare(
+		base: string,
+		head: string
+	): Promise<{ status: string; mergeBase: string; files: string[] }> {
+		const response = await this.#request(
+			`${this.#repoUrl()}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`,
+			{ cache: 'no-cache' }
+		);
+		await this.#assertOk(response, `compare ${base}...${head}`);
+		const body = (await response.json()) as {
+			status: string;
+			merge_base_commit: { sha: string };
+			files?: Array<{ filename: string; previous_filename?: string }>;
+		};
+		return {
+			status: body.status,
+			mergeBase: body.merge_base_commit.sha,
+			files: (body.files ?? []).flatMap((file) =>
+				file.previous_filename ? [file.filename, file.previous_filename] : [file.filename]
+			)
+		};
 	}
 
 	async listDir(path: string): Promise<Array<{ path: string; type: 'file' | 'dir' }>> {
@@ -200,8 +304,16 @@ class GitHubAdapter implements ForgeAdapter {
 		return success ? 'success' : 'unknown';
 	}
 
+	#repoUrl(): string {
+		return `${GITHUB_API_URL}/repos/${this.#config!.repo}`;
+	}
+
 	#contentsUrl(path: string): string {
-		return `${GITHUB_API_URL}/repos/${this.#config!.repo}/contents/${encodeRepoPath(path)}`;
+		return `${this.#repoUrl()}/contents/${encodeRepoPath(path)}`;
+	}
+
+	#refUrl(endpoint: 'ref' | 'refs' | 'matching-refs', branch: string): string {
+		return `${this.#repoUrl()}/git/${endpoint}/heads/${encodeRepoPath(branch)}`;
 	}
 
 	async #renewSession(): Promise<ForgeSession> {
@@ -249,6 +361,6 @@ class GitHubAdapter implements ForgeAdapter {
 	}
 }
 
-export function createGitHubAdapter(): ForgeAdapter {
+export function createGitHubAdapter(): DraftForge {
 	return new GitHubAdapter();
 }

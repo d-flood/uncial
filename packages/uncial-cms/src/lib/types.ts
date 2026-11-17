@@ -7,6 +7,7 @@ export interface GitHubSiteConfig {
 	appSlug: string;
 	mediaDir?: string; // repo-root-relative dir uploaded images commit into; consumer-defined
 	mediaUrlPrefix?: string; // site-root URL path `mediaDir` is served under
+	drafts?: boolean; // keep Drafts on `uncial/drafts/*` branches off `branch`
 }
 
 export interface LocalSiteConfig {

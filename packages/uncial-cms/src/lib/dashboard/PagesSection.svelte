@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SignedOutError } from '../errors.js';
+	import { draftBranch, type DraftForge } from '../github/drafts.js';
 	import { createPage, deletePage, listPages } from '../index-actions.js';
 	import { validatePagePath } from '../paths/index.js';
 	import type { ServerForgeAdapter } from '../server-forge/adapter.js';
@@ -104,17 +105,30 @@
 							kind: record.kind,
 							status: record.status
 						}))
-					: await Promise.all(
-							(await listPages(adapter, config.contentDir, mapSourceToPath)).map(async (page) => {
-								const { content } = await adapter.readFile(page.sourcePath);
-								const { meta } = JSON.parse(content) as { meta?: { title?: unknown } };
-								return { ...page, title: typeof meta?.title === 'string' ? meta.title : undefined };
-							})
-						);
+					: await listForgePages(config.contentDir);
 			listError = '';
 		} catch (error) {
 			listError = message(error, 'Failed to list pages.');
 		}
+	}
+
+	async function listForgePages(contentDir: string): Promise<ListedPage[]> {
+		const drafts = new Set(
+			config.forge === 'github' && config.drafts
+				? await (adapter as DraftForge).listDraftBranches()
+				: []
+		);
+		return Promise.all(
+			(await listPages(adapter, contentDir, mapSourceToPath)).map(async (page) => {
+				const { content } = await adapter.readFile(page.sourcePath);
+				const { meta } = JSON.parse(content) as { meta?: { title?: unknown } };
+				return {
+					...page,
+					title: typeof meta?.title === 'string' ? meta.title : undefined,
+					status: drafts.has(draftBranch(page.pagePath)) ? ('changed' as const) : undefined
+				};
+			})
+		);
 	}
 
 	async function create(event: SubmitEvent) {
