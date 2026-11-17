@@ -1,5 +1,7 @@
 <script lang="ts">
 	import XIcon from 'phosphor-svelte/lib/XIcon';
+	import FileActions from './FileActions.svelte';
+	import type { FileSource } from './fileSource.js';
 
 	interface LinkAttributes {
 		href?: string | null;
@@ -15,9 +17,11 @@
 		onApply: () => void;
 		onRemove: () => void;
 		onClose: () => void;
+		/** Offers a Document to link to, from or into the media directory. */
+		fileSource?: FileSource;
 	}
 
-	let { attrs = {}, onChange, onApply, onRemove, onClose }: Props = $props();
+	let { attrs = {}, onChange, onApply, onRemove, onClose, fileSource }: Props = $props();
 
 	const href = $derived(typeof attrs.href === 'string' ? attrs.href : '');
 	const title = $derived(typeof attrs.title === 'string' ? attrs.title : '');
@@ -25,8 +29,10 @@
 	const openInNewTab = $derived(attrs.target === '_blank');
 </script>
 
+<!-- A Document link is site-root-relative, which `type="url"` validation rejects. -->
 <form
 	class="uncial-link-panel"
+	novalidate
 	onsubmit={(event) => {
 		event.preventDefault();
 		onApply();
@@ -57,6 +63,20 @@
 			oninput={(event) => onChange('href', event.currentTarget.value)}
 		/>
 	</label>
+
+	{#if fileSource?.upload || fileSource?.browse}
+		<div class="uncial-field">
+			<span class="uncial-field__label">Document</span>
+			<FileActions
+				source={fileSource}
+				current={href}
+				onPick={(file) => {
+					onChange('href', file.src);
+					if (!title) onChange('title', file.name);
+				}}
+			/>
+		</div>
+	{/if}
 
 	<label class="uncial-field">
 		<span class="uncial-field__label">Title</span>

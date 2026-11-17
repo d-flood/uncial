@@ -14,6 +14,17 @@ export class NotFoundError extends Error {
 	}
 }
 
+/** Thrown when a forge read finds a file too large to return; `sha` still names its blob. */
+export class FileTooLargeError extends Error {
+	constructor(
+		readonly sha: string,
+		message = 'The file is too large to read through this forge.'
+	) {
+		super(message);
+		this.name = 'FileTooLargeError';
+	}
+}
+
 export class MediaInUseError extends Error {
 	constructor(readonly usage: { count: number; paths: string[] }) {
 		super(

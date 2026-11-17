@@ -14,10 +14,10 @@
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-	import type { ImageSource } from 'uncial/editor';
+	import type { FileSource, ImageSource } from 'uncial/editor';
 	import type { Site } from '../define-site.js';
 	import type { EditorController, RecordState, StatusView } from '../editor-controller.js';
-	import { cmsImageSource } from '../image-source.js';
+	import { cmsFileSource, cmsImageSource } from '../image-source.js';
 	import { isMediaUrl, listMedia } from '../server-forge/media.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import {
@@ -47,6 +47,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
+		/** Forwarded to `Editor`; defaults to `cmsFileSource(site.config)`. */
+		fileSource?: FileSource;
 		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
 		attributeInputs?: AttributeInputs;
 		/** Where the host previews a Draft; the editing view links there when given. */
@@ -67,6 +69,7 @@
 		attributesPanel = 'overlay',
 		presentation = 'bare',
 		imageSource,
+		fileSource,
 		attributeInputs,
 		previewUrl,
 		onMoved,
@@ -78,7 +81,9 @@
 	// Save button and autosave are exactly the two modes.
 	const manualSave = $derived(site.autosaveMs === undefined);
 	const drafting = $derived(site.config.forge === 'github' && site.config.drafts === true);
-	const mediaApiBase = $derived(site.config.forge === 'server' ? site.config.mediaApiBase : undefined);
+	const mediaApiBase = $derived(
+		site.config.forge === 'server' ? site.config.mediaApiBase : undefined
+	);
 	// The Media library's URLs, so the editing view can flag media that is gone.
 	let library = $state<SvelteSet<string> | undefined>(undefined);
 	let libraryChecked = $state(false);
@@ -450,6 +455,7 @@
 			{attributesPanel}
 			{presentation}
 			imageSource={resolvedImageSource}
+			fileSource={fileSource ?? cmsFileSource(site.config)}
 			{attributeInputs}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>

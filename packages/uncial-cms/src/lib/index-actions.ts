@@ -5,10 +5,10 @@
  */
 import { normalizeDocument } from 'uncial/core';
 import type { BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
-import { MAX_CONTENT_BYTES } from './constants.js';
+import { MAX_FILE_BYTES, MAX_IMAGE_BYTES } from './constants.js';
 import type { Site } from './define-site.js';
 import { parseDocument, serializeDocument } from './document.js';
-import { NotFoundError } from './errors.js';
+import { FileTooLargeError, NotFoundError } from './errors.js';
 import { fitImage, type FitOptions, type ImageEncoder } from './fit-image.js';
 import { globalDocument, globalRecordPath, globalSourcePath, GLOBALS_DIR } from './globals.js';
 import { defaultMapSourceToPath } from './paths/index.js';
@@ -152,25 +152,30 @@ async function contentHash(bytes: Uint8Array): Promise<string> {
 }
 
 /**
- * Commit an image into the repo at a content-addressed path under `mediaDir`.
+ * Commit a file into the repo at a content-addressed path under `mediaDir`.
  * Identical bytes hash to the same path, so re-uploads reuse the existing file
- * (no second commit). Files over the Contents API limit reject before any
- * network call — there is no git-blobs-API fallback (spec media non-goal).
+ * (no second commit). An image over `MAX_IMAGE_BYTES`, or any other file over
+ * `MAX_FILE_BYTES`, rejects before any network call.
  */
 export async function uploadAsset(
 	deps: { adapter: ForgeAdapter },
 	file: UploadAssetFile,
 	opts: UploadAssetOptions
 ): Promise<UploadAssetResult> {
-	if (file.bytes.byteLength > MAX_CONTENT_BYTES) {
+	const image = file.contentType.startsWith('image/');
+	const limit = image ? MAX_IMAGE_BYTES : MAX_FILE_BYTES;
+	if (file.bytes.byteLength > limit) {
 		throw new Error(
-			`Image "${file.filename}" is ${file.bytes.byteLength} bytes, over the 1 MB limit of the GitHub Contents API.`
+			`${image ? 'Image' : 'File'} "${file.filename}" is ${file.bytes.byteLength} bytes, over the ${limit / (1024 * 1024)} MB upload limit.`
 		);
 	}
 
 	const ext = assetExtension(file.filename, file.contentType);
 	const hash = await contentHash(file.bytes);
-	const dir = resolveMediaDir(opts.mediaDir, opts.site && configMediaDir(opts.site.config)).replace(/\/+$/, '');
+	const dir = resolveMediaDir(opts.mediaDir, opts.site && configMediaDir(opts.site.config)).replace(
+		/\/+$/,
+		''
+	);
 	const path = `${dir}/${hash}.${ext}`;
 
 	// Content-addressed: if the path already exists, the bytes are identical.
@@ -178,6 +183,7 @@ export async function uploadAsset(
 		const existing = await deps.adapter.readFile(path);
 		return { path, sha: existing.sha, commitSha: '' };
 	} catch (error) {
+		if (error instanceof FileTooLargeError) return { path, sha: error.sha, commitSha: '' };
 		if (!(error instanceof NotFoundError)) throw error;
 	}
 

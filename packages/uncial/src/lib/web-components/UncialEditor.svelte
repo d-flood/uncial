@@ -3,6 +3,7 @@
 	import Editor from '../editor/Editor.svelte';
 	import type {
 		BlockAttributesController,
+		FileSource,
 		ImageSource,
 		ToolbarFeature,
 		ToolbarFeatureSelection
@@ -31,6 +32,7 @@
 		attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 		presentation?: 'card' | 'bare';
 		imageSource?: ImageSource;
+		fileSource?: FileSource;
 		attributeInputs?: AttributeInputs;
 		onIssue?: (issue: ValidationIssue) => void;
 		onChange?: (document: JSONContent) => void;
@@ -50,6 +52,7 @@
 		attributesPanel = true,
 		presentation = 'card',
 		imageSource,
+		fileSource,
 		attributeInputs,
 		onIssue,
 		onChange,
@@ -77,6 +80,7 @@
 	{attributesPanel}
 	{presentation}
 	{imageSource}
+	{fileSource}
 	{attributeInputs}
 	onIssue={dispatchIssue}
 	{onChange}

@@ -24,6 +24,7 @@
 	import { dropdownDismiss } from './dropdownDismiss.js';
 	import { dropdownFloat } from './dropdownFloat.js';
 	import { CHOOSE_ATTRIBUTE_EVENT, type ChooseAttributeRequest } from './chooseAttribute.js';
+	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 
@@ -42,6 +43,8 @@
 		imageSource?: ImageSource;
 		/** Where a successful upload registers its preview; see `Editor`. */
 		imagePreviews?: ImagePreviews;
+		/** Files for `input: 'file'` attributes and Document links. */
+		fileSource?: FileSource;
 	}
 
 	let {
@@ -50,7 +53,8 @@
 		onChooseAttribute,
 		attributeInputs,
 		imageSource,
-		imagePreviews
+		imagePreviews,
+		fileSource
 	}: Props = $props();
 
 	let controllerState = $state<BlockAttributesState>(createInitialState());
@@ -196,6 +200,7 @@
 			onApply={() => controller.commitLinkAttributes()}
 			onRemove={() => controller.removeLink()}
 			onClose={() => controller.closeLinkAttributes()}
+			{fileSource}
 		/>
 	{:else if controllerState.open && selectedBlock}
 		<p class="uncial-attrs-title">
@@ -214,6 +219,7 @@
 					{attributeInputs}
 					{imageSource}
 					{imagePreviews}
+					{fileSource}
 				/>
 			{/each}
 		{/if}

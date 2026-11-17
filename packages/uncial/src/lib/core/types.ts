@@ -19,7 +19,40 @@ export type AttributeInputKind =
 	| 'select'
 	| 'hidden'
 	| 'image'
+	| 'file'
 	| (string & {});
+
+/** A point in an image, each axis from 0 (left/top) to 1 (right/bottom). */
+export interface FocalPoint {
+	x: number;
+	y: number;
+}
+
+/** An `input: 'image'` value on an attribute whose default is not a string. */
+export interface ImageValue {
+	src: string;
+	focal?: FocalPoint;
+}
+
+/** An `input: 'file'` value. */
+export interface FileValue {
+	src: string;
+	name: string;
+	size: number;
+	type: string;
+}
+
+/** A fixed crop, e.g. `{ aspect: '1:1', width: 500 }`. */
+export interface RenditionCrop {
+	aspect: string;
+	width: number;
+}
+
+/** The renditions a build makes of an image attribute's value. */
+export interface RenditionSpec {
+	widths?: number[];
+	crops?: Record<string, RenditionCrop>;
+}
 
 export interface AttributeOption<T> {
 	value: T;
@@ -75,6 +108,8 @@ export interface AttributeSpec<T> {
 		features?: RichTextFeatureSelection;
 		placeholder?: string;
 	};
+	/** Renditions a build makes of an image value; the editor ignores them. */
+	renditions?: RenditionSpec;
 }
 
 export type AttributeConfig<T> = AttributeSpec<T> | T;

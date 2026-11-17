@@ -31,6 +31,7 @@
 	import { dropdownFloat } from './dropdownFloat.js';
 	import Toolbar from './Toolbar.svelte';
 	import type { ChooseAttributeRequest } from './chooseAttribute.js';
+	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
 	import { createImagePreviews, missingImagePlaceholder } from '../shared/imagePreviews.js';
 	import { dropdownDismiss } from './dropdownDismiss.js';
@@ -74,6 +75,8 @@
 		onChooseAttribute?: (request: ChooseAttributeRequest) => void;
 		/** Uploads, existing images and thumbnails for `input: 'image'` attributes. */
 		imageSource?: ImageSource;
+		/** Uploads and existing files for `input: 'file'` attributes and rich-text Document links. */
+		fileSource?: FileSource;
 		/** Components that edit host-defined `input` kinds in the attributes and metadata panels. */
 		attributeInputs?: AttributeInputs;
 		onIssue?: (issue: ValidationIssue) => void;
@@ -105,6 +108,7 @@
 		presentation = 'card',
 		onChooseAttribute,
 		imageSource,
+		fileSource,
 		attributeInputs,
 		onIssue,
 		onChange,
@@ -412,6 +416,7 @@
 								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
+								{fileSource}
 							/>
 						</div>
 					</details>
@@ -475,6 +480,7 @@
 				{attributeInputs}
 				{imageSource}
 				{imagePreviews}
+				{fileSource}
 			/>
 		</aside>
 	{/if}

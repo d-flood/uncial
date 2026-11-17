@@ -1,3 +1,4 @@
+import { FileTooLargeError } from './errors.js';
 import { fitImage } from './fit-image.js';
 import { uploadAsset } from './index-actions.js';
 import { servedUrl } from './served-url.js';
@@ -35,7 +36,8 @@ const CONTENT_TYPES: Record<string, string> = {
 	gif: 'image/gif',
 	webp: 'image/webp',
 	avif: 'image/avif',
-	svg: 'image/svg+xml'
+	svg: 'image/svg+xml',
+	pdf: 'application/pdf'
 };
 
 function matchesType(contentType: string, pattern?: string): boolean {
@@ -93,7 +95,13 @@ function gitMediaSource(opts: {
 
 		async delete(media) {
 			// The forge deletes at a blob sha, which a listing does not carry.
-			const { sha } = await adapter.readFile(media.id);
+			const sha = await adapter.readFile(media.id).then(
+				(file) => file.sha,
+				(error: unknown) => {
+					if (error instanceof FileTooLargeError) return error.sha;
+					throw error;
+				}
+			);
 			await adapter.deleteFile(media.id, { message: `uncial-cms: delete ${media.id}`, sha });
 		}
 	};

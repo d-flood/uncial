@@ -15,9 +15,18 @@
 		normalizeAttributeOptions
 	} from '../core/attributes.js';
 	import { onDestroy } from 'svelte';
-	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
+	import type {
+		AttributeInputs,
+		AttributeSpec,
+		FileValue,
+		FocalPoint,
+		ImageValue
+	} from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
+	import type { FileSource } from './fileSource.js';
 	import type { ImageSource } from './imageSource.js';
+	import FileActions from './FileActions.svelte';
+	import FocalPointPicker from './FocalPointPicker.svelte';
 	import ArrowUpIcon from 'phosphor-svelte/lib/ArrowUpIcon';
 	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
@@ -41,6 +50,7 @@
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
+		fileSource?: FileSource;
 	}
 
 	let {
@@ -54,7 +64,8 @@
 		onCustom,
 		attributeInputs,
 		imageSource,
-		imagePreviews
+		imagePreviews,
+		fileSource
 	}: Props = $props();
 
 	const fieldId = `uncial-field-${nextFieldId++}`;
@@ -66,7 +77,8 @@
 		isBuiltInInputKind(inputKind) &&
 			inputKind !== 'richtext' &&
 			inputKind !== 'list' &&
-			inputKind !== 'image'
+			inputKind !== 'image' &&
+			inputKind !== 'file'
 	);
 	const options = $derived(normalizeAttributeOptions(spec) ?? []);
 	const warning = $derived(spec.warn?.(value) ?? '');
@@ -96,13 +108,38 @@
 	let picker = $state<ImagePicker>();
 	let uploading = $state(false);
 	let uploadError = $state('');
+	// An image attribute whose default is not a string stores `{ src, focal? }`.
+	const imageObject = $derived(typeof spec.default !== 'string');
+	const imageValue = $derived(
+		imageObject && value !== null && typeof value === 'object' ? (value as ImageValue) : null
+	);
+	const imageSrc = $derived(imageObject ? (imageValue?.src ?? '') : stringValue);
+	const fileValue = $derived(
+		value !== null && typeof value === 'object' ? (value as FileValue) : null
+	);
 	// The registry is not reactive, but an upload registers its preview before
 	// writing the value, so the value change is what recomputes this.
 	const thumbnailSrc = $derived(
-		stringValue
-			? (imagePreviews?.get(stringValue) ?? imageSource?.thumbnail?.(stringValue) ?? stringValue)
-			: ''
+		imageSrc ? (imagePreviews?.get(imageSrc) ?? imageSource?.thumbnail?.(imageSrc) ?? imageSrc) : ''
 	);
+
+	function setImageSrc(src: string): void {
+		if (!imageObject) return onChange(src);
+		onChange(src ? { src } : null);
+	}
+
+	function setFocal(focal: FocalPoint | undefined): void {
+		if (!imageValue) return;
+		const next: ImageValue = { ...imageValue, focal };
+		if (!focal) delete next.focal;
+		onChange(next);
+	}
+
+	function formatBytes(size: number): string {
+		if (size < 1024) return `${size} B`;
+		if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+		return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+	}
 
 	// The panel remounts its controls when another block is selected, so an
 	// upload resolving after that would write into the wrong block. Its value is
@@ -118,7 +155,7 @@
 			const src = await upload(file);
 			imagePreviews?.register(src, file);
 			if (destroyed) return;
-			onChange(src);
+			setImageSrc(src);
 		} catch (reason) {
 			uploadError = reason instanceof Error ? reason.message : String(reason);
 		} finally {
@@ -287,6 +324,7 @@
 								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
+								{fileSource}
 							/>
 						{:else}
 							{#each listFields as [fieldName, fieldSpec] (fieldName)}
@@ -303,6 +341,7 @@
 									{attributeInputs}
 									{imageSource}
 									{imagePreviews}
+									{fileSource}
 								/>
 							{/each}
 						{/if}
@@ -323,7 +362,9 @@
 			{@const upload = imageSource?.upload}
 			{@const browse = imageSource?.browse}
 			<div class="uncial-image-field">
-				{#if thumbnailSrc}
+				{#if imageValue && thumbnailSrc}
+					<FocalPointPicker src={thumbnailSrc} focal={imageValue.focal} onChange={setFocal} />
+				{:else if thumbnailSrc}
 					<img class="uncial-image-field__thumbnail" src={thumbnailSrc} alt="" />
 				{/if}
 				<div class="uncial-image-field__actions">
@@ -364,16 +405,16 @@
 							{browse}
 							thumbnail={imageSource?.thumbnail}
 							{imagePreviews}
-							current={stringValue}
-							onPick={onChange}
+							current={imageSrc}
+							onPick={setImageSrc}
 						/>
 					{/if}
-					{#if stringValue}
+					{#if imageSrc}
 						<button
 							type="button"
 							class="uncial-btn uncial-btn--ghost uncial-btn--sm"
 							disabled={uploading}
-							onclick={() => onChange('')}
+							onclick={() => setImageSrc('')}
 						>
 							Clear
 						</button>
@@ -384,6 +425,32 @@
 				{/if}
 				{#if uploadError}
 					<span class="uncial-field__error" role="alert">{uploadError}</span>
+				{/if}
+			</div>
+		{:else if inputKind === 'file'}
+			<div class="uncial-image-field">
+				{#if fileValue?.src}
+					<span class="uncial-help-text uncial-file-field__name">
+						<a
+							href={fileSource?.href?.(fileValue.src) ?? fileValue.src}
+							target="_blank"
+							rel="noopener">{fileValue.name || fileValue.src}</a
+						>{fileValue.size ? ` · ${formatBytes(fileValue.size)}` : ''}
+					</span>
+				{/if}
+				{#if fileSource}
+					<FileActions source={fileSource} current={fileValue?.src} onPick={onChange} />
+				{/if}
+				{#if fileValue?.src}
+					<div class="uncial-image-field__actions">
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--ghost uncial-btn--sm"
+							onclick={() => onChange(null)}
+						>
+							Clear
+						</button>
+					</div>
 				{/if}
 			</div>
 		{:else if inputKind === 'textarea' || inputKind === 'json'}

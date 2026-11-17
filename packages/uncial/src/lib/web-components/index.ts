@@ -6,6 +6,7 @@ import { reactiveProps } from './reactiveProps.svelte.js';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type {
 	BlockAttributesController,
+	FileSource,
 	ImageSource,
 	ToolbarFeature,
 	ToolbarFeatureSelection
@@ -33,6 +34,7 @@ type EditorProps = {
 	attributesPanel?: boolean | 'docked' | 'overlay' | 'off';
 	presentation?: 'card' | 'bare';
 	imageSource?: ImageSource;
+	fileSource?: FileSource;
 	attributeInputs?: AttributeInputs;
 };
 
@@ -229,6 +231,13 @@ class UncialEditorElement extends UncialElement<EditorHostProps> {
 	}
 	set imageSource(value: EditorProps['imageSource']) {
 		this.setProp('imageSource', value);
+	}
+
+	get fileSource(): EditorProps['fileSource'] {
+		return this.props.fileSource;
+	}
+	set fileSource(value: EditorProps['fileSource']) {
+		this.setProp('fileSource', value);
 	}
 
 	get attributeInputs(): EditorProps['attributeInputs'] {

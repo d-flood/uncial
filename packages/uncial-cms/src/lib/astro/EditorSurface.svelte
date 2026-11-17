@@ -13,6 +13,7 @@
 	import type { AttributeInputs, BlockRegistry, ContentDocument, ContentSchema } from 'uncial/core';
 	import {
 		Editor,
+		type FileSource,
 		type ImageSource,
 		type ToolbarFeature,
 		type ToolbarFeatureSelection
@@ -20,7 +21,7 @@
 	import type { Site } from '../define-site.js';
 	import type { EditorController, StatusView } from '../editor-controller.js';
 	import { createEditorSession } from '../editor-session.js';
-	import { cmsImageSource } from '../image-source.js';
+	import { cmsFileSource, cmsImageSource } from '../image-source.js';
 	import { UNCIAL_CMS_RUNTIME_SENTINEL } from '../sentinel.js';
 	import type { SessionProvider } from '../types.js';
 	import { clearActiveForge } from '../upload-context.js';
@@ -49,6 +50,8 @@
 		presentation?: 'card' | 'bare';
 		/** Forwarded to `Editor`; defaults to `cmsImageSource(site.config)`. */
 		imageSource?: ImageSource;
+		/** Forwarded to `Editor`; defaults to `cmsFileSource(site.config)`. */
+		fileSource?: FileSource;
 		/** Forwarded to `Editor`: Svelte components for host-defined attribute `input` kinds. */
 		attributeInputs?: AttributeInputs;
 	}
@@ -66,6 +69,7 @@
 		attributesPanel = 'overlay',
 		presentation = 'bare',
 		imageSource,
+		fileSource,
 		attributeInputs
 	}: Props = $props();
 
@@ -179,6 +183,7 @@
 			{attributesPanel}
 			{presentation}
 			imageSource={resolvedImageSource}
+			fileSource={fileSource ?? cmsFileSource(site.config)}
 			{attributeInputs}
 			onChange={(next) => controller?.documentChanged(next as ContentDocument)}
 		/>

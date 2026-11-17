@@ -1,5 +1,5 @@
 import { bytesToBase64 } from '../base64.js';
-import { ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, FileTooLargeError, NotFoundError } from '../errors.js';
 import type {
 	ForgeAdapter,
 	ForgeSession,
@@ -11,6 +11,7 @@ import { LOCAL_API_PATH } from './constants.js';
 
 interface ApiError {
 	error?: string;
+	sha?: string;
 }
 
 function encodePath(path: string): string {
@@ -20,7 +21,10 @@ function encodePath(path: string): string {
 class LocalAdapter implements ForgeAdapter {
 	#config: LocalSiteConfig | null = null;
 
-	async authenticate(config: UncialCmsSiteConfig, provider: SessionProvider): Promise<ForgeSession> {
+	async authenticate(
+		config: UncialCmsSiteConfig,
+		provider: SessionProvider
+	): Promise<ForgeSession> {
 		if (config.forge !== 'local') {
 			throw new Error('Local adapter requires a local site configuration.');
 		}
@@ -52,11 +56,9 @@ class LocalAdapter implements ForgeAdapter {
 	async listDir(path: string): Promise<Array<{ path: string; type: 'file' | 'dir' }>> {
 		// The plugin roots at the repository, so the paths it reports are already
 		// the repo-root-relative ones every forge adapter speaks.
-		const response = await this.#request<{ entries: Array<{ path: string; type: 'file' | 'dir' }> }>(
-			'POST',
-			`dirs/${this.#path(path)}`,
-			{}
-		);
+		const response = await this.#request<{
+			entries: Array<{ path: string; type: 'file' | 'dir' }>;
+		}>('POST', `dirs/${this.#path(path)}`, {});
 		return response.entries;
 	}
 
@@ -66,7 +68,8 @@ class LocalAdapter implements ForgeAdapter {
 
 	/** Repo-root-relative, exactly as the GitHub adapter sends it. */
 	#path(path: string): string {
-		if (!this.#config) throw new Error('Local adapter is not authenticated; call authenticate() first.');
+		if (!this.#config)
+			throw new Error('Local adapter is not authenticated; call authenticate() first.');
 		return encodePath(path.replace(/^\/+|\/+$/g, ''));
 	}
 
@@ -81,6 +84,7 @@ class LocalAdapter implements ForgeAdapter {
 		const error = (await response.json().catch(() => ({}))) as ApiError;
 		if (response.status === 404) throw new NotFoundError(error.error ?? 'File not found.');
 		if (response.status === 409) throw new ConflictError(error.error);
+		if (response.status === 413 && error.sha) throw new FileTooLargeError(error.sha, error.error);
 		throw new Error(error.error ?? `Local request failed (${response.status}).`);
 	}
 }

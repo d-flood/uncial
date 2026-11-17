@@ -3,7 +3,7 @@ import { mkdir, readFile, readdir, rename, rm, unlink, writeFile } from 'node:fs
 import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { MAX_CONTENT_BYTES } from '../constants.js';
+import { MAX_CONTENT_BYTES, MAX_FILE_BYTES } from '../constants.js';
 import { LOCAL_API_PATH } from './constants.js';
 
 export interface LocalVitePluginOptions {
@@ -21,13 +21,17 @@ export interface LocalVitePluginOptions {
 /**
  * A base64 body spends four bytes on every three of payload, and the JSON
  * envelope adds its keys on top, so the request cap has to clear the envelope of
- * a `MAX_CONTENT_BYTES` upload — which is exactly the size `fitImage` targets.
- * The decoded cap in {@link handleWrite} is the one that enforces the limit.
+ * a `MAX_FILE_BYTES` upload. The decoded caps in {@link handleWrite} are the
+ * ones that enforce the limits.
  */
-const MAX_REQUEST_BYTES = Math.ceil(MAX_CONTENT_BYTES / 3) * 4 + 1024;
+const MAX_REQUEST_BYTES = Math.ceil(MAX_FILE_BYTES / 3) * 4 + 1024;
 
 class HttpError extends Error {
-	constructor(readonly status: number, message: string) {
+	constructor(
+		readonly status: number,
+		message: string,
+		readonly detail: Record<string, unknown> = {}
+	) {
 		super(message);
 	}
 }
@@ -140,14 +144,12 @@ async function handleRead(
 		}
 		throw error;
 	}
+	const sha = createHash('sha256').update(content).digest('hex');
 	if (content.byteLength > MAX_CONTENT_BYTES) {
-		throw new HttpError(413, `File exceeds ${MAX_CONTENT_BYTES} bytes.`);
+		throw new HttpError(413, `File exceeds ${MAX_CONTENT_BYTES} bytes.`, { sha });
 	}
 
-	sendJson(response, 200, {
-		content: content.toString('utf8'),
-		sha: createHash('sha256').update(content).digest('hex')
-	});
+	sendJson(response, 200, { content: content.toString('utf8'), sha });
 }
 
 async function handleWrite(
@@ -168,9 +170,11 @@ async function handleWrite(
 		throw new HttpError(400, 'Write sha must be a string when provided.');
 	}
 	const { target } = repositoryPath(roots, encodedPath);
-	const content = Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8');
-	if (content.byteLength > MAX_CONTENT_BYTES) {
-		throw new HttpError(413, `Content exceeds ${MAX_CONTENT_BYTES} bytes.`);
+	const binary = body.encoding === 'base64';
+	const content = Buffer.from(body.content, binary ? 'base64' : 'utf8');
+	const limit = binary ? MAX_FILE_BYTES : MAX_CONTENT_BYTES;
+	if (content.byteLength > limit) {
+		throw new HttpError(413, `Content exceeds ${limit} bytes.`);
 	}
 
 	// A sha means "replace the revision I read"; the GitHub Contents API answers
@@ -309,7 +313,7 @@ export function createLocalVitePlugin(options: LocalVitePluginOptions): Plugin {
 				const encodedPath = path.slice((isDirectory ? directoryPrefix : filePrefix).length);
 				void handler(request, response, roots, encodedPath).catch((error) => {
 					if (error instanceof HttpError) {
-						sendJson(response, error.status, { error: error.message });
+						sendJson(response, error.status, { ...error.detail, error: error.message });
 						return;
 					}
 					next(error);

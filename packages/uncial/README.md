@@ -344,15 +344,26 @@ spec supports:
 - `validate`: custom validation predicate
 - `parse`: custom coercion from editor or serialized input
 - `serialize`: custom serialization for HTML persistence
-- `input`: editor control hint — `text`, `textarea`, `number`, `checkbox`, `json`, `select`, `richtext`, `image`, or `hidden`. When omitted it is inferred from the default value (and from `options`, which implies `select`).
+- `input`: editor control hint — `text`, `textarea`, `number`, `checkbox`, `json`, `select`, `richtext`, `image`, `file`, or `hidden`. When omitted it is inferred from the default value (and from `options`, which implies `select`).
 - `options`: allowed values for `select` inputs, either plain values or `{ value, label, description }` objects
 - `richText`: for `richtext` inputs, a `{ features, placeholder }` object controlling the nested rich-text feature allowlist
 - `placeholder`: optional editor placeholder
+- `renditions`: for an `image` attribute, the srcset `widths` and named `crops` a
+  build makes of its value, e.g. `{ widths: [480, 960], crops: { square: { aspect: '1:1', width: 500 } } }`;
+  the editor ignores it (see uncial-cms's `uncial-cms/renditions`)
 
-An `image` attribute stores a plain URL string. Its field uploads or chooses
-images through the `imageSource` passed to `Editor` (the `imageSource` property
-of `uncial-editor`); render it with `resolveImageSrc(src, base)` from
-`uncial/render`, which leaves the editor's `blob:` previews alone.
+An `image` attribute with a string default stores a plain URL string. With any
+other default (`null`, say) it stores `ImageValue`, `{ src, focal? }`, and its
+field shows the image for an Editor to click a focal point on (`focal` is `x`
+and `y`, each 0–1); `FocalPointPicker` is that control on its own. Its field
+uploads or chooses images through the `imageSource` passed to `Editor` (the
+`imageSource` property of `uncial-editor`); render it with
+`resolveImageSrc(src, base)` from `uncial/render`, which leaves the editor's
+`blob:` previews alone.
+
+A `file` attribute stores `FileValue`, `{ src, name, size, type }`, or `null`.
+Its field uploads or chooses files through the `fileSource` passed to `Editor`,
+which also offers a Document to link to in the rich-text link panel.
 
 Blocks themselves also accept an optional `description` and `icon` (an icon name,
 inline markup, or a Svelte component) that surface in the editor's insert menu.
