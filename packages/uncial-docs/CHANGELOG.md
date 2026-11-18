@@ -1,5 +1,13 @@
 # uncial-docs
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [c2dfe8b]
+  - uncial@6.0.0
+  - uncial-cms@6.0.0
+
 ## 0.1.0
 
 ### Minor Changes
