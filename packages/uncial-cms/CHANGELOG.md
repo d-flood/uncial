@@ -1,5 +1,16 @@
 # uncial-cms
 
+## 6.0.0
+
+### Major Changes
+
+- c2dfe8b: Introduce declarative content models, shared rendering helpers, collections, CLI scaffolding, and simpler SvelteKit and Astro integrations. Remove superseded APIs and entry points; see the upgrading guide for migration instructions.
+
+### Patch Changes
+
+- Updated dependencies [c2dfe8b]
+  - uncial@6.0.0
+
 ## 5.5.0
 
 ### Minor Changes
