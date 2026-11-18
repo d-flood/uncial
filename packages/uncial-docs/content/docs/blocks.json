@@ -525,7 +525,7 @@
 				},
 				{
 					"type": "text",
-					"text": "{ src, focal? }",
+					"text": "{ src, focal?, alt?, decorative? }",
 					"marks": [
 						{
 							"type": "code"
@@ -534,7 +534,33 @@
 				},
 				{
 					"type": "text",
-					"text": ", and its field lets an author click a focal point. A "
+					"text": ": its field lets an author click a focal point and write alt text, which a replaced image keeps. Alt text is required unless the author marks the image decorative, which draws it with an empty "
+				},
+				{
+					"type": "text",
+					"text": "alt",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ". "
+				},
+				{
+					"type": "text",
+					"text": "image: { alt: false }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " leaves alt text to an attribute of the Block's own. A "
 				},
 				{
 					"type": "text",
@@ -1014,6 +1040,175 @@
 				{
 					"type": "text",
 					"text": " plain JSON."
+				}
+			]
+		},
+		{
+			"type": "heading",
+			"attrs": {
+				"level": 2,
+				"slug": "image-choosers"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "Image choosers"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "An image attribute can offer a picker of your own beside Upload and Choose existing, such as a search of another collection. Declare it once in the Content model and name it in the attribute's "
+				},
+				{
+					"type": "text",
+					"text": "image.choosers",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ":"
+				}
+			]
+		},
+		{
+			"type": "codeBlock",
+			"attrs": {
+				"language": "ts"
+			},
+			"content": [
+				{
+					"type": "text",
+					"text": "editor: {\n\timageChoosers: {\n\t\tarchive: {\n\t\t\tlabel: 'Choose from the archive',\n\t\t\tcomponent: () => import('./ArchivePicker.svelte'),\n\t\t\tthumbnail: (value) => archiveThumbnail(value.item, value.page)\n\t\t}\n\t}\n}\n\n// an attribute or meta field\nbanner: { default: null, input: 'image', image: { choosers: ['archive'] } }"
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "The button opens the component in a dialog. It receives "
+				},
+				{
+					"type": "text",
+					"text": "ImageChooserProps",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ": the field's "
+				},
+				{
+					"type": "text",
+					"text": "value",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", and "
+				},
+				{
+					"type": "text",
+					"text": "choose",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", which stores plain JSON and closes the dialog. A chosen value need not have a "
+				},
+				{
+					"type": "text",
+					"text": "src",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": "; "
+				},
+				{
+					"type": "text",
+					"text": "thumbnail",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " names an image to show for it and to set its focal point on. "
+				},
+				{
+					"type": "text",
+					"text": "image: { media: false }",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " leaves only the choosers."
+				}
+			]
+		},
+		{
+			"type": "paragraph",
+			"content": [
+				{
+					"type": "text",
+					"text": "Choosers appear in the attributes and metadata panels and the Dashboard's forms. The "
+				},
+				{
+					"type": "text",
+					"text": "Image",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": " Field draws only values with a "
+				},
+				{
+					"type": "text",
+					"text": "src",
+					"marks": [
+						{
+							"type": "code"
+						}
+					]
+				},
+				{
+					"type": "text",
+					"text": ", so a Block draws other chosen values itself."
 				}
 			]
 		},

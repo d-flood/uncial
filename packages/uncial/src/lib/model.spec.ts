@@ -69,7 +69,7 @@ const heroAttrs = {
 	rating: 4,
 	page: { id: 7, title: 'Chapter 1', path: ['book', 'one'] },
 	tags: [{ slug: 'iiif' }, { slug: 'pwa' }],
-	image: { src: '/uploads/cover.jpg', focal: { x: 0.25, y: 0.75 } },
+	image: { src: '/uploads/cover.jpg', focal: { x: 0.25, y: 0.75 }, alt: 'A cover' },
 	download: { src: '/uploads/a.pdf', name: 'a.pdf', size: 1024, type: 'application/pdf' },
 	body: richTextDocument('Body copy'),
 	links: [{ label: 'Docs', href: '/docs' }]
@@ -168,6 +168,61 @@ describe('model round trip', () => {
 		expect(reordered.content?.map((node) => node.attrs?.id)).toEqual(
 			[...normalized.content!].reverse().map((node) => node.attrs?.id)
 		);
+	});
+});
+
+describe('image alt text', () => {
+	const altModel = createContentModel({
+		blocks: [
+			defineRuntimeBlock(svelteRuntime, {
+				id: 'figure',
+				label: 'Figure',
+				attributes: {
+					image: { default: null, input: 'image' },
+					plain: { default: null, input: 'image', image: { alt: false } },
+					url: { default: '', input: 'image' },
+					gallery: {
+						default: [],
+						list: { fields: { image: { default: null, input: 'image' } } }
+					}
+				},
+				component: Dummy
+			})
+		],
+		meta: { banner: { default: null, input: 'image' } }
+	});
+	const issuesOf = (attrs: Record<string, unknown>, meta: Record<string, unknown> = {}) =>
+		validateDocument(
+			{ type: 'doc', meta, content: [{ type: 'figure', attrs: { id: 'f', ...attrs } }] },
+			altModel.blocks,
+			altModel.schemaFor()
+		).issues.map(({ code, path }) => ({ code, path }));
+
+	it('requires alt text of an image unless it is decorative', () => {
+		expect(issuesOf({ image: { src: '/a.png' } })).toEqual([
+			{ code: 'INVALID_ATTR', path: ['content', 0, 'attrs', 'image'] }
+		]);
+		expect(issuesOf({ image: { src: '/a.png', alt: '  ' } })).toHaveLength(1);
+		expect(issuesOf({ image: { src: '/a.png', alt: 'A school' } })).toEqual([]);
+		expect(issuesOf({ image: { item: 'a', page: 1, decorative: true } })).toEqual([]);
+	});
+
+	it('requires none of an attribute that opts out, a URL or an empty field', () => {
+		expect(issuesOf({ plain: { src: '/a.png' }, url: '/a.png', image: null })).toEqual([]);
+	});
+
+	it('requires alt text of an image in a list and in metadata', () => {
+		expect(
+			issuesOf(
+				{ gallery: [{ image: { src: '/a.png', alt: 'A' } }, { image: { src: '/b.png' } }] },
+				{
+					banner: { src: '/c.png' }
+				}
+			)
+		).toEqual([
+			{ code: 'INVALID_META', path: ['meta', 'banner'] },
+			{ code: 'INVALID_ATTR', path: ['content', 0, 'attrs', 'gallery', 1, 'image'] }
+		]);
 	});
 });
 

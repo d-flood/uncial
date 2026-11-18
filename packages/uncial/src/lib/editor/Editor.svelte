@@ -499,6 +499,7 @@
 								{attributeInputs}
 								imageSource={resolvedImageSource}
 								{imagePreviews}
+								imageChoosers={model.editor.imageChoosers}
 								fileSource={resolvedFileSource}
 							/>
 						</div>
@@ -563,6 +564,7 @@
 				{attributeInputs}
 				imageSource={resolvedImageSource}
 				{imagePreviews}
+				imageChoosers={model.editor.imageChoosers}
 				fileSource={resolvedFileSource}
 			/>
 		</aside>

@@ -2,7 +2,12 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { normalizeDocument, type AttributeInputs, type DocumentMetaSchema } from 'uncial';
+	import {
+		normalizeDocument,
+		type AttributeInputs,
+		type DocumentMetaSchema,
+		type ImageChooser
+	} from 'uncial';
 	import type { FileSource, ImageSource } from 'uncial/editor';
 	import { AttributeFieldControl, createMetaController } from 'uncial/internal';
 	import {
@@ -33,6 +38,7 @@
 		editable: boolean;
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
+		imageChoosers?: Record<string, ImageChooser>;
 		fileSource?: FileSource;
 		branchLabel: string;
 		onfocusheading: () => void;
@@ -49,6 +55,7 @@
 		editable,
 		attributeInputs,
 		imageSource,
+		imageChoosers,
 		fileSource,
 		branchLabel,
 		onfocusheading,
@@ -201,6 +208,7 @@
 					value={$form.draft[field]}
 					{attributeInputs}
 					{imageSource}
+					{imageChoosers}
 					{fileSource}
 					error={$form.errors[field]}
 					errors={$form.errors}

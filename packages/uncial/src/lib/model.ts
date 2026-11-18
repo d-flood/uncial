@@ -13,6 +13,7 @@ import type {
 	ContentSchema,
 	DocumentMetaSchema,
 	FileValue,
+	ImageChooser,
 	ImageValue,
 	MarkDefinition,
 	MetaValues,
@@ -169,6 +170,8 @@ export interface ContentModelOptions<Fields extends DocumentMetaSchema = Documen
 	renditions?: RenditionResolver;
 	editor?: {
 		attributeInputs?: Record<string, AttributeInputLoader>;
+		/** Offered by image attributes that name them in `image.choosers`. */
+		imageChoosers?: Record<string, ImageChooser>;
 		/** In display order. Defaults to `defaultToolbar` plus every Mark that declares `toolbar`. */
 		toolbar?: readonly ToolbarItem[];
 		extensions?: ExtensionLoader[];
@@ -186,6 +189,7 @@ export interface ContentModel<Meta extends Record<string, unknown> = Record<stri
 	schemaFor(meta?: Record<string, unknown>): ContentSchema<Meta>;
 	editor: {
 		attributeInputs: Record<string, AttributeInputLoader>;
+		imageChoosers: Record<string, ImageChooser>;
 		toolbar: readonly ToolbarItem[];
 		extensions: ExtensionLoader[];
 	};
@@ -258,6 +262,7 @@ export function createContentModel<Fields extends DocumentMetaSchema = DocumentM
 		},
 		editor: {
 			attributeInputs: options.editor?.attributeInputs ?? {},
+			imageChoosers: options.editor?.imageChoosers ?? {},
 			toolbar: options.editor?.toolbar ?? [
 				...defaultToolbar,
 				...marks.filter((mark) => mark.toolbar).map((mark) => mark.id)

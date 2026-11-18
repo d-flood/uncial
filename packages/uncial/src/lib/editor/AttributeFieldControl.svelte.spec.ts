@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
 import AttributeFieldControl from './AttributeFieldControl.svelte';
-import type { AttributeSpec } from '../core/types.js';
+import type { AttributeSpec, ImageChooser } from '../core/types.js';
+import ImageChooserFixture from '../shared/ImageChooserFixture.svelte';
 
 const spec: AttributeSpec<string> = {
 	default: 'width-1200',
@@ -298,6 +299,173 @@ describe('AttributeFieldControl image', () => {
 			new File(['x'], 'a.pdf')
 		);
 		await expect.poll(() => changes).toEqual(['/a.pdf']);
+	});
+});
+
+describe('AttributeFieldControl image choosers', () => {
+	const archive: ImageChooser = {
+		label: 'Choose from the archive',
+		component: async () => ({ default: ImageChooserFixture }),
+		thumbnail: async (value) => (value.item ? `/thumbs/${value.item}-${value.page}.jpg` : undefined)
+	};
+	const chooserSpec: AttributeSpec<unknown> = {
+		default: null,
+		input: 'image',
+		image: { choosers: ['archive'] }
+	};
+
+	function button(container: HTMLElement, label: string): HTMLButtonElement | undefined {
+		return Array.from(container.querySelectorAll('button')).find(
+			(candidate) => candidate.textContent?.trim() === label
+		);
+	}
+
+	it('offers a chooser beside the Media source and stores what it chooses', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'banner',
+			spec: chooserSpec,
+			value: { item: 'a', page: 1 },
+			imageSource: { upload: async () => '/media/b.png' },
+			imageChoosers: { archive },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		button(rendered.container, 'Choose from the archive')?.click();
+		await expect
+			.element(rendered.getByTestId('chooser-value'))
+			.toHaveTextContent('{"item":"a","page":1}');
+		await rendered.getByRole('button', { name: 'Page 2 of b' }).click();
+
+		expect(changes).toEqual([{ item: 'b', page: 2 }]);
+		expect(rendered.container.querySelector('dialog')?.open).toBe(false);
+		expect(button(rendered.container, 'Upload')).toBeDefined();
+	});
+
+	it("shows a chosen value's thumbnail for picking its focal point", async () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'banner',
+			spec: chooserSpec,
+			value: { item: 'a', page: 1 },
+			imageChoosers: { archive },
+			onChange: () => {}
+		});
+
+		await expect
+			.poll(() => rendered.container.querySelector('img')?.getAttribute('src'))
+			.toBe('/thumbs/a-1.jpg');
+		await expect
+			.element(rendered.getByRole('button', { name: /focal point/i }))
+			.toBeInTheDocument();
+	});
+
+	it('clears a chosen value to null', () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'banner',
+			spec: chooserSpec,
+			value: { item: 'a', page: 1 },
+			imageChoosers: { archive },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		button(rendered.container, 'Clear')?.click();
+		expect(changes).toEqual([null]);
+	});
+
+	it('offers only its choosers when media is false', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'thumbnail',
+			spec: { ...chooserSpec, image: { choosers: ['archive'], media: false } },
+			value: null,
+			imageSource: { upload: async () => '/media/b.png', browse: async () => [] },
+			imageChoosers: { archive },
+			onChange: () => {}
+		});
+
+		expect(button(rendered.container, 'Upload')).toBeUndefined();
+		expect(button(rendered.container, 'Choose existing')).toBeUndefined();
+		expect(button(rendered.container, 'Choose from the archive')).toBeDefined();
+	});
+});
+
+describe('AttributeFieldControl image alt text', () => {
+	const altSpec: AttributeSpec<unknown> = {
+		default: null,
+		input: 'image',
+		image: { choosers: ['archive'] }
+	};
+	const archive: ImageChooser = {
+		label: 'Choose from the archive',
+		component: async () => ({ default: ImageChooserFixture })
+	};
+
+	it('edits alt text stored in the image value', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'cover',
+			spec: altSpec,
+			value: { src: '/media/a.png', alt: 'Old' },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		const input = rendered.getByRole('textbox', { name: 'Alt text' });
+		await expect.element(input).toHaveValue('Old');
+		await input.fill('A school');
+		expect(changes.at(-1)).toEqual({ src: '/media/a.png', alt: 'A school' });
+	});
+
+	it('keeps the alt text when the image is replaced', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'cover',
+			spec: altSpec,
+			value: { src: '/media/a.png', alt: 'A school', focal: { x: 0.2, y: 0.3 } },
+			imageSource: { upload: async () => '/media/b.png' },
+			imageChoosers: { archive },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		await userEvent.upload(
+			rendered.container.querySelector('input[type="file"]')!,
+			new File(['x'], 'b.png', { type: 'image/png' })
+		);
+		await expect.poll(() => changes).toEqual([{ src: '/media/b.png', alt: 'A school' }]);
+
+		await rendered.getByRole('button', { name: 'Choose from the archive' }).click();
+		await rendered.getByRole('button', { name: 'Page 2 of b' }).click();
+		expect(changes.at(-1)).toEqual({ item: 'b', page: 2, alt: 'A school' });
+	});
+
+	it('asks for alt text until the image is marked decorative', async () => {
+		const changes: unknown[] = [];
+		const rendered = render(AttributeFieldControl, {
+			name: 'cover',
+			spec: altSpec,
+			value: { src: '/media/a.png' },
+			onChange: (next: unknown) => changes.push(next)
+		});
+
+		await expect
+			.element(rendered.getByText('Add alt text, or mark the image decorative.'))
+			.toBeInTheDocument();
+		await rendered.getByRole('checkbox', { name: /decorative/i }).click();
+		expect(changes.at(-1)).toEqual({ src: '/media/a.png', decorative: true });
+
+		await rendered.rerender({ value: { src: '/media/a.png', decorative: true } });
+		expect(rendered.container.querySelector('input[aria-label="Alt text"]')).toBeNull();
+		expect(rendered.container.querySelector('.uncial-field__error')).toBeNull();
+	});
+
+	it('offers no alt text input when the attribute opts out', () => {
+		const rendered = render(AttributeFieldControl, {
+			name: 'cover',
+			spec: { default: null, input: 'image', image: { alt: false } },
+			value: { src: '/media/a.png' },
+			onChange: () => {}
+		});
+
+		expect(rendered.container.querySelector('input[aria-label="Alt text"]')).toBeNull();
 	});
 });
 

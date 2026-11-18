@@ -95,6 +95,7 @@
 		const { media, files } = siteObject;
 		return {
 			imageSource: { ...media, upload: upload ? media.upload : undefined },
+			imageChoosers: siteObject.editor.imageChoosers,
 			fileSource: { ...files, upload: upload ? files.upload : undefined }
 		};
 	});

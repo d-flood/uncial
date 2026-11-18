@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { missingAlt } from '../core/attributes.js';
 	import type { FocalPoint, ImageValue } from '../core/types.js';
 	import { stripBase } from '../render/resolveImageSrc.js';
 	import type { FieldEditorProps } from '../runtime/fields.js';
@@ -27,10 +28,24 @@
 	const src = $derived(
 		displaySrc && (imagePreviews?.sourceOf(displaySrc) ?? stripBase(displaySrc, scope.base))
 	);
-	const hasAlt = $derived(alt === undefined && name !== 'alt' && scope.has('alt'));
-	const altText = $derived(alt ?? (hasAlt ? String(scope.value('alt') ?? '') : ''));
-	const upload = $derived(scope.media?.upload);
-	const browse = $derived(scope.media?.browse);
+	const storesAlt = $derived(imageObject && spec?.image?.alt !== false);
+	const hasAlt = $derived(
+		alt === undefined && (storesAlt ? !!imageValue : name !== 'alt' && scope.has('alt'))
+	);
+	const altText = $derived(
+		alt ??
+			(storesAlt
+				? imageValue?.decorative
+					? ''
+					: (imageValue?.alt ?? '')
+				: hasAlt
+					? String(scope.value('alt') ?? '')
+					: '')
+	);
+	const altMissing = $derived(!!spec && missingAlt(spec, value));
+	const offersMedia = $derived(spec?.image?.media !== false);
+	const upload = $derived(offersMedia ? scope.media?.upload : undefined);
+	const browse = $derived(offersMedia ? scope.media?.browse : undefined);
 
 	let fileInput = $state<HTMLInputElement>();
 	let picker = $state<ImagePicker>();
@@ -41,7 +56,24 @@
 	onDestroy(() => (destroyed = true));
 
 	function setSrc(next: string): void {
-		scope.set(name, imageObject ? (next ? { src: next } : null) : next);
+		const { alt: kept, decorative } = (storesAlt && imageValue) || {};
+		const carried = { ...(kept ? { alt: kept } : {}), ...(decorative ? { decorative } : {}) };
+		scope.set(name, imageObject ? (next ? { ...carried, src: next } : null) : next);
+	}
+
+	function setAlt(next: string): void {
+		if (!storesAlt) return scope.set('alt', next);
+		if (!imageValue) return;
+		const value: ImageValue = { ...imageValue, alt: next };
+		if (!next) delete value.alt;
+		scope.set(name, value);
+	}
+
+	function setDecorative(decorative: boolean): void {
+		if (!imageValue) return;
+		const value: ImageValue = { ...imageValue, decorative };
+		if (!decorative) delete value.decorative;
+		scope.set(name, value);
 	}
 
 	function setFocal(focal: FocalPoint | undefined): void {
@@ -117,15 +149,27 @@
 				onclick={() => (showFocal = !showFocal)}>Focal point</button
 			>
 		{/if}
-		{#if hasAlt}
+		{#if hasAlt && !imageValue?.decorative}
 			<input
 				class="uncial-input uncial-input--xs"
 				type="text"
 				aria-label="Alt text"
+				aria-invalid={altMissing}
 				placeholder="Alt text"
 				value={altText}
-				onchange={(event) => scope.set('alt', event.currentTarget.value)}
+				onchange={(event) => setAlt(event.currentTarget.value)}
 			/>
+		{/if}
+		{#if hasAlt && storesAlt}
+			<label class="uncial-image-field__decorative">
+				<input
+					class="uncial-checkbox uncial-checkbox--sm"
+					type="checkbox"
+					checked={imageValue?.decorative === true}
+					onchange={(event) => setDecorative(event.currentTarget.checked)}
+				/>
+				<span>Decorative</span>
+			</label>
 		{/if}
 		{#if uploading}
 			<span class="uncial-help-text" role="status">Uploading…</span>

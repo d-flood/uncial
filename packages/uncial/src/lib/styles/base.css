@@ -286,7 +286,8 @@
 	color: var(--uncial-color-text-muted);
 }
 
-.uncial-link-panel__new-tab {
+.uncial-link-panel__new-tab,
+.uncial-image-field__decorative {
 	display: flex;
 	align-items: center;
 	gap: var(--uncial-space-2);
@@ -411,6 +412,7 @@
 
 .uncial-image-field__actions {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--uncial-space-2);
 }
 

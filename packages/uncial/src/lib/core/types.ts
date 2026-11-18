@@ -32,6 +32,10 @@ export interface FocalPoint {
 export interface ImageValue {
 	src: string;
 	focal?: FocalPoint;
+	/** Unless the attribute declares `image: { alt: false }`. */
+	alt?: string;
+	/** An image that needs no alt text, drawn with `alt=""`. */
+	decorative?: boolean;
 }
 
 /** An `input: 'file'` value. */
@@ -115,6 +119,14 @@ export interface AttributeSpec<T> {
 		features?: RichTextFeatureSelection;
 		placeholder?: string;
 	};
+	image?: {
+		/** Image choosers the field offers, by id in the Content model's `editor.imageChoosers`. */
+		choosers?: string[];
+		/** `false` drops Upload and Choose existing, leaving only the choosers. */
+		media?: boolean;
+		/** `false` stops the value storing alt text, which it otherwise requires unless the image is decorative. */
+		alt?: boolean;
+	};
 	/** Renditions a build makes of an image value; the editor ignores them. */
 	renditions?: RenditionSpec;
 	/** The panel shows the field only while this holds; a hidden field keeps its value. */
@@ -130,6 +142,24 @@ export interface AttributeInputProps<T = unknown> {
 	value: T;
 	/** Store a new value, which must be plain JSON. */
 	update: (value: T) => void;
+}
+
+/** Props an Image chooser's component receives. */
+export interface ImageChooserProps {
+	/** The field's current value. */
+	value: unknown;
+	/** Stores a value, which must be plain JSON, and closes the chooser. */
+	choose: (value: unknown) => void;
+}
+
+/** The host's own way to pick an image attribute's value, offered beside Upload and Choose existing. */
+export interface ImageChooser {
+	/** Names the button that opens it. */
+	label: string;
+	/** Loaded when an author opens it, so the model stays server-safe. */
+	component: () => Promise<{ default: Component<ImageChooserProps> }>;
+	/** A displayable URL for a value with no `src` that this chooser stored; undefined for any other. */
+	thumbnail?: (value: Record<string, unknown>) => string | undefined | Promise<string | undefined>;
 }
 
 /** Host components for host-defined `input` kinds, keyed by kind. */

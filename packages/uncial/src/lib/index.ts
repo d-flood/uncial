@@ -54,6 +54,8 @@ export type {
 	DocumentMetaSchema,
 	FileValue,
 	FocalPoint,
+	ImageChooser,
+	ImageChooserProps,
 	ImageValue,
 	MarkComponentProps,
 	MarkDefinition,

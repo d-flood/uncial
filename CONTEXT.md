@@ -143,6 +143,13 @@ search. The editor's picker, `site.media` and `getBlock().media` read it as an
 `ImageSource` (upload, browse, thumbnail), which a site may override.
 _Avoid_: Media adapter, media store
 
+**Image chooser**:
+A host-supplied way to pick an image attribute's value, offered beside Upload and
+Choose existing. Declared once in the Content model's `editor.imageChoosers` (a
+label, a lazy component and an optional thumbnail for values with no `src`) and
+offered by each image attribute that names it in `image.choosers`.
+_Avoid_: Image source (the Media source's `ImageSource`), picker, custom image input
+
 **Local-only site**:
 A site declaring no GitHub half, so it has no forge to commit to and its Editor
 variants exist in development only — absent, with the whole editor stack, from
