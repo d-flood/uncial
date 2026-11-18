@@ -259,15 +259,26 @@
 	<div class="uncial-cms-chrome">
 		{#if drafting}
 			{#if draft}<span class="uncial-cms-draft-badge">Draft</span>{/if}
-			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.saveDraft()}>
+			<button
+				type="button"
+				class="uncial-btn"
+				disabled={!saveEnabled}
+				onclick={() => void controller?.saveDraft()}
+			>
 				Save draft
 			</button>
-			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.publish()}>
+			<button
+				type="button"
+				class="uncial-btn uncial-btn--primary"
+				disabled={!saveEnabled}
+				onclick={() => void controller?.publish()}
+			>
 				Publish
 			</button>
 			{#if draft}
 				<button
 					type="button"
+					class={['uncial-btn', published !== undefined && 'uncial-btn--active']}
 					aria-pressed={published !== undefined}
 					onclick={() => void togglePublished()}
 				>
@@ -275,6 +286,7 @@
 				</button>
 				<button
 					type="button"
+					class="uncial-btn uncial-btn--danger"
 					disabled={!saveEnabled}
 					onclick={() => void controller?.discardDraft()}
 				>
@@ -282,7 +294,12 @@
 				</button>
 			{/if}
 		{:else if manualSave && !deleted}
-			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
+			<button
+				type="button"
+				class="uncial-btn uncial-btn--primary"
+				disabled={!saveEnabled}
+				onclick={() => void controller?.save()}
+			>
 				Save
 			</button>
 		{/if}
@@ -291,17 +308,28 @@
 				{describeContentStatus(contentStatus(record.draft, record.published))}
 			</p>
 			{#if can('publish')}
-				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.publish()}>
+				<button
+					type="button"
+					class="uncial-btn uncial-btn--primary"
+					disabled={!saveEnabled}
+					onclick={() => void controller?.publish()}
+				>
 					Publish
 				</button>
 			{/if}
 			{#if can('unpublish') && record.published}
-				<button type="button" disabled={!saveEnabled} onclick={() => void controller?.unpublish()}>
+				<button
+					type="button"
+					class="uncial-btn"
+					disabled={!saveEnabled}
+					onclick={() => void controller?.unpublish()}
+				>
 					Unpublish
 				</button>
 			{/if}
 			<button
 				type="button"
+				class="uncial-btn"
 				aria-expanded={historyOpen}
 				onclick={() => (historyOpen ? closeHistory() : void openHistory())}
 			>
@@ -310,6 +338,7 @@
 			{#if movable && can('move')}
 				<button
 					type="button"
+					class="uncial-btn"
 					aria-expanded={moveTo !== undefined}
 					onclick={() => (moveTo = moveTo === undefined ? sourcePath : undefined)}
 				>
@@ -319,6 +348,7 @@
 			{#if can('delete')}
 				<button
 					type="button"
+					class="uncial-btn uncial-btn--danger"
 					disabled={!saveEnabled}
 					onclick={async () => (deleted = (await controller?.remove()) ?? false)}
 				>
@@ -327,7 +357,12 @@
 			{/if}
 		{/if}
 		{#if previewUrl && !deleted}
-			<a class="uncial-cms-preview" href={previewUrl(sourcePath)} target="_blank" rel="noopener">
+			<a
+				class="uncial-cms-preview uncial-btn"
+				href={previewUrl(sourcePath)}
+				target="_blank"
+				rel="noopener"
+			>
 				Preview
 			</a>
 		{/if}
@@ -349,7 +384,13 @@
 			}}
 		>
 			<label>New path <input type="text" bind:value={moveTo} required /></label>
-			<button type="submit" disabled={!saveEnabled || moveTo === sourcePath}>Move here</button>
+			<button
+				type="submit"
+				class="uncial-btn uncial-btn--primary"
+				disabled={!saveEnabled || moveTo === sourcePath}
+			>
+				Move here
+			</button>
 		</form>
 	{/if}
 
@@ -360,11 +401,15 @@
 				to proceed.
 			</p>
 			<div class="uncial-cms-banner-actions">
-				<button type="button" onclick={() => controller?.downloadMyVersion()}>
+				<button type="button" class="uncial-btn" onclick={() => controller?.downloadMyVersion()}>
 					Download my version
 				</button>
-				<button type="button" onclick={() => void controller?.reloadLatest()}>Reload latest</button>
-				<button type="button" onclick={() => controller?.dismissConflict()}>Dismiss</button>
+				<button type="button" class="uncial-btn" onclick={() => void controller?.reloadLatest()}>
+					Reload latest
+				</button>
+				<button type="button" class="uncial-btn" onclick={() => controller?.dismissConflict()}>
+					Dismiss
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -393,6 +438,7 @@
 						<li>
 							<button
 								type="button"
+								class={['uncial-btn', selected?.id === version.id && 'uncial-btn--active']}
 								aria-pressed={selected?.id === version.id}
 								onclick={() => void select(version.id)}
 							>
@@ -406,7 +452,9 @@
 				{@const versionId = selected.id}
 				<div class="uncial-cms-version" aria-label="Selected Version">
 					{#if can('restore')}
-						<button type="button" onclick={() => void restore(versionId)}>Restore</button>
+						<button type="button" class="uncial-btn" onclick={() => void restore(versionId)}>
+							Restore
+						</button>
 					{/if}
 					<Renderer content={selected.doc} model={site} path={pagePath} />
 				</div>
