@@ -1,5 +1,11 @@
 # uncial
 
+## 6.1.1
+
+### Patch Changes
+
+- d63aed4: Style the editor page's Save, Publish, History and conflict-banner buttons as Uncial buttons, laid out in a row.
+
 ## 6.1.0
 
 ### Minor Changes
