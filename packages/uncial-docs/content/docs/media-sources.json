@@ -307,7 +307,7 @@
 								},
 								{
 									"type": "text",
-									"text": " Alt text belongs on the Block that uses the image."
+									"text": " Alt text is stored with the image value on the Block that uses it."
 								}
 							]
 						}

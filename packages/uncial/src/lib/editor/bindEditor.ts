@@ -565,6 +565,7 @@ export function bindEditor(
 			imageSource,
 			fileSource,
 			imagePreviews,
+			imageChoosers: model.editor.imageChoosers,
 			get attributeInputs() {
 				return attributeInputs.current;
 			}
@@ -577,6 +578,7 @@ export function bindEditor(
 			imageSource,
 			fileSource,
 			imagePreviews,
+			imageChoosers: model.editor.imageChoosers,
 			get attributeInputs() {
 				return attributeInputs.current;
 			}

@@ -518,4 +518,42 @@ describe('base path and renditions', () => {
 		await userEvent.click(page.getByTestId('media-update').last());
 		await expect.poll(() => json.content?.[0]?.attrs?.image).toBe('/b.png');
 	});
+
+	it('draws the alt text an image value stores, and none for a decorative image', () => {
+		const altModel = createContentModel({
+			blocks: [
+				defineRuntimeBlock(svelteRuntime, {
+					id: 'media',
+					label: 'Media',
+					attributes: { image: { default: null, input: 'image' } },
+					component: MediaBlockFixture
+				})
+			]
+		});
+		const read = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [{ type: 'media', attrs: { id: 'm', image: { src: '/a.png', alt: 'A school' } } }]
+			},
+			model: altModel
+		}).container;
+
+		expect(read.querySelector('[data-testid="media-srcset"]')?.getAttribute('alt')).toBe(
+			'A school'
+		);
+
+		const decorative = render(Renderer, {
+			content: {
+				type: 'doc',
+				content: [
+					{
+						type: 'media',
+						attrs: { id: 'm', image: { src: '/a.png', alt: 'A school', decorative: true } }
+					}
+				]
+			},
+			model: altModel
+		}).container;
+		expect(decorative.querySelector('[data-testid="media-srcset"]')?.getAttribute('alt')).toBe('');
+	});
 });

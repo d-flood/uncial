@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { parseMetaDraftValues } from '../core/meta.js';
-	import type { AttributeInputs, AttributeSpec } from '../core/types.js';
+	import type { AttributeInputs, AttributeSpec, ImageChooser } from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
 	import AttributeFieldControl from './AttributeFieldControl.svelte';
 	import type { FileSource } from './fileSource.js';
@@ -14,6 +14,7 @@
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
+		imageChoosers?: Record<string, ImageChooser>;
 		fileSource?: FileSource;
 	}
 
@@ -24,6 +25,7 @@
 		attributeInputs,
 		imageSource,
 		imagePreviews,
+		imageChoosers,
 		fileSource
 	}: Props = $props();
 
@@ -70,6 +72,7 @@
 			{attributeInputs}
 			{imageSource}
 			{imagePreviews}
+			{imageChoosers}
 			{fileSource}
 		/>
 	{:else}

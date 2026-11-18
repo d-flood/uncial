@@ -7,7 +7,9 @@ import type {
 	ValidationIssue,
 	ValidationResult
 } from './types.js';
+import { attributeListFields, attributeListValueSpec, missingAlt } from './attributes.js';
 import { resolveRegistry } from './registry.js';
+import { isPlainObject } from '../shared/guards.js';
 import { validateMeta } from './meta.js';
 import { pushIssue } from './issues.js';
 import { CURRENT_DOCUMENT_VERSION } from './migrations.js';
@@ -72,6 +74,49 @@ function validateMarks(
 	});
 }
 
+// Block attribute validation does not otherwise descend into lists, but an image in one still needs alt text.
+function validateImageAlt(
+	spec: AttributeSpec<unknown>,
+	value: unknown,
+	label: string,
+	path: PMPath,
+	block: BlockDefinition,
+	issues: ValidationIssue[],
+	options?: ValidateDocumentOptions
+): void {
+	if (missingAlt(spec, value)) {
+		pushIssue(issues, options, {
+			code: 'INVALID_ATTR',
+			path,
+			message: `Image "${label}" of block "${block.id}" needs alt text or to be marked decorative`,
+			severity: 'error'
+		});
+		return;
+	}
+	if (!spec.list || !Array.isArray(value)) return;
+	const valueSpec = attributeListValueSpec(spec.list);
+	const fields = attributeListFields(spec.list);
+	value.forEach((item, index) => {
+		const at = `${label}.${index}`;
+		if (valueSpec) {
+			validateImageAlt(valueSpec, item, at, [...path, index], block, issues, options);
+			return;
+		}
+		for (const [name, fieldSpec] of fields) {
+			const fieldValue = isPlainObject(item) ? item[name] : undefined;
+			validateImageAlt(
+				fieldSpec,
+				fieldValue,
+				`${at}.${name}`,
+				[...path, index, name],
+				block,
+				issues,
+				options
+			);
+		}
+	});
+}
+
 function validateBlockAttrs(
 	node: PMNode,
 	block: BlockDefinition,
@@ -109,6 +154,8 @@ function validateBlockAttrs(
 				details: { value }
 			});
 		}
+
+		validateImageAlt(spec, value, name, [...path, 'attrs', name], block, issues, options);
 	}
 }
 

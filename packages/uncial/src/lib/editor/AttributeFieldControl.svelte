@@ -12,14 +12,17 @@
 		createAttributeListItem,
 		inferAttributeInputKind,
 		isBuiltInInputKind,
+		missingAlt,
 		normalizeAttributeOptions
 	} from '../core/attributes.js';
 	import { onDestroy } from 'svelte';
+	import { isPlainObject } from '../shared/guards.js';
 	import type {
 		AttributeInputs,
 		AttributeSpec,
 		FileValue,
 		FocalPoint,
+		ImageChooser,
 		ImageValue
 	} from '../core/types.js';
 	import type { ImagePreviews } from '../shared/imagePreviews.js';
@@ -31,6 +34,7 @@
 	import ArrowDownIcon from 'phosphor-svelte/lib/ArrowDownIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
+	import ImageChooserDialog from './ImageChooserDialog.svelte';
 	import ImagePicker from './ImagePicker.svelte';
 	import { fromWallClock, toWallClock } from './zonedDateTime.js';
 	import RichTextAttributeEditor from './RichTextAttributeEditor.svelte';
@@ -49,6 +53,8 @@
 		attributeInputs?: AttributeInputs;
 		imageSource?: ImageSource;
 		imagePreviews?: ImagePreviews;
+		/** The Content model's Image choosers, offered by image fields that name them. */
+		imageChoosers?: Record<string, ImageChooser>;
 		fileSource?: FileSource;
 	}
 
@@ -63,6 +69,7 @@
 		attributeInputs,
 		imageSource,
 		imagePreviews,
+		imageChoosers,
 		fileSource
 	}: Props = $props();
 
@@ -106,6 +113,7 @@
 
 	let fileInput = $state<HTMLInputElement>();
 	let picker = $state<ImagePicker>();
+	let chooserDialog = $state<ImageChooserDialog>();
 	let uploading = $state(false);
 	let uploadError = $state('');
 	// An image attribute whose default is not a string stores `{ src, focal? }`.
@@ -114,18 +122,64 @@
 		imageObject && value !== null && typeof value === 'object' ? (value as ImageValue) : null
 	);
 	const imageSrc = $derived(imageObject ? (imageValue?.src ?? '') : stringValue);
+	const offersMedia = $derived(spec.image?.media !== false);
+	const storesAlt = $derived(imageObject && spec.image?.alt !== false);
+	const altMissing = $derived(missingAlt(spec, value));
+	const choosers = $derived(
+		(spec.image?.choosers ?? []).flatMap((id) => imageChoosers?.[id] ?? [])
+	);
+	// A chosen value may have no src, so the chooser that stored it names its thumbnail.
+	let chosenThumbnail = $state<string>();
+	$effect(() => {
+		const chosen = imageValue && !imageSrc ? { ...imageValue } : null;
+		if (!chosen) {
+			chosenThumbnail = undefined;
+			return;
+		}
+		let live = true;
+		const thumbnailOf = async (chooser: ImageChooser) => chooser.thumbnail?.(chosen);
+		void Promise.all(choosers.map((chooser) => thumbnailOf(chooser).catch(() => undefined))).then(
+			(urls) => {
+				if (live) chosenThumbnail = urls.find(Boolean);
+			}
+		);
+		return () => (live = false);
+	});
 	const fileValue = $derived(
 		value !== null && typeof value === 'object' ? (value as FileValue) : null
 	);
 	// The registry is not reactive, but an upload registers its preview before
 	// writing the value, so the value change is what recomputes this.
 	const thumbnailSrc = $derived(
-		imageSrc ? (imagePreviews?.get(imageSrc) ?? imageSource?.thumbnail?.(imageSrc) ?? imageSrc) : ''
+		imageSrc
+			? (imagePreviews?.get(imageSrc) ?? imageSource?.thumbnail?.(imageSrc) ?? imageSrc)
+			: (chosenThumbnail ?? '')
 	);
+
+	// A replaced image keeps its alt text and decorative mark unless the new value brings its own.
+	function keepAlt(next: unknown): unknown {
+		if (!storesAlt || !imageValue || !isPlainObject(next)) return next;
+		const { alt, decorative } = imageValue;
+		return { ...(alt ? { alt } : {}), ...(decorative ? { decorative } : {}), ...next };
+	}
 
 	function setImageSrc(src: string): void {
 		if (!imageObject) return onChange(src);
-		onChange(src ? { src } : null);
+		onChange(src ? keepAlt({ src }) : null);
+	}
+
+	function setAlt(alt: string): void {
+		if (!imageValue) return;
+		const next: ImageValue = { ...imageValue, alt };
+		if (!alt) delete next.alt;
+		onChange(next);
+	}
+
+	function setDecorative(decorative: boolean): void {
+		if (!imageValue) return;
+		const next: ImageValue = { ...imageValue, decorative };
+		if (!decorative) delete next.decorative;
+		onChange(next);
 	}
 
 	function setFocal(focal: FocalPoint | undefined): void {
@@ -312,6 +366,7 @@
 								{attributeInputs}
 								{imageSource}
 								{imagePreviews}
+								{imageChoosers}
 								{fileSource}
 							/>
 						{:else}
@@ -328,6 +383,7 @@
 									{attributeInputs}
 									{imageSource}
 									{imagePreviews}
+									{imageChoosers}
 									{fileSource}
 								/>
 							{/each}
@@ -346,13 +402,38 @@
 				</button>
 			</div>
 		{:else if inputKind === 'image'}
-			{@const upload = imageSource?.upload}
-			{@const browse = imageSource?.browse}
+			{@const upload = offersMedia ? imageSource?.upload : undefined}
+			{@const browse = offersMedia ? imageSource?.browse : undefined}
 			<div class="uncial-image-field">
 				{#if imageValue && thumbnailSrc}
 					<FocalPointPicker src={thumbnailSrc} focal={imageValue.focal} onChange={setFocal} />
 				{:else if thumbnailSrc}
 					<img class="uncial-image-field__thumbnail" src={thumbnailSrc} alt="" />
+				{/if}
+				{#if storesAlt && imageValue}
+					{#if !imageValue.decorative}
+						<input
+							class="uncial-input uncial-input--sm"
+							type="text"
+							aria-label="Alt text"
+							aria-invalid={altMissing}
+							placeholder="Alt text"
+							value={imageValue.alt ?? ''}
+							oninput={(event) => setAlt(event.currentTarget.value)}
+						/>
+					{/if}
+					<label class="uncial-image-field__decorative">
+						<input
+							class="uncial-checkbox uncial-checkbox--sm"
+							type="checkbox"
+							checked={imageValue.decorative === true}
+							onchange={(event) => setDecorative(event.currentTarget.checked)}
+						/>
+						<span>Decorative, needs no alt text</span>
+					</label>
+					{#if altMissing && !error}
+						<span class="uncial-field__error">Add alt text, or mark the image decorative.</span>
+					{/if}
 				{/if}
 				<div class="uncial-image-field__actions">
 					{#if upload}
@@ -396,7 +477,24 @@
 							onPick={setImageSrc}
 						/>
 					{/if}
-					{#if imageSrc}
+					{#each choosers as chooser (chooser)}
+						<button
+							type="button"
+							class="uncial-btn uncial-btn--outline uncial-btn--sm"
+							disabled={uploading}
+							onclick={() => chooserDialog?.open(chooser)}
+						>
+							{chooser.label}
+						</button>
+					{/each}
+					{#if choosers.length}
+						<ImageChooserDialog
+							bind:this={chooserDialog}
+							{value}
+							onChoose={(next) => onChange(keepAlt(next))}
+						/>
+					{/if}
+					{#if imageSrc || imageValue}
 						<button
 							type="button"
 							class="uncial-btn uncial-btn--ghost uncial-btn--sm"

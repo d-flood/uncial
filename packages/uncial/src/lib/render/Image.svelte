@@ -62,8 +62,16 @@
 			cropped: Boolean(crop)
 		};
 	});
+	const stored = $derived(value as { alt?: unknown; decorative?: unknown } | null | undefined);
 	const altText = $derived(
-		alt ?? (name !== 'alt' && scope?.has('alt') ? String(scope.value('alt') ?? '') : '')
+		alt ??
+			(stored?.decorative === true
+				? ''
+				: typeof stored?.alt === 'string'
+					? stored.alt
+					: name !== 'alt' && scope?.has('alt')
+						? String(scope.value('alt') ?? '')
+						: '')
 	);
 </script>
 

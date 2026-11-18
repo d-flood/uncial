@@ -3,6 +3,7 @@ import {
 	attributeListFields,
 	attributeListValueSpec,
 	coerceAttributeValue,
+	missingAlt,
 	toAttributeDraftValue
 } from './attributes.js';
 import type { AttributeSpec, ValidateDocumentOptions, ValidationIssue } from './types.js';
@@ -64,6 +65,15 @@ export function validateMeta(
 				message: `Metadata field "${label}" is invalid`,
 				severity: 'error',
 				details: { value }
+			});
+		}
+
+		if (missingAlt(spec, value)) {
+			pushIssue(issues, options, {
+				code: 'INVALID_META',
+				path: valuePath,
+				message: `Image "${label}" needs alt text or to be marked decorative`,
+				severity: 'error'
 			});
 		}
 

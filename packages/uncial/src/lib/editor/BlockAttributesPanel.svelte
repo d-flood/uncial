@@ -5,7 +5,8 @@
 		AttributeInputs,
 		AttributeSpec,
 		BlockDefinition,
-		BlockRegistry
+		BlockRegistry,
+		ImageChooser
 	} from '../core/types.js';
 	import { CODE_BLOCK_ID, codeBlockAttributeTarget } from '../shared/codeBlockAttributes.js';
 	import {
@@ -36,6 +37,8 @@
 		imageSource?: ImageSource;
 		/** Where a successful upload registers its preview; see `Editor`. */
 		imagePreviews?: ImagePreviews;
+		/** The Content model's Image choosers; see `AttributeFieldControl`. */
+		imageChoosers?: Record<string, ImageChooser>;
 		/** Files for `input: 'file'` attributes and Document links. */
 		fileSource?: FileSource;
 	}
@@ -46,6 +49,7 @@
 		attributeInputs,
 		imageSource,
 		imagePreviews,
+		imageChoosers,
 		fileSource
 	}: Props = $props();
 
@@ -190,6 +194,7 @@
 					{attributeInputs}
 					{imageSource}
 					{imagePreviews}
+					{imageChoosers}
 					{fileSource}
 				/>
 			{/each}

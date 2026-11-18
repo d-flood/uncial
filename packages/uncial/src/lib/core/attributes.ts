@@ -143,6 +143,18 @@ export function inferAttributeInputKind(spec: AttributeSpec<unknown>): Attribute
 	return 'text';
 }
 
+/** Whether an image value lacks the alt text its attribute requires; a decorative image needs none. */
+export function missingAlt(spec: AttributeSpec<unknown>, value: unknown): boolean {
+	return (
+		inferAttributeInputKind(spec) === 'image' &&
+		typeof spec.default !== 'string' &&
+		spec.image?.alt !== false &&
+		isPlainObject(value) &&
+		value.decorative !== true &&
+		!(typeof value.alt === 'string' && value.alt.trim())
+	);
+}
+
 export function coerceAttributeValue<T>(spec: AttributeSpec<T>, value: unknown): T {
 	// Only `undefined`/`null` are "missing" and fall back to the default. An empty
 	// string is a real value (e.g. a text attribute cleared by the author), so it
