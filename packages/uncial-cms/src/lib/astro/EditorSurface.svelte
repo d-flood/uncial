@@ -102,9 +102,16 @@
 <div class="uncial-cms-editor-page" data-uncial-cms-runtime={UNCIAL_CMS_RUNTIME_SENTINEL}>
 	<div class="uncial-cms-chrome">
 		{#if !started}
-			<button type="button" onclick={start}>Sign in with GitHub</button>
+			<button type="button" class="uncial-btn uncial-btn--primary" onclick={start}>
+				Sign in with GitHub
+			</button>
 		{:else if site.autosaveMs === undefined && doc}
-			<button type="button" disabled={!saveEnabled} onclick={() => void controller?.save()}>
+			<button
+				type="button"
+				class="uncial-btn uncial-btn--primary"
+				disabled={!saveEnabled}
+				onclick={() => void controller?.save()}
+			>
 				Save
 			</button>
 		{/if}
@@ -124,11 +131,15 @@
 				to proceed.
 			</p>
 			<div class="uncial-cms-banner-actions">
-				<button type="button" onclick={() => controller?.downloadMyVersion()}>
+				<button type="button" class="uncial-btn" onclick={() => controller?.downloadMyVersion()}>
 					Download my version
 				</button>
-				<button type="button" onclick={() => void controller?.reloadLatest()}>Reload latest</button>
-				<button type="button" onclick={() => controller?.dismissConflict()}>Dismiss</button>
+				<button type="button" class="uncial-btn" onclick={() => void controller?.reloadLatest()}>
+					Reload latest
+				</button>
+				<button type="button" class="uncial-btn" onclick={() => controller?.dismissConflict()}>
+					Dismiss
+				</button>
 			</div>
 		</div>
 	{/if}

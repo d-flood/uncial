@@ -35,6 +35,23 @@
 	grid-template-areas: 'toolbar toolbar' 'body sidebar';
 }
 
+/* uncial-cms draws its Save bar and conflict banner outside the shell. */
+.uncial-cms-chrome,
+.uncial-cms-banner-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--uncial-space-2) var(--uncial-space-3);
+}
+
+.uncial-cms-chrome {
+	margin-bottom: var(--uncial-space-4);
+}
+
+.uncial-cms-chrome > p {
+	margin: 0;
+}
+
 .uncial-editor-body {
 	grid-area: body;
 	position: relative;

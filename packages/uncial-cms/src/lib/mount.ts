@@ -79,6 +79,7 @@ export function mountEditor(
 
 	const saveButton = document.createElement('button');
 	saveButton.type = 'button';
+	saveButton.className = 'uncial-btn uncial-btn--primary';
 	saveButton.textContent = 'Save';
 	saveButton.disabled = true;
 
@@ -101,14 +102,17 @@ export function mountEditor(
 
 	const downloadButton = document.createElement('button');
 	downloadButton.type = 'button';
+	downloadButton.className = 'uncial-btn';
 	downloadButton.textContent = 'Download my version';
 
 	const reloadButton = document.createElement('button');
 	reloadButton.type = 'button';
+	reloadButton.className = 'uncial-btn';
 	reloadButton.textContent = 'Reload latest';
 
 	const dismissButton = document.createElement('button');
 	dismissButton.type = 'button';
+	dismissButton.className = 'uncial-btn';
 	dismissButton.textContent = 'Dismiss';
 
 	const bannerActions = document.createElement('div');
